@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from 'react';
-import { FileUp } from 'lucide-react';
+import { Trash2, BarChart3 } from 'lucide-react';
 import type { Visit } from '@/types';
 import FileUploader from '@/components/file-uploader';
 import Dashboard from '@/components/dashboard';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 // Mock data to simulate processed Excel file
 const mockVisits: Visit[] = [
@@ -15,21 +16,13 @@ const mockVisits: Visit[] = [
   { id: '4', agent: 'Beatriz Peña', client: 'Almacenes Jumbo', city: 'Cali', date: new Date('2024-07-22'), activity: 'Verificación', observations: 'Chequeo de precios.' },
   { id: '5', agent: 'Carlos Ruiz', client: 'Supermercado Carulla', city: 'Medellín', date: new Date('2024-07-22'), activity: 'Visita', observations: 'Reposición de producto.' },
   { id: '6', agent: 'Ana Gomez', client: 'Olímpica', city: 'Bogotá', date: new Date('2024-07-23'), activity: 'Visita', observations: 'Negociación de espacio.' },
-  { id: '7', agent: 'David Luna', client: 'Makro', city: 'Barranquilla', date: new Date('2024-07-21'), activity: 'Impulso', observations: 'Evento de degustación.' },
-  { id: '8', agent: 'Carlos Ruiz', client: 'Supermercado La Vaquita', city: 'Medellín', date: new Date('2024-07-24'), activity: 'Verificación', observations: 'Auditoría de planograma.' },
-  { id: '9', agent: 'Ana Gomez', client: 'Tienda D1', city: 'Bogotá', date: new Date('2024-07-24'), activity: 'Visita', observations: 'Chequeo de inventario.' },
-  { id: '10', agent: 'Beatriz Peña', client: 'La 14', city: 'Cali', date: new Date('2024-07-23'), activity: 'Impulso', observations: 'Entrega de material POP.' },
-  { id: '11', agent: 'David Luna', client: 'Ara', city: 'Barranquilla', date: new Date('2024-07-23'), activity: 'Visita', observations: 'Revisión de stock.' },
-  { id: '12', agent: 'Ana Gomez', client: 'Supermercado Exito', city: 'Bogotá', date: new Date('2024-07-25'), activity: 'Verificación', observations: 'Control de precios.' },
-  { id: '13', agent: 'Carlos Ruiz', client: 'Droguería La Rebaja', city: 'Medellín', date: new Date('2024-07-25'), activity: 'Impulso', observations: 'Impulso de nueva línea.' },
-  { id: '14', agent: 'Beatriz Peña', client: 'Almacenes Jumbo', city: 'Cali', date: new Date('2024-07-25'), activity: 'Visita', observations: 'Revisión de góndola.' },
 ];
 
 export default function Home() {
   const [data, setData] = useState<Visit[] | null>(null);
 
   const handleDataProcessed = (processedData: Visit[]) => {
-    setData(processedData);
+    setData(prevData => [...(prevData || []), ...processedData]);
   };
 
   const handleReset = () => {
@@ -51,21 +44,32 @@ export default function Home() {
           </h1>
         </div>
         {data && (
-            <Button onClick={handleReset} >
-                <FileUp className="mr-2 h-4 w-4" />
-                Cargar otro archivo
+            <Button onClick={handleReset} variant="destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Limpiar Datos
             </Button>
         )}
       </header>
 
-      <main className="flex-1 p-4 md:p-6">
-        {data ? (
-          <Dashboard data={data} />
-        ) : (
-          <div className="mx-auto mt-10 max-w-4xl">
-            <FileUploader onDataProcessed={handleDataProcessed} mockData={mockVisits} />
-          </div>
-        )}
+      <main className="flex flex-col gap-6 p-4 md:p-6 lg:flex-row">
+        <div className="w-full lg:w-96 lg:shrink-0">
+          <FileUploader onDataProcessed={handleDataProcessed} mockData={mockVisits} />
+        </div>
+        <div className="flex-1">
+          {data ? (
+            <Dashboard data={data} />
+          ) : (
+            <Card className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center shadow-md">
+                <CardContent className="flex flex-col items-center gap-4 p-6">
+                    <div className="rounded-full border-8 border-primary/10 bg-primary/5 p-6">
+                        <BarChart3 className="h-16 w-16 text-primary" />
+                    </div>
+                    <h2 className="font-headline text-2xl">Esperando datos</h2>
+                    <p className="max-w-xs text-muted-foreground">Cargue uno o más archivos de Excel para visualizar el panel de control consolidado.</p>
+                </CardContent>
+            </Card>
+          )}
+        </div>
       </main>
     </div>
   );

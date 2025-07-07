@@ -55,7 +55,7 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
         const workbook = XLSX.read(data, { type: 'array', cellDates: true });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+        const json: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
         if (json.length === 0) {
           throw new Error("El archivo Excel está vacío o no tiene datos.");
@@ -69,45 +69,52 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
             throw new Error(`Faltan las columnas: ${missingHeaders.join(', ')}. Descargue la plantilla actualizada.`);
         }
 
-        const parsedData: Visit[] = json.map((row, index) => {
-          if (!row['FECHA'] || String(row['FECHA']).trim() === '') {
-            throw new Error(`Fila ${index + 2}: La columna 'FECHA' no puede estar vacía.`);
-          }
+        const initialData = json.map((row, index) => {
+            const visitDate = new Date(row['FECHA']);
+            
+            const budgetValue = row['PRESUPUESTO'];
+            let budget = Number(budgetValue);
+            if (isNaN(budget)) {
+                budget = 0; // If budget is not a valid number, treat as 0
+            }
 
-          const visitDate = new Date(row['FECHA']);
-          if (isNaN(visitDate.getTime())) {
-            throw new Error(`Fecha inválida en la fila ${index + 2}: ${row['FECHA']}. Use el formato AAAA-MM-DD.`);
-          }
-          
-          const budgetValue = row['PRESUPUESTO'];
-          const budget = (budgetValue === undefined || budgetValue === null || String(budgetValue).trim() === '') ? 0 : Number(budgetValue);
-          if(isNaN(budget)){
-            throw new Error(`Presupuesto inválido en la fila ${index + 2}: '${row['PRESUPUESTO']}'. Debe ser un número.`);
-          }
+            const getString = (value: any) => value === undefined || value === null ? '' : String(value);
 
-          const getString = (value: any) => value === undefined || value === null ? '' : String(value);
-
-          return {
-            id: `${file.name}-${Date.now()}-${index}`,
-            trade_executive: getString(row['EJECUTIVA DE TRADE']),
-            agent: getString(row['ASESOR COMERCIAL']),
-            channel: getString(row['CANAL']),
-            chain: getString(row['CADENA']),
-            pdv_detail: getString(row['DETALLE DEL PDV']),
-            activity: getString(row['ACTIVIDAD']) as Visit['activity'],
-            schedule: getString(row['HORARIO']),
-            city: getString(row['CIUDAD']),
-            zone: getString(row['ZONA']),
-            date: visitDate,
-            budget: budget,
-          };
+            return {
+                id: `${file.name}-${Date.now()}-${index}`,
+                trade_executive: getString(row['EJECUTIVA DE TRADE']),
+                agent: getString(row['ASESOR COMERCIAL']),
+                channel: getString(row['CANAL']),
+                chain: getString(row['CADENA']),
+                pdv_detail: getString(row['DETALLE DEL PDV']),
+                activity: getString(row['ACTIVIDAD']) as Visit['activity'],
+                schedule: getString(row['HORARIO']),
+                city: getString(row['CIUDAD']),
+                zone: getString(row['ZONA']),
+                date: visitDate,
+                budget: budget,
+            };
         });
 
+        const parsedData = initialData.filter(visit => {
+            // Date is essential, filter out rows where it's missing or invalid
+            return visit.date && !isNaN(visit.date.getTime());
+        });
+
+        const skippedRowCount = json.length - parsedData.length;
+        
         onDataProcessed(parsedData);
+        
+        let description = `Archivo "${file.name}" procesado con ${parsedData.length} registros.`;
+        if (skippedRowCount > 0) {
+            description += ` Se omitieron ${skippedRowCount} filas por tener una fecha inválida o ausente.`;
+        }
+
         toast({
           title: 'Éxito',
-          description: `Archivo "${file.name}" procesado con ${parsedData.length} registros.`,
+          description: description,
         });
+
       } catch (error: any) {
         console.error('Error processing file:', error);
         toast({

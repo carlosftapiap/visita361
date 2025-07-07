@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import type { Visit } from '@/types';
 
 interface ActivityCalendarProps {
@@ -14,15 +16,30 @@ interface ActivityCalendarProps {
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export default function ActivityCalendar({ data }: ActivityCalendarProps) {
+  const [currentDate, setCurrentDate] = useState(new Date());
   const agents = useMemo(() => Array.from(new Set(data.map(visit => visit.agent))), [data]);
   const [selectedAgent, setSelectedAgent] = useState(agents[0] || '');
 
+  useEffect(() => {
+    // When data is loaded or filtered, if the selected agent is no longer valid,
+    // reset to the first available agent or empty.
+    if (!agents.includes(selectedAgent)) {
+        setSelectedAgent(agents[0] || '');
+    }
+  }, [agents, selectedAgent]);
+
+  const handlePrevWeek = () => {
+    setCurrentDate(prev => addDays(prev, -7));
+  };
+
+  const handleNextWeek = () => {
+    setCurrentDate(prev => addDays(prev, 7));
+  };
+
   const weekDays = useMemo(() => {
-    // Uses the date of the first visit as the reference, or today if no data
-    const referenceDate = data.length > 0 ? data[0].date : new Date();
-    const start = startOfWeek(referenceDate, { weekStartsOn: 1 }); // Monday
+    const start = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday
     return Array.from({ length: 7 }).map((_, i) => addDays(start, i));
-  }, [data]);
+  }, [currentDate]);
 
   const agentVisits = useMemo(() => {
     return data.filter(visit => visit.agent === selectedAgent);
@@ -33,26 +50,40 @@ export default function ActivityCalendar({ data }: ActivityCalendarProps) {
     'Impulso': '--accent',
     'Verificación': '--chart-3',
   };
+  
+  const weekStart = weekDays[0];
+  const weekEnd = weekDays[6];
+  const formattedDateRange = `${capitalize(format(weekStart, 'd MMM', { locale: es }))} - ${capitalize(format(weekEnd, 'd MMM yyyy', { locale: es }))}`;
 
   return (
     <Card className="h-full shadow-lg">
       <CardHeader>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="font-headline text-xl">Calendario Semanal de Actividades</CardTitle>
-            <CardDescription>Vista de actividades por agente. Mostrando semana de referencia.</CardDescription>
+            <CardDescription>Semana del {formattedDateRange}</CardDescription>
           </div>
-          <div className="w-full sm:w-52">
-            <Select value={selectedAgent} onValueChange={setSelectedAgent}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar Agente" />
-              </SelectTrigger>
-              <SelectContent>
-                {agents.map(agent => (
-                  <SelectItem key={agent} value={agent}>{agent}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex w-full flex-col-reverse items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <div className="flex items-center justify-center gap-2">
+                <Button variant="outline" size="icon" onClick={handlePrevWeek} aria-label="Semana anterior">
+                    <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={handleNextWeek} aria-label="Semana siguiente">
+                    <ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
+            <div className="w-full sm:w-52">
+              <Select value={selectedAgent} onValueChange={setSelectedAgent} disabled={agents.length === 0}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar Agente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {agents.length > 0 ? agents.map(agent => (
+                    <SelectItem key={agent} value={agent}>{agent}</SelectItem>
+                  )) : <SelectItem value="" disabled>No hay agentes</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </CardHeader>

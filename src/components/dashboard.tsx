@@ -61,7 +61,7 @@ export default function Dashboard({ data }: DashboardProps) {
             acc[visit.activity] = (acc[visit.activity] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
-        return Object.entries(counts).map(([name, value]) => ({ name, value, fill: chartColors[Object.keys(acc).indexOf(name) % chartColors.length] })).sort((a, b) => b.value - a.value);
+        return Object.entries(counts).map(([name, value]) => ({ name, value, fill: chartColors[Object.keys(counts).indexOf(name) % chartColors.length] })).sort((a, b) => b.value - a.value);
     }, [filteredData]);
     
     const activityChartConfig = {

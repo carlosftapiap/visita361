@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react";
-import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Wallet } from "lucide-react";
+import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Wallet, Network } from "lucide-react";
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from "recharts";
 
 import type { Visit } from "@/types";
@@ -82,6 +82,20 @@ export default function Dashboard({ data }: DashboardProps) {
         visits: { label: "Visitas", color: "hsl(var(--primary))" },
     } satisfies ChartConfig;
 
+    const visitsPerChannel = useMemo(() => {
+        const counts = filteredData.reduce((acc, visit) => {
+            const channel = visit.channel || 'No especificado';
+            acc[channel] = (acc[channel] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+        return Object.entries(counts).map(([name, value], index) => ({ name, value, fill: chartColors[index % chartColors.length] })).sort((a, b) => b.value - a.value);
+    }, [filteredData]);
+
+    const channelChartConfig = {
+        value: { label: 'Canales' },
+        ...visitsPerChannel.reduce((acc, cur) => ({...acc, [cur.name]: {label: cur.name, color: cur.fill}}), {})
+    } satisfies ChartConfig;
+
 
     const handleFilterChange = (filterName: keyof typeof filters) => (value: string) => {
         setFilters(prev => ({ ...prev, [filterName]: value }));
@@ -133,8 +147,8 @@ export default function Dashboard({ data }: DashboardProps) {
                 <KpiCard title="Presupuesto Total" value={new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(kpis.totalBudget)} icon={Wallet} description="Suma de presupuestos" />
             </div>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-                <Card className="shadow-lg lg:col-span-3">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-6">
+                <Card className="shadow-lg lg:col-span-6">
                     <CardHeader>
                         <CardTitle className="font-headline text-xl flex items-center gap-2"><BarChart2 className="text-accent"/>Visitas por Agente</CardTitle>
                     </CardHeader>
@@ -149,7 +163,7 @@ export default function Dashboard({ data }: DashboardProps) {
                         </ChartContainer>
                     </CardContent>
                 </Card>
-                <Card className="shadow-lg lg:col-span-2">
+                <Card className="shadow-lg lg:col-span-3">
                     <CardHeader>
                         <CardTitle className="font-headline text-xl flex items-center gap-2"><PieIcon className="text-accent"/>Distribución de Actividades</CardTitle>
                     </CardHeader>
@@ -159,6 +173,21 @@ export default function Dashboard({ data }: DashboardProps) {
                                 <Tooltip content={<ChartTooltipContent hideLabel nameKey="name"/>} />
                                 <Pie data={activityCounts} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
                                   {activityCounts.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                                </Pie>
+                            </PieChart>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
+                 <Card className="shadow-lg lg:col-span-3">
+                    <CardHeader>
+                        <CardTitle className="font-headline text-xl flex items-center gap-2"><Network className="text-accent"/>Visitas por Canal</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                         <ChartContainer config={channelChartConfig} className="h-64 w-full">
+                            <PieChart accessibilityLayer>
+                                <Tooltip content={<ChartTooltipContent hideLabel nameKey="name"/>} />
+                                <Pie data={visitsPerChannel} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                                  {visitsPerChannel.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
                                 </Pie>
                             </PieChart>
                         </ChartContainer>

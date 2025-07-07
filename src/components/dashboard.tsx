@@ -83,8 +83,16 @@ export default function Dashboard({ data }: DashboardProps) {
         }, {} as Record<string, number>);
         return Object.entries(counts).map(([name, value]) => ({ name, visits: value })).sort((a, b) => b.visits - a.visits);
     }, [filteredData]);
+    
+    const visitsPerTradeExecutive = useMemo(() => {
+        const counts = filteredData.reduce((acc, visit) => {
+            acc[visit.trade_executive] = (acc[visit.trade_executive] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+        return Object.entries(counts).map(([name, value]) => ({ name, visits: value })).sort((a, b) => b.visits - a.visits);
+    }, [filteredData]);
 
-    const agentChartConfig = {
+    const visitsChartConfig = {
         visits: { label: "Visitas", color: "hsl(var(--primary))" },
     } satisfies ChartConfig;
 
@@ -173,12 +181,27 @@ export default function Dashboard({ data }: DashboardProps) {
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-6">
-                <Card className="shadow-lg lg:col-span-6">
+                 <Card className="shadow-lg lg:col-span-3">
+                    <CardHeader>
+                        <CardTitle className="font-headline text-xl flex items-center gap-2"><BarChart2 className="text-accent"/>Visitas por Ejecutiva de Trade</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ChartContainer config={visitsChartConfig} className="h-[300px] w-full">
+                            <BarChart accessibilityLayer data={visitsPerTradeExecutive} margin={{ top: 20, right: 20, left: -10, bottom: 5 }}>
+                                <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
+                                <YAxis />
+                                <Tooltip cursor={{ fill: 'hsl(var(--accent) / 0.1)' }} content={<ChartTooltipContent />} />
+                                <Bar dataKey="visits" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
+                <Card className="shadow-lg lg:col-span-3">
                     <CardHeader>
                         <CardTitle className="font-headline text-xl flex items-center gap-2"><BarChart2 className="text-accent"/>Visitas por Asesor Comercial</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <ChartContainer config={agentChartConfig} className="h-[300px] w-full">
+                        <ChartContainer config={visitsChartConfig} className="h-[300px] w-full">
                             <BarChart accessibilityLayer data={visitsPerAgent} margin={{ top: 20, right: 20, left: -10, bottom: 5 }}>
                                 <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
                                 <YAxis />

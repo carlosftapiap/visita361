@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react";
-import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon } from "lucide-react";
+import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Wallet } from "lucide-react";
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from "recharts";
 
 import type { Visit } from "@/types";
@@ -53,7 +53,8 @@ export default function Dashboard({ data }: DashboardProps) {
         const uniqueAgents = new Set(filteredData.map(v => v.agent)).size;
         const uniqueClients = new Set(filteredData.map(v => v.client)).size;
         const workedDays = new Set(filteredData.map(v => v.date.toDateString())).size;
-        return { totalVisits, uniqueAgents, uniqueClients, workedDays };
+        const totalBudget = filteredData.reduce((sum, v) => sum + v.budget, 0);
+        return { totalVisits, uniqueAgents, uniqueClients, workedDays, totalBudget };
     }, [filteredData]);
 
     const activityCounts = useMemo(() => {
@@ -61,7 +62,7 @@ export default function Dashboard({ data }: DashboardProps) {
             acc[visit.activity] = (acc[visit.activity] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
-        return Object.entries(counts).map(([name, value]) => ({ name, value, fill: chartColors[Object.keys(counts).indexOf(name) % chartColors.length] })).sort((a, b) => b.value - a.value);
+        return Object.entries(counts).map(([name, value], index) => ({ name, value, fill: chartColors[index % chartColors.length] })).sort((a, b) => b.value - a.value);
     }, [filteredData]);
     
     const activityChartConfig = {
@@ -124,11 +125,12 @@ export default function Dashboard({ data }: DashboardProps) {
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-5">
                 <KpiCard title="Total de Actividades" value={kpis.totalVisits} icon={Activity} description="Total de registros en el periodo" />
                 <KpiCard title="Agentes Activos" value={kpis.uniqueAgents} icon={Users} description="Agentes con actividad registrada" />
                 <KpiCard title="Clientes Únicos" value={kpis.uniqueClients} icon={Building} description="Clientes distintos visitados" />
                 <KpiCard title="Días Trabajados" value={kpis.workedDays} icon={CalendarDays} description="Días con al menos una actividad" />
+                <KpiCard title="Presupuesto Total" value={new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(kpis.totalBudget)} icon={Wallet} description="Suma de presupuestos" />
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
@@ -178,9 +180,13 @@ export default function Dashboard({ data }: DashboardProps) {
                                 <TableRow>
                                     <TableHead>Agente</TableHead>
                                     <TableHead>Cliente</TableHead>
+                                    <TableHead>Detalle PDV</TableHead>
                                     <TableHead>Ciudad</TableHead>
                                     <TableHead>Fecha</TableHead>
                                     <TableHead>Actividad</TableHead>
+                                    <TableHead>Horario</TableHead>
+                                    <TableHead>Canal</TableHead>
+                                    <TableHead>Presupuesto</TableHead>
                                     <TableHead>Observaciones</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -189,14 +195,18 @@ export default function Dashboard({ data }: DashboardProps) {
                                     <TableRow key={visit.id}>
                                         <TableCell className="font-medium">{visit.agent}</TableCell>
                                         <TableCell>{visit.client}</TableCell>
+                                        <TableCell>{visit.pdv_detail}</TableCell>
                                         <TableCell>{visit.city}</TableCell>
                                         <TableCell>{visit.date.toLocaleDateString('es-CO')}</TableCell>
                                         <TableCell>{visit.activity}</TableCell>
+                                        <TableCell>{visit.schedule}</TableCell>
+                                        <TableCell>{visit.channel}</TableCell>
+                                        <TableCell className="text-right">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(visit.budget)}</TableCell>
                                         <TableCell className="max-w-xs truncate">{visit.observations}</TableCell>
                                     </TableRow>
                                 )) : (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-24 text-center">No hay datos para mostrar con los filtros seleccionados.</TableCell>
+                                        <TableCell colSpan={10} className="h-24 text-center">No hay datos para mostrar con los filtros seleccionados.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

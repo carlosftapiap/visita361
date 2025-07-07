@@ -27,6 +27,7 @@ const chartColors = [
 
 export default function Dashboard({ data }: DashboardProps) {
     const [filters, setFilters] = useState({
+        trade_executive: 'all',
         agent: 'all',
         city: 'all',
         activity: 'all',
@@ -34,20 +35,22 @@ export default function Dashboard({ data }: DashboardProps) {
     });
 
     const filterOptions = useMemo(() => {
+        const trade_executives = ['all', ...Array.from(new Set(data.map(v => v.trade_executive)))];
         const agents = ['all', ...Array.from(new Set(data.map(v => v.agent)))];
         const cities = ['all', ...Array.from(new Set(data.map(v => v.city)))];
         const activities = ['all', ...Array.from(new Set(data.map(v => v.activity)))];
         const zones = ['all', ...Array.from(new Set(data.map(v => v.zone)))];
-        return { agents, cities, activities, zones };
+        return { trade_executives, agents, cities, activities, zones };
     }, [data]);
 
     const filteredData = useMemo(() => {
         return data.filter(visit => {
+            const tradeExecutiveMatch = filters.trade_executive === 'all' || visit.trade_executive === filters.trade_executive;
             const agentMatch = filters.agent === 'all' || visit.agent === filters.agent;
             const cityMatch = filters.city === 'all' || visit.city === filters.city;
             const activityMatch = filters.activity === 'all' || visit.activity === filters.activity;
             const zoneMatch = filters.zone === 'all' || visit.zone === filters.zone;
-            return agentMatch && cityMatch && activityMatch && zoneMatch;
+            return tradeExecutiveMatch && agentMatch && cityMatch && activityMatch && zoneMatch;
         });
     }, [data, filters]);
 
@@ -112,7 +115,14 @@ export default function Dashboard({ data }: DashboardProps) {
                     <CardDescription>Refine los datos para un análisis más detallado. Puede exportar los resultados filtrados.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                    <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">Ejecutiva de Trade</label>
+                            <Select value={filters.trade_executive} onValueChange={handleFilterChange('trade_executive')}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>{filterOptions.trade_executives.map(exec => (<SelectItem key={exec} value={exec}>{exec === 'all' ? 'Todas las ejecutivas' : exec}</SelectItem>))}</SelectContent>
+                            </Select>
+                        </div>
                         <div className="grid gap-2">
                             <label className="text-sm font-medium">Asesor Comercial</label>
                             <Select value={filters.agent} onValueChange={handleFilterChange('agent')}>

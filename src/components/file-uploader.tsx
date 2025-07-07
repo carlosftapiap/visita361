@@ -12,6 +12,20 @@ interface FileUploaderProps {
   onDataProcessed: (data: Visit[]) => void;
 }
 
+const spanishHeaders = [
+    'NOMBRE DE LA EJECUTIVA', 
+    'DETALLE DE CARGO DE LA EJECUTIVA', 
+    'ASESOR COMERCIAL', 
+    'CANAL', 
+    'CADENA', 
+    'DETALLE DEL PDV', 
+    'ACTIVIDAD', 
+    'HORARIO', 
+    'CIUDAD', 
+    'ZONA', 
+    'FECHA'
+];
+
 export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -47,42 +61,39 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
           throw new Error("El archivo Excel está vacío o no tiene datos.");
         }
 
-        const requiredHeaders = ['agent', 'client', 'pdv_detail', 'city', 'date', 'activity', 'schedule', 'channel', 'budget'];
         const firstRow = json[0] || {};
         const headers = Object.keys(firstRow);
-        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+        const missingHeaders = spanishHeaders.filter(h => !headers.includes(h));
 
         if (missingHeaders.length > 0) {
             throw new Error(`Faltan las columnas: ${missingHeaders.join(', ')}. Descargue la plantilla actualizada.`);
         }
 
         const parsedData: Visit[] = json.map((row, index) => {
-          if (!row.agent || !row.client || !row.pdv_detail || !row.city || !row.date || !row.activity || !row.schedule || !row.channel || row.budget === undefined) {
-            throw new Error(`Fila ${index + 2} incompleta. Todos los campos son obligatorios excepto las observaciones.`);
+          for (const header of spanishHeaders) {
+            if (row[header] === undefined || row[header] === null || String(row[header]).trim() === '') {
+                 throw new Error(`Fila ${index + 2}: La columna '${header}' no puede estar vacía.`);
+            }
           }
 
-          const visitDate = new Date(row.date);
+          const visitDate = new Date(row['FECHA']);
           if (isNaN(visitDate.getTime())) {
-            throw new Error(`Fecha inválida en la fila ${index + 2}: ${row.date}. Use el formato AAAA-MM-DD.`);
+            throw new Error(`Fecha inválida en la fila ${index + 2}: ${row['FECHA']}. Use el formato AAAA-MM-DD.`);
           }
           
-          const budget = Number(row.budget);
-          if (isNaN(budget)) {
-            throw new Error(`Presupuesto inválido en la fila ${index + 2}: ${row.budget}. Debe ser un número.`);
-          }
-
           return {
             id: `${file.name}-${Date.now()}-${index}`,
-            agent: String(row.agent),
-            client: String(row.client),
-            pdv_detail: String(row.pdv_detail),
-            city: String(row.city),
+            executive_name: String(row['NOMBRE DE LA EJECUTIVA']),
+            executive_role: String(row['DETALLE DE CARGO DE LA EJECUTIVA']),
+            agent: String(row['ASESOR COMERCIAL']),
+            channel: String(row['CANAL']),
+            chain: String(row['CADENA']),
+            pdv_detail: String(row['DETALLE DEL PDV']),
+            activity: row['ACTIVIDAD'] as Visit['activity'],
+            schedule: String(row['HORARIO']),
+            city: String(row['CIUDAD']),
+            zone: String(row['ZONA']),
             date: visitDate,
-            activity: row.activity as Visit['activity'],
-            schedule: String(row.schedule),
-            channel: String(row.channel),
-            budget: budget,
-            observations: String(row.observations || ''),
           };
         });
 
@@ -126,20 +137,21 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = [['agent', 'client', 'pdv_detail', 'city', 'date', 'activity', 'schedule', 'channel', 'budget', 'observations']];
-    const exampleRow = [['Ana Gomez', 'Supermercado Exito', 'Exito Calle 80', 'Bogotá', '2024-07-20', 'Visita', 'AM', 'Moderno', 150000, 'Verificación de stock. (Valores para activity: Visita, Impulso, Verificación)']];
+    const headers = [spanishHeaders];
+    const exampleRow = [['Luisa Perez', 'Supervisora de Cuentas', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20']];
     const ws = XLSX.utils.aoa_to_sheet([...headers, ...exampleRow]);
     ws['!cols'] = [
-        { wch: 20 }, // agent
-        { wch: 25 }, // client
-        { wch: 25 }, // pdv_detail
-        { wch: 15 }, // city
-        { wch: 15 }, // date
-        { wch: 15 }, // activity
-        { wch: 10 }, // schedule
-        { wch: 15 }, // channel
-        { wch: 15 }, // budget
-        { wch: 50 }, // observations
+        { wch: 25 }, // NOMBRE DE LA EJECUTIVA
+        { wch: 30 }, // DETALLE DE CARGO DE LA EJECUTIVA
+        { wch: 20 }, // ASESOR COMERCIAL
+        { wch: 15 }, // CANAL
+        { wch: 20 }, // CADENA
+        { wch: 25 }, // DETALLE DEL PDV
+        { wch: 15 }, // ACTIVIDAD
+        { wch: 10 }, // HORARIO
+        { wch: 15 }, // CIUDAD
+        { wch: 15 }, // ZONA
+        { wch: 15 }, // FECHA
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Datos de Visitas');

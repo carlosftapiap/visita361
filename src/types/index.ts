@@ -1,13 +1,14 @@
 export interface Visit {
   id: string;
+  executive_name: string;
+  executive_role: string;
   agent: string;
-  client: string;
+  channel: string;
+  chain: string;
   pdv_detail: string;
-  city: string;
-  date: Date;
   activity: 'Visita' | 'Impulso' | 'Verificación';
   schedule: string;
-  channel: string;
-  budget: number;
-  observations: string;
+  city: string;
+  zone: string;
+  date: Date;
 }

@@ -103,7 +103,7 @@ export default function ActivityCalendar({ data }: ActivityCalendarProps) {
                       style={{ borderLeft: `4px solid hsl(var(${activityColors[visit.activity] || '--muted'}))` }}
                     >
                        <p className="font-semibold text-card-foreground">{visit.activity}</p>
-                       <p className="truncate text-muted-foreground">{visit.client}</p>
+                       <p className="truncate text-muted-foreground">{visit.chain}</p>
                     </div>
                   )) : (
                     <div className="flex h-full items-center justify-center text-sm text-muted-foreground/50">

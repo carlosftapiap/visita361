@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react";
-import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Wallet, Network } from "lucide-react";
+import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network } from "lucide-react";
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from "recharts";
 
 import type { Visit } from "@/types";
@@ -30,13 +30,15 @@ export default function Dashboard({ data }: DashboardProps) {
         agent: 'all',
         city: 'all',
         activity: 'all',
+        zone: 'all',
     });
 
     const filterOptions = useMemo(() => {
         const agents = ['all', ...Array.from(new Set(data.map(v => v.agent)))];
         const cities = ['all', ...Array.from(new Set(data.map(v => v.city)))];
         const activities = ['all', ...Array.from(new Set(data.map(v => v.activity)))];
-        return { agents, cities, activities };
+        const zones = ['all', ...Array.from(new Set(data.map(v => v.zone)))];
+        return { agents, cities, activities, zones };
     }, [data]);
 
     const filteredData = useMemo(() => {
@@ -44,17 +46,17 @@ export default function Dashboard({ data }: DashboardProps) {
             const agentMatch = filters.agent === 'all' || visit.agent === filters.agent;
             const cityMatch = filters.city === 'all' || visit.city === filters.city;
             const activityMatch = filters.activity === 'all' || visit.activity === filters.activity;
-            return agentMatch && cityMatch && activityMatch;
+            const zoneMatch = filters.zone === 'all' || visit.zone === filters.zone;
+            return agentMatch && cityMatch && activityMatch && zoneMatch;
         });
     }, [data, filters]);
 
     const kpis = useMemo(() => {
         const totalVisits = filteredData.length;
         const uniqueAgents = new Set(filteredData.map(v => v.agent)).size;
-        const uniqueClients = new Set(filteredData.map(v => v.client)).size;
+        const uniqueChains = new Set(filteredData.map(v => v.chain)).size;
         const workedDays = new Set(filteredData.map(v => v.date.toDateString())).size;
-        const totalBudget = filteredData.reduce((sum, v) => sum + v.budget, 0);
-        return { totalVisits, uniqueAgents, uniqueClients, workedDays, totalBudget };
+        return { totalVisits, uniqueAgents, uniqueChains, workedDays };
     }, [filteredData]);
 
     const activityCounts = useMemo(() => {
@@ -109,12 +111,12 @@ export default function Dashboard({ data }: DashboardProps) {
                     <CardDescription>Refine los datos para un análisis más detallado. Puede exportar los resultados filtrados.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                    <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <div className="grid gap-2">
-                            <label className="text-sm font-medium">Agente</label>
+                            <label className="text-sm font-medium">Asesor Comercial</label>
                             <Select value={filters.agent} onValueChange={handleFilterChange('agent')}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>{filterOptions.agents.map(agent => (<SelectItem key={agent} value={agent}>{agent === 'all' ? 'Todos los agentes' : agent}</SelectItem>))}</SelectContent>
+                                <SelectContent>{filterOptions.agents.map(agent => (<SelectItem key={agent} value={agent}>{agent === 'all' ? 'Todos los asesores' : agent}</SelectItem>))}</SelectContent>
                             </Select>
                         </div>
                         <div className="grid gap-2">
@@ -122,6 +124,13 @@ export default function Dashboard({ data }: DashboardProps) {
                             <Select value={filters.city} onValueChange={handleFilterChange('city')}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>{filterOptions.cities.map(city => (<SelectItem key={city} value={city}>{city === 'all' ? 'Todas las ciudades' : city}</SelectItem>))}</SelectContent>
+                            </Select>
+                        </div>
+                         <div className="grid gap-2">
+                             <label className="text-sm font-medium">Zona</label>
+                            <Select value={filters.zone} onValueChange={handleFilterChange('zone')}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>{filterOptions.zones.map(zone => (<SelectItem key={zone} value={zone}>{zone === 'all' ? 'Todas las zonas' : zone}</SelectItem>))}</SelectContent>
                             </Select>
                         </div>
                         <div className="grid gap-2">
@@ -139,18 +148,17 @@ export default function Dashboard({ data }: DashboardProps) {
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-5">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <KpiCard title="Total de Actividades" value={kpis.totalVisits} icon={Activity} description="Total de registros en el periodo" />
-                <KpiCard title="Agentes Activos" value={kpis.uniqueAgents} icon={Users} description="Agentes con actividad registrada" />
-                <KpiCard title="Clientes Únicos" value={kpis.uniqueClients} icon={Building} description="Clientes distintos visitados" />
+                <KpiCard title="Asesores Activos" value={kpis.uniqueAgents} icon={Users} description="Asesores con actividad registrada" />
+                <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
                 <KpiCard title="Días Trabajados" value={kpis.workedDays} icon={CalendarDays} description="Días con al menos una actividad" />
-                <KpiCard title="Presupuesto Total" value={new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(kpis.totalBudget)} icon={Wallet} description="Suma de presupuestos" />
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-6">
                 <Card className="shadow-lg lg:col-span-6">
                     <CardHeader>
-                        <CardTitle className="font-headline text-xl flex items-center gap-2"><BarChart2 className="text-accent"/>Visitas por Agente</CardTitle>
+                        <CardTitle className="font-headline text-xl flex items-center gap-2"><BarChart2 className="text-accent"/>Visitas por Asesor Comercial</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ChartContainer config={agentChartConfig} className="h-[300px] w-full">
@@ -209,35 +217,37 @@ export default function Dashboard({ data }: DashboardProps) {
                         <Table>
                             <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
                                 <TableRow>
-                                    <TableHead>Agente</TableHead>
-                                    <TableHead>Cliente</TableHead>
+                                    <TableHead>Fecha</TableHead>
+                                    <TableHead>Asesor</TableHead>
+                                    <TableHead>Cadena</TableHead>
                                     <TableHead>Detalle PDV</TableHead>
                                     <TableHead>Ciudad</TableHead>
-                                    <TableHead>Fecha</TableHead>
+                                    <TableHead>Zona</TableHead>
+                                    <TableHead>Canal</TableHead>
                                     <TableHead>Actividad</TableHead>
                                     <TableHead>Horario</TableHead>
-                                    <TableHead>Canal</TableHead>
-                                    <TableHead>Presupuesto</TableHead>
-                                    <TableHead>Observaciones</TableHead>
+                                    <TableHead>Ejecutiva</TableHead>
+                                    <TableHead>Cargo Ejecutiva</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {filteredData.length > 0 ? filteredData.map(visit => (
                                     <TableRow key={visit.id}>
+                                        <TableCell>{visit.date.toLocaleDateString('es-CO')}</TableCell>
                                         <TableCell className="font-medium">{visit.agent}</TableCell>
-                                        <TableCell>{visit.client}</TableCell>
+                                        <TableCell>{visit.chain}</TableCell>
                                         <TableCell>{visit.pdv_detail}</TableCell>
                                         <TableCell>{visit.city}</TableCell>
-                                        <TableCell>{visit.date.toLocaleDateString('es-CO')}</TableCell>
+                                        <TableCell>{visit.zone}</TableCell>
+                                        <TableCell>{visit.channel}</TableCell>
                                         <TableCell>{visit.activity}</TableCell>
                                         <TableCell>{visit.schedule}</TableCell>
-                                        <TableCell>{visit.channel}</TableCell>
-                                        <TableCell className="text-right">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(visit.budget)}</TableCell>
-                                        <TableCell className="max-w-xs truncate">{visit.observations}</TableCell>
+                                        <TableCell>{visit.executive_name}</TableCell>
+                                        <TableCell>{visit.executive_role}</TableCell>
                                     </TableRow>
                                 )) : (
                                     <TableRow>
-                                        <TableCell colSpan={10} className="h-24 text-center">No hay datos para mostrar con los filtros seleccionados.</TableCell>
+                                        <TableCell colSpan={11} className="h-24 text-center">No hay datos para mostrar con los filtros seleccionados.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

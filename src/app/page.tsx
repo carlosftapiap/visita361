@@ -8,16 +8,6 @@ import Dashboard from '@/components/dashboard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
-// Mock data to simulate processed Excel file
-const mockVisits: Visit[] = [
-  { id: '1', agent: 'Ana Gomez', client: 'Supermercado Exito', city: 'Bogotá', date: new Date('2024-07-20'), activity: 'Visita', observations: 'Verificación de stock.' },
-  { id: '2', agent: 'Ana Gomez', client: 'Tienda La Esquina', city: 'Bogotá', date: new Date('2024-07-21'), activity: 'Impulso', observations: 'Promoción nuevo producto.' },
-  { id: '3', agent: 'Carlos Ruiz', client: 'Droguería La Rebaja', city: 'Medellín', date: new Date('2024-07-20'), activity: 'Visita', observations: 'Revisión de exhibición.' },
-  { id: '4', agent: 'Beatriz Peña', client: 'Almacenes Jumbo', city: 'Cali', date: new Date('2024-07-22'), activity: 'Verificación', observations: 'Chequeo de precios.' },
-  { id: '5', agent: 'Carlos Ruiz', client: 'Supermercado Carulla', city: 'Medellín', date: new Date('2024-07-22'), activity: 'Visita', observations: 'Reposición de producto.' },
-  { id: '6', agent: 'Ana Gomez', client: 'Olímpica', city: 'Bogotá', date: new Date('2024-07-23'), activity: 'Visita', observations: 'Negociación de espacio.' },
-];
-
 export default function Home() {
   const [data, setData] = useState<Visit[] | null>(null);
 
@@ -53,7 +43,7 @@ export default function Home() {
 
       <main className="flex flex-col gap-6 p-4 md:p-6 lg:flex-row">
         <div className="w-full lg:w-96 lg:shrink-0">
-          <FileUploader onDataProcessed={handleDataProcessed} mockData={mockVisits} />
+          <FileUploader onDataProcessed={handleDataProcessed} />
         </div>
         <div className="flex-1">
           {data ? (

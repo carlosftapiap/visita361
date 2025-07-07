@@ -10,10 +10,9 @@ import * as XLSX from 'xlsx';
 
 interface FileUploaderProps {
   onDataProcessed: (data: Visit[]) => void;
-  mockData: Visit[];
 }
 
-export default function FileUploader({ onDataProcessed, mockData }: FileUploaderProps) {
+export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -21,34 +20,96 @@ export default function FileUploader({ onDataProcessed, mockData }: FileUploader
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-        toast({
-            variant: "destructive",
-            title: "Archivo no válido",
-            description: "Por favor, seleccione un archivo Excel (.xlsx o .xls).",
-        });
-        return;
-      }
+    if (!file) return;
 
-      setIsUploading(true);
-      setFileName(file.name);
-      // In a real app, you would parse the file. Here we simulate it.
-      // The unique ID generation is crucial for data consolidation.
-      setTimeout(() => {
-        const processedWithUniqueIds = mockData.map((visit, index) => ({
-          ...visit,
-          id: `${file.name}-${Date.now()}-${index}`,
-        }));
-        onDataProcessed(processedWithUniqueIds);
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      toast({
+        variant: 'destructive',
+        title: 'Archivo no válido',
+        description: 'Por favor, seleccione un archivo Excel (.xlsx o .xls).',
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    setFileName(file.name);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+        if (json.length === 0) {
+          throw new Error("El archivo Excel está vacío o no tiene datos.");
+        }
+
+        const requiredHeaders = ['agent', 'client', 'city', 'date', 'activity', 'observations'];
+        const firstRow = json[0] || {};
+        const headers = Object.keys(firstRow);
+        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+
+        if (missingHeaders.length > 0) {
+            throw new Error(`Faltan las columnas: ${missingHeaders.join(', ')}. Descargue la plantilla.`);
+        }
+
+        const parsedData: Visit[] = json.map((row, index) => {
+          if (!row.agent || !row.client || !row.city || !row.date || !row.activity) {
+            throw new Error(`Fila ${index + 2} incompleta. Todos los campos son obligatorios excepto las observaciones.`);
+          }
+
+          const visitDate = new Date(row.date);
+          if (isNaN(visitDate.getTime())) {
+            throw new Error(`Fecha inválida en la fila ${index + 2}: ${row.date}. Use el formato AAAA-MM-DD.`);
+          }
+
+          return {
+            id: `${file.name}-${Date.now()}-${index}`,
+            agent: String(row.agent),
+            client: String(row.client),
+            city: String(row.city),
+            date: visitDate,
+            activity: row.activity as Visit['activity'],
+            observations: String(row.observations || ''),
+          };
+        });
+
+        onDataProcessed(parsedData);
+        toast({
+          title: 'Éxito',
+          description: `Archivo "${file.name}" procesado con ${parsedData.length} registros.`,
+        });
+      } catch (error: any) {
+        console.error('Error processing file:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error al procesar el archivo',
+          description: error.message || 'Asegúrese de que el formato del archivo sea correcto.',
+        });
+      } finally {
         setIsUploading(false);
         setFileName(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
+    };
+    
+    reader.onerror = (error) => {
+        console.error("FileReader error:", error);
         toast({
-            title: "Éxito",
-            description: `Archivo "${file.name}" procesado y añadido al panel.`,
+            variant: "destructive",
+            title: "Error de lectura",
+            description: "No se pudo leer el archivo.",
         });
-      }, 2000); // Simulating a 2-second processing time
-    }
+        setIsUploading(false);
+        setFileName(null);
+    };
+
+    reader.readAsArrayBuffer(file);
   };
 
   const handleUploadClick = () => {
@@ -59,7 +120,6 @@ export default function FileUploader({ onDataProcessed, mockData }: FileUploader
     const headers = [['agent', 'client', 'city', 'date', 'activity', 'observations']];
     const exampleRow = [['Ana Gomez', 'Supermercado Exito', 'Bogotá', '2024-07-20', 'Visita', 'Verificación de stock. (Valores para activity: Visita, Impulso, Verificación)']];
     const ws = XLSX.utils.aoa_to_sheet([...headers, ...exampleRow]);
-    // Set column widths
     ws['!cols'] = [
         { wch: 20 }, // agent
         { wch: 25 }, // client

@@ -28,14 +28,11 @@ export default function ActivityCalendar({ data }: ActivityCalendarProps) {
     return data.filter(visit => visit.agent === selectedAgent);
   }, [data, selectedAgent]);
 
-  const getActivityColorVar = (activity: Visit['activity']) => {
-    switch (activity) {
-      case 'Visita': return 'hsl(var(--chart-1))';
-      case 'Impulso': return 'hsl(var(--chart-2))';
-      case 'Verificación': return 'hsl(var(--chart-4))';
-      default: return 'hsl(var(--muted))';
-    }
-  }
+  const activityColors: Record<string, string> = {
+    'Visita': '--primary',
+    'Impulso': '--accent',
+    'Verificación': '--chart-3',
+  };
 
   return (
     <Card className="h-full shadow-lg">
@@ -64,17 +61,21 @@ export default function ActivityCalendar({ data }: ActivityCalendarProps) {
           {weekDays.map(day => {
             const dayVisits = agentVisits.filter(visit => isSameDay(visit.date, day));
             return (
-              <div key={day.toISOString()} className="flex min-h-32 flex-col rounded-lg border bg-card p-2">
-                <div className="text-center font-bold">{capitalize(format(day, 'eee', { locale: es }))}</div>
-                <div className="text-center text-sm text-muted-foreground">{format(day, 'd')}</div>
-                <div className="mt-2 flex-grow space-y-1">
+              <div key={day.toISOString()} className="flex min-h-36 flex-col rounded-lg border bg-background p-2">
+                <div className="text-center text-sm font-semibold">{capitalize(format(day, 'eee', { locale: es }))}</div>
+                <div className="text-center text-xs text-muted-foreground">{format(day, 'd')}</div>
+                <div className="mt-2 flex-grow space-y-1.5">
                   {dayVisits.length > 0 ? dayVisits.map(visit => (
-                    <div key={visit.id} className="cursor-pointer rounded p-1.5 text-xs text-primary-foreground shadow" style={{ backgroundColor: getActivityColorVar(visit.activity)}}>
-                       <p className="font-semibold">{visit.activity}</p>
-                       <p className="truncate">{visit.client}</p>
+                    <div
+                      key={visit.id}
+                      className="cursor-pointer rounded-md bg-card p-2 text-xs shadow-sm"
+                      style={{ borderLeft: `4px solid hsl(var(${activityColors[visit.activity] || '--muted'}))` }}
+                    >
+                       <p className="font-semibold text-card-foreground">{visit.activity}</p>
+                       <p className="truncate text-muted-foreground">{visit.client}</p>
                     </div>
                   )) : (
-                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground/50">
                       -
                     </div>
                   )}

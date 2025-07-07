@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChartConfig, ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltipContent } from "@/components/ui/chart";
 import KpiCard from "./kpi-card";
 import ActivityCalendar from "./activity-calendar";
 
@@ -153,7 +153,7 @@ export default function Dashboard({ data }: DashboardProps) {
                         <CardTitle className="font-headline text-xl flex items-center gap-2"><BarChart2 className="text-accent"/>Visitas por Agente</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <ChartContainer config={agentChartConfig} className="h-64 w-full">
+                        <ChartContainer config={agentChartConfig} className="h-[300px] w-full">
                             <BarChart accessibilityLayer data={visitsPerAgent} margin={{ top: 20, right: 20, left: -10, bottom: 5 }}>
                                 <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
                                 <YAxis />
@@ -168,12 +168,13 @@ export default function Dashboard({ data }: DashboardProps) {
                         <CardTitle className="font-headline text-xl flex items-center gap-2"><PieIcon className="text-accent"/>Distribución de Actividades</CardTitle>
                     </CardHeader>
                     <CardContent>
-                         <ChartContainer config={activityChartConfig} className="h-64 w-full">
+                         <ChartContainer config={activityChartConfig} className="h-[300px] w-full">
                             <PieChart accessibilityLayer>
                                 <Tooltip content={<ChartTooltipContent hideLabel nameKey="name"/>} />
-                                <Pie data={activityCounts} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                                <Pie data={activityCounts} dataKey="value" nameKey="name" cx="50%" cy="50%">
                                   {activityCounts.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
                                 </Pie>
+                                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
                             </PieChart>
                         </ChartContainer>
                     </CardContent>
@@ -183,12 +184,13 @@ export default function Dashboard({ data }: DashboardProps) {
                         <CardTitle className="font-headline text-xl flex items-center gap-2"><Network className="text-accent"/>Visitas por Canal</CardTitle>
                     </CardHeader>
                     <CardContent>
-                         <ChartContainer config={channelChartConfig} className="h-64 w-full">
+                         <ChartContainer config={channelChartConfig} className="h-[300px] w-full">
                             <PieChart accessibilityLayer>
                                 <Tooltip content={<ChartTooltipContent hideLabel nameKey="name"/>} />
-                                <Pie data={visitsPerChannel} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                                <Pie data={visitsPerChannel} dataKey="value" nameKey="name" cx="50%" cy="50%">
                                   {visitsPerChannel.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
                                 </Pie>
+                                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
                             </PieChart>
                         </ChartContainer>
                     </CardContent>

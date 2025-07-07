@@ -11,4 +11,5 @@ export interface Visit {
   city: string;
   zone: string;
   date: Date;
+  budget: number;
 }

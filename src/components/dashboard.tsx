@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react";
-import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network } from "lucide-react";
+import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign } from "lucide-react";
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from "recharts";
 
 import type { Visit } from "@/types";
@@ -56,7 +56,8 @@ export default function Dashboard({ data }: DashboardProps) {
         const uniqueAgents = new Set(filteredData.map(v => v.agent)).size;
         const uniqueChains = new Set(filteredData.map(v => v.chain)).size;
         const workedDays = new Set(filteredData.map(v => v.date.toDateString())).size;
-        return { totalVisits, uniqueAgents, uniqueChains, workedDays };
+        const totalBudget = filteredData.reduce((sum, visit) => sum + (visit.budget || 0), 0);
+        return { totalVisits, uniqueAgents, uniqueChains, workedDays, totalBudget };
     }, [filteredData]);
 
     const activityCounts = useMemo(() => {
@@ -148,11 +149,17 @@ export default function Dashboard({ data }: DashboardProps) {
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
                 <KpiCard title="Total de Actividades" value={kpis.totalVisits} icon={Activity} description="Total de registros en el periodo" />
                 <KpiCard title="Asesores Activos" value={kpis.uniqueAgents} icon={Users} description="Asesores con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
                 <KpiCard title="Días Trabajados" value={kpis.workedDays} icon={CalendarDays} description="Días con al menos una actividad" />
+                <KpiCard 
+                    title="Presupuesto Total" 
+                    value={new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(kpis.totalBudget)} 
+                    icon={DollarSign} 
+                    description="Suma de presupuestos" 
+                />
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-6">
@@ -228,6 +235,7 @@ export default function Dashboard({ data }: DashboardProps) {
                                     <TableHead>Horario</TableHead>
                                     <TableHead>Ejecutiva</TableHead>
                                     <TableHead>Cargo Ejecutiva</TableHead>
+                                    <TableHead className="text-right">Presupuesto</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -244,10 +252,11 @@ export default function Dashboard({ data }: DashboardProps) {
                                         <TableCell>{visit.schedule}</TableCell>
                                         <TableCell>{visit.executive_name}</TableCell>
                                         <TableCell>{visit.executive_role}</TableCell>
+                                        <TableCell className="text-right font-mono">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(visit.budget)}</TableCell>
                                     </TableRow>
                                 )) : (
                                     <TableRow>
-                                        <TableCell colSpan={11} className="h-24 text-center">No hay datos para mostrar con los filtros seleccionados.</TableCell>
+                                        <TableCell colSpan={12} className="h-24 text-center">No hay datos para mostrar con los filtros seleccionados.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

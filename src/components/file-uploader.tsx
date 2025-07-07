@@ -23,7 +23,8 @@ const spanishHeaders = [
     'HORARIO', 
     'CIUDAD', 
     'ZONA', 
-    'FECHA'
+    'FECHA',
+    'PRESUPUESTO'
 ];
 
 export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
@@ -72,7 +73,11 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
         const parsedData: Visit[] = json.map((row, index) => {
           for (const header of spanishHeaders) {
             if (row[header] === undefined || row[header] === null || String(row[header]).trim() === '') {
-                 throw new Error(`Fila ${index + 2}: La columna '${header}' no puede estar vacía.`);
+                 if (header === 'PRESUPUESTO') {
+                    row[header] = 0;
+                 } else {
+                    throw new Error(`Fila ${index + 2}: La columna '${header}' no puede estar vacía.`);
+                 }
             }
           }
 
@@ -81,6 +86,11 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
             throw new Error(`Fecha inválida en la fila ${index + 2}: ${row['FECHA']}. Use el formato AAAA-MM-DD.`);
           }
           
+          const budget = Number(row['PRESUPUESTO']);
+          if(isNaN(budget)){
+            throw new Error(`Presupuesto inválido en la fila ${index + 2}: '${row['PRESUPUESTO']}'. Debe ser un número.`);
+          }
+
           return {
             id: `${file.name}-${Date.now()}-${index}`,
             executive_name: String(row['NOMBRE DE LA EJECUTIVA']),
@@ -94,6 +104,7 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
             city: String(row['CIUDAD']),
             zone: String(row['ZONA']),
             date: visitDate,
+            budget: budget,
           };
         });
 
@@ -138,7 +149,7 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
 
   const handleDownloadTemplate = () => {
     const headers = [spanishHeaders];
-    const exampleRow = [['Luisa Perez', 'Supervisora de Cuentas', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20']];
+    const exampleRow = [['Luisa Perez', 'Supervisora de Cuentas', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 500000]];
     const ws = XLSX.utils.aoa_to_sheet([...headers, ...exampleRow]);
     ws['!cols'] = [
         { wch: 25 }, // NOMBRE DE LA EJECUTIVA
@@ -152,6 +163,7 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
         { wch: 15 }, // CIUDAD
         { wch: 15 }, // ZONA
         { wch: 15 }, // FECHA
+        { wch: 15 }, // PRESUPUESTO
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Datos de Visitas');

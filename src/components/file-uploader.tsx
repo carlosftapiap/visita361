@@ -13,8 +13,7 @@ interface FileUploaderProps {
 }
 
 const spanishHeaders = [
-    'NOMBRE DE LA EJECUTIVA', 
-    'DETALLE DE CARGO DE LA EJECUTIVA', 
+    'EJECUTIVA DE TRADE',
     'ASESOR COMERCIAL', 
     'CANAL', 
     'CADENA', 
@@ -71,11 +70,6 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
         }
 
         const parsedData: Visit[] = json.map((row, index) => {
-          // This will make the file upload more flexible.
-          // We will provide default values for empty cells instead of throwing an error.
-          // Budget will default to 0, and other fields will default to an empty string.
-          // Only 'FECHA' is strictly required.
-
           if (!row['FECHA'] || String(row['FECHA']).trim() === '') {
             throw new Error(`Fila ${index + 2}: La columna 'FECHA' no puede estar vacía.`);
           }
@@ -95,8 +89,7 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
 
           return {
             id: `${file.name}-${Date.now()}-${index}`,
-            executive_name: getString(row['NOMBRE DE LA EJECUTIVA']),
-            executive_role: getString(row['DETALLE DE CARGO DE LA EJECUTIVA']),
+            trade_executive: getString(row['EJECUTIVA DE TRADE']),
             agent: getString(row['ASESOR COMERCIAL']),
             channel: getString(row['CANAL']),
             chain: getString(row['CADENA']),
@@ -151,11 +144,10 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
 
   const handleDownloadTemplate = () => {
     const headers = [spanishHeaders];
-    const exampleRow = [['Luisa Perez', 'Supervisora de Cuentas', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 500000]];
+    const exampleRow = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 500000]];
     const ws = XLSX.utils.aoa_to_sheet([...headers, ...exampleRow]);
     ws['!cols'] = [
-        { wch: 25 }, // NOMBRE DE LA EJECUTIVA
-        { wch: 30 }, // DETALLE DE CARGO DE LA EJECUTIVA
+        { wch: 25 }, // EJECUTIVA DE TRADE
         { wch: 20 }, // ASESOR COMERCIAL
         { wch: 15 }, // CANAL
         { wch: 20 }, // CADENA

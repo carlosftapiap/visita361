@@ -225,7 +225,8 @@ export default function Dashboard({ data }: DashboardProps) {
                             <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
                                 <TableRow>
                                     <TableHead>Fecha</TableHead>
-                                    <TableHead>Asesor</TableHead>
+                                    <TableHead>Ejecutiva de Trade</TableHead>
+                                    <TableHead>Asesor Comercial</TableHead>
                                     <TableHead>Cadena</TableHead>
                                     <TableHead>Detalle PDV</TableHead>
                                     <TableHead>Ciudad</TableHead>
@@ -233,8 +234,6 @@ export default function Dashboard({ data }: DashboardProps) {
                                     <TableHead>Canal</TableHead>
                                     <TableHead>Actividad</TableHead>
                                     <TableHead>Horario</TableHead>
-                                    <TableHead>Ejecutiva</TableHead>
-                                    <TableHead>Cargo Ejecutiva</TableHead>
                                     <TableHead className="text-right">Presupuesto</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -242,6 +241,7 @@ export default function Dashboard({ data }: DashboardProps) {
                                 {filteredData.length > 0 ? filteredData.map(visit => (
                                     <TableRow key={visit.id}>
                                         <TableCell>{visit.date.toLocaleDateString('es-CO')}</TableCell>
+                                        <TableCell>{visit.trade_executive}</TableCell>
                                         <TableCell className="font-medium">{visit.agent}</TableCell>
                                         <TableCell>{visit.chain}</TableCell>
                                         <TableCell>{visit.pdv_detail}</TableCell>
@@ -250,13 +250,11 @@ export default function Dashboard({ data }: DashboardProps) {
                                         <TableCell>{visit.channel}</TableCell>
                                         <TableCell>{visit.activity}</TableCell>
                                         <TableCell>{visit.schedule}</TableCell>
-                                        <TableCell>{visit.executive_name}</TableCell>
-                                        <TableCell>{visit.executive_role}</TableCell>
                                         <TableCell className="text-right font-mono">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(visit.budget)}</TableCell>
                                     </TableRow>
                                 )) : (
                                     <TableRow>
-                                        <TableCell colSpan={12} className="h-24 text-center">No hay datos para mostrar con los filtros seleccionados.</TableCell>
+                                        <TableCell colSpan={11} className="h-24 text-center">No hay datos para mostrar con los filtros seleccionados.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

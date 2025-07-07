@@ -1,7 +1,6 @@
 export interface Visit {
   id: string;
-  executive_name: string;
-  executive_role: string;
+  trade_executive: string;
   agent: string;
   channel: string;
   chain: string;

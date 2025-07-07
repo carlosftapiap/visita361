@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from 'react';
-import { FileUp, AreaChart } from 'lucide-react';
+import { FileUp } from 'lucide-react';
 import type { Visit } from '@/types';
 import FileUploader from '@/components/file-uploader';
 import Dashboard from '@/components/dashboard';
+import { Button } from '@/components/ui/button';
 
 // Mock data to simulate processed Excel file
 const mockVisits: Visit[] = [

@@ -71,14 +71,13 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
         }
 
         const parsedData: Visit[] = json.map((row, index) => {
-          for (const header of spanishHeaders) {
-            if (row[header] === undefined || row[header] === null || String(row[header]).trim() === '') {
-                 if (header === 'PRESUPUESTO') {
-                    row[header] = 0;
-                 } else {
-                    throw new Error(`Fila ${index + 2}: La columna '${header}' no puede estar vacía.`);
-                 }
-            }
+          // This will make the file upload more flexible.
+          // We will provide default values for empty cells instead of throwing an error.
+          // Budget will default to 0, and other fields will default to an empty string.
+          // Only 'FECHA' is strictly required.
+
+          if (!row['FECHA'] || String(row['FECHA']).trim() === '') {
+            throw new Error(`Fila ${index + 2}: La columna 'FECHA' no puede estar vacía.`);
           }
 
           const visitDate = new Date(row['FECHA']);
@@ -86,23 +85,26 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
             throw new Error(`Fecha inválida en la fila ${index + 2}: ${row['FECHA']}. Use el formato AAAA-MM-DD.`);
           }
           
-          const budget = Number(row['PRESUPUESTO']);
+          const budgetValue = row['PRESUPUESTO'];
+          const budget = (budgetValue === undefined || budgetValue === null || String(budgetValue).trim() === '') ? 0 : Number(budgetValue);
           if(isNaN(budget)){
             throw new Error(`Presupuesto inválido en la fila ${index + 2}: '${row['PRESUPUESTO']}'. Debe ser un número.`);
           }
 
+          const getString = (value: any) => value === undefined || value === null ? '' : String(value);
+
           return {
             id: `${file.name}-${Date.now()}-${index}`,
-            executive_name: String(row['NOMBRE DE LA EJECUTIVA']),
-            executive_role: String(row['DETALLE DE CARGO DE LA EJECUTIVA']),
-            agent: String(row['ASESOR COMERCIAL']),
-            channel: String(row['CANAL']),
-            chain: String(row['CADENA']),
-            pdv_detail: String(row['DETALLE DEL PDV']),
-            activity: row['ACTIVIDAD'] as Visit['activity'],
-            schedule: String(row['HORARIO']),
-            city: String(row['CIUDAD']),
-            zone: String(row['ZONA']),
+            executive_name: getString(row['NOMBRE DE LA EJECUTIVA']),
+            executive_role: getString(row['DETALLE DE CARGO DE LA EJECUTIVA']),
+            agent: getString(row['ASESOR COMERCIAL']),
+            channel: getString(row['CANAL']),
+            chain: getString(row['CADENA']),
+            pdv_detail: getString(row['DETALLE DEL PDV']),
+            activity: getString(row['ACTIVIDAD']) as Visit['activity'],
+            schedule: getString(row['HORARIO']),
+            city: getString(row['CIUDAD']),
+            zone: getString(row['ZONA']),
             date: visitDate,
             budget: budget,
           };

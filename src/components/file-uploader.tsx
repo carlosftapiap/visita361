@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef } from 'react';
@@ -7,9 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import type { Visit } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
+import { cn } from '@/lib/utils';
 
 interface FileUploaderProps {
-  onDataProcessed: (data: Omit<Visit, 'id'>[]) => void;
+  onFileProcessed: (data: Omit<Visit, 'id'>[]) => void;
+  disabled?: boolean;
 }
 
 const spanishHeaders = [
@@ -26,7 +29,7 @@ const spanishHeaders = [
     'PRESUPUESTO'
 ];
 
-export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
+export default function FileUploader({ onFileProcessed, disabled = false }: FileUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -75,7 +78,7 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
             const budgetValue = row['PRESUPUESTO'];
             let budget = Number(budgetValue);
             if (isNaN(budget)) {
-                budget = 0; // If budget is not a valid number, treat as 0
+                budget = 0;
             }
 
             const getString = (value: any) => value === undefined || value === null ? '' : String(value);
@@ -96,12 +99,10 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
         });
 
         const parsedData = initialData.filter(visit => {
-            // Date is essential, filter out rows where it's missing, invalid, or out of a reasonable range for Firestore
             if (!visit.date || isNaN(visit.date.getTime())) {
                 return false;
             }
             const year = visit.date.getFullYear();
-            // Firestore timestamps must be between year 1 and 9999. We'll use a more practical range.
             return year >= 1970 && year <= 2100;
         });
 
@@ -111,7 +112,7 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
           throw new Error("Ningún registro válido encontrado. Verifique que la columna 'FECHA' contenga fechas correctas (ej: 2024, no un año irreal como 20224).");
         }
         
-        onDataProcessed(parsedData);
+        onFileProcessed(parsedData);
         
         let description = `Archivo "${file.name}" procesado con ${parsedData.length} registros.`;
         if (skippedRowCount > 0) {
@@ -119,7 +120,7 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
         }
 
         toast({
-          title: 'Éxito',
+          title: 'Éxito de procesamiento',
           description: description,
         });
 
@@ -154,6 +155,7 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
   };
 
   const handleUploadClick = () => {
+    if (disabled || isUploading) return;
     fileInputRef.current?.click();
   };
 
@@ -162,17 +164,17 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
     const exampleRow = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 500000]];
     const ws = XLSX.utils.aoa_to_sheet([...headers, ...exampleRow]);
     ws['!cols'] = [
-        { wch: 25 }, // EJECUTIVA DE TRADE
-        { wch: 20 }, // ASESOR COMERCIAL
-        { wch: 15 }, // CANAL
-        { wch: 20 }, // CADENA
-        { wch: 25 }, // DETALLE DEL PDV
-        { wch: 15 }, // ACTIVIDAD
-        { wch: 10 }, // HORARIO
-        { wch: 15 }, // CIUDAD
-        { wch: 15 }, // ZONA
-        { wch: 15 }, // FECHA
-        { wch: 15 }, // PRESUPUESTO
+        { wch: 25 }, 
+        { wch: 20 }, 
+        { wch: 15 }, 
+        { wch: 20 }, 
+        { wch: 25 }, 
+        { wch: 15 }, 
+        { wch: 10 }, 
+        { wch: 15 }, 
+        { wch: 15 }, 
+        { wch: 15 }, 
+        { wch: 15 }, 
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Datos de Visitas');
@@ -187,9 +189,20 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
       </CardHeader>
       <CardContent>
         <div
-            className="flex w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border p-8 transition-colors hover:border-primary hover:bg-primary/5"
+            className={cn(
+                "flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed border-border p-8 transition-colors",
+                !(isUploading || disabled) && "cursor-pointer hover:border-primary hover:bg-primary/5",
+                (isUploading || disabled) && "cursor-not-allowed bg-muted/50"
+            )}
             onClick={handleUploadClick}
-            onDrop={(e) => { e.preventDefault(); if(e.dataTransfer.files) { const event = { target: { files: e.dataTransfer.files } } as any; handleFileChange(event); } }}
+            onDrop={(e) => { 
+                e.preventDefault(); 
+                if (isUploading || disabled) return;
+                if(e.dataTransfer.files) { 
+                    const event = { target: { files: e.dataTransfer.files } } as any; 
+                    handleFileChange(event); 
+                } 
+            }}
             onDragOver={(e) => e.preventDefault()}
         >
           {isUploading ? (
@@ -201,7 +214,7 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
             <div className="flex flex-col items-center gap-2">
               <UploadCloud className="h-12 w-12 text-accent" />
               <p className="mb-1 text-muted-foreground">Arrastre y suelte o haga clic para cargar.</p>
-              <Button size="sm">
+              <Button size="sm" disabled={isUploading || disabled}>
                 Seleccionar Archivo
               </Button>
               <input
@@ -210,6 +223,7 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
                 onChange={handleFileChange}
                 className="hidden"
                 accept=".xlsx, .xls"
+                disabled={isUploading || disabled}
               />
             </div>
           )}

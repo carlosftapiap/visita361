@@ -12,6 +12,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { getVisits, addVisit, updateVisit, addBatchVisits, deleteAllVisits } from '@/services/visitService';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 
 export default function CronogramaTradePage() {
   const [data, setData] = useState<Visit[]>([]);
@@ -23,6 +34,8 @@ export default function CronogramaTradePage() {
   });
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const { toast } = useToast();
+  const [pendingData, setPendingData] = useState<Omit<Visit, 'id'>[] | null>(null);
+  const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -42,14 +55,23 @@ export default function CronogramaTradePage() {
     fetchData();
   }, []);
 
-  const handleDataProcessed = async (processedData: Omit<Visit, 'id'>[]) => {
+  const handleFileProcessed = (processedData: Omit<Visit, 'id'>[]) => {
+    if (data.length > 0) {
+      setPendingData(processedData);
+      setShowOverwriteConfirm(true);
+    } else {
+      uploadNewData(processedData);
+    }
+  };
+
+  const uploadNewData = async (dataToUpload: Omit<Visit, 'id'>[]) => {
     setLoading(true);
     try {
-      await addBatchVisits(processedData);
+      await addBatchVisits(dataToUpload);
       await fetchData();
       toast({
         title: 'Éxito',
-        description: `${processedData.length} registros han sido guardados en la base de datos.`,
+        description: `${dataToUpload.length} registros han sido guardados en la base de datos.`,
       });
     } catch (err: any) {
       setError(err.message);
@@ -60,6 +82,33 @@ export default function CronogramaTradePage() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const handleReplaceData = async () => {
+    if (!pendingData) return;
+
+    setShowOverwriteConfirm(false);
+    setLoading(true);
+    
+    try {
+      await deleteAllVisits();
+      await addBatchVisits(pendingData);
+      await fetchData();
+      toast({
+        title: 'Datos Reemplazados',
+        description: `Se han reemplazado los datos con ${pendingData.length} nuevos registros.`,
+      });
+    } catch (err: any) {
+      setError(err.message);
+      toast({
+        variant: 'destructive',
+        title: 'Error al reemplazar',
+        description: 'Ocurrió un error al reemplazar los datos.',
+      });
+    } finally {
+      setLoading(false);
+      setPendingData(null);
     }
   };
 
@@ -242,7 +291,7 @@ export default function CronogramaTradePage() {
 
         <div className="flex flex-col gap-6 lg:flex-row">
             <div className="w-full lg:w-96 lg:shrink-0">
-              <FileUploader onDataProcessed={handleDataProcessed} />
+              <FileUploader onFileProcessed={handleFileProcessed} disabled={loading} />
             </div>
             <div className="flex-1">
               {loading ? (
@@ -281,6 +330,29 @@ export default function CronogramaTradePage() {
             onDuplicate={handleDuplicateMonth}
             data={data}
         />
+        <AlertDialog 
+            open={showOverwriteConfirm} 
+            onOpenChange={(isOpen) => {
+                setShowOverwriteConfirm(isOpen);
+                if (!isOpen) {
+                    setPendingData(null);
+                }
+            }}
+        >
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>¿Desea reemplazar los datos existentes?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Ya hay información cargada. Al continuar, se eliminarán todos los datos actuales
+                        y se reemplazarán por los del archivo. Esta acción no se puede deshacer.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleReplaceData}>Reemplazar</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 }

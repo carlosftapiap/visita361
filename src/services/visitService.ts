@@ -11,6 +11,22 @@ const visitFromSupabase = (record: any): Visit => {
     };
 };
 
+const buildSupabaseError = (error: any, context: string): Error => {
+    console.error(`Error with Supabase ${context}:`, error);
+    let message = `Error en la operación de ${context} con Supabase.`;
+
+    if (error.code === '42501') { // permission denied
+        message += `\n\nError de permisos. Esto suele ocurrir porque la política de seguridad RLS (Row Level Security) de la tabla 'visits' no permite esta operación. Asegúrate de que has creado una política para SELECT, INSERT, UPDATE, y DELETE.`;
+    } else if (error.code === '42P01') { // undefined table
+        message += `\n\nLa tabla 'visits' no se encontró. Asegúrate de que la tabla ha sido creada correctamente en tu base de datos.`;
+    } else {
+        message += `\n\nDetalles: ${error.message || 'No hay un mensaje de error específico del servidor.'}`;
+    }
+
+    message += `\n\nRevisa la consola del navegador y la de desarrollo para más detalles técnicos.`;
+    return new Error(message);
+}
+
 export const getVisits = async (): Promise<Visit[]> => {
     const supabase = getSupabase();
     // Fetch records from the last 3 months to keep it fast
@@ -23,8 +39,7 @@ export const getVisits = async (): Promise<Visit[]> => {
         .order('date', { ascending: false });
 
     if (error) {
-        console.error("Error fetching visits from Supabase:", error);
-        throw new Error(`Error al obtener visitas: ${error.message}. Asegúrate de que la tabla 'visits' existe y las credenciales son correctas.`);
+        throw buildSupabaseError(error, 'lectura (getVisits)');
     }
 
     return data ? data.map(visitFromSupabase) : [];
@@ -36,8 +51,7 @@ export const addVisit = async (visit: Omit<Visit, 'id'>) => {
     const { error } = await supabase.from('visits').insert([visit]);
 
     if (error) {
-        console.error("Error adding visit to Supabase:", error);
-        throw new Error(`Error al añadir visita: ${error.message}`);
+        throw buildSupabaseError(error, 'creación (addVisit)');
     }
 };
 
@@ -46,8 +60,7 @@ export const updateVisit = async (id: string, visit: Partial<Omit<Visit, 'id'>>)
     const { error } = await supabase.from('visits').update(visit).eq('id', id);
 
     if (error) {
-        console.error("Error updating visit in Supabase:", error);
-        throw new Error(`Error al actualizar visita: ${error.message}`);
+       throw buildSupabaseError(error, 'actualización (updateVisit)');
     }
 };
 
@@ -56,8 +69,7 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     const { error } = await supabase.from('visits').insert(visits);
     
     if (error) {
-        console.error("Error batch adding visits to Supabase:", error);
-        throw new Error(`Error al añadir visitas en lote: ${error.message}`);
+        throw buildSupabaseError(error, 'creación en lote (addBatchVisits)');
     }
 };
 
@@ -67,7 +79,6 @@ export const deleteAllVisits = async () => {
     const { error } = await supabase.from('visits').delete().neq('id', '-1'); // Assuming ID is never -1
     
     if (error) {
-        console.error("Error deleting all visits from Supabase:", error);
-        throw new Error(`Error al eliminar todas las visitas: ${error.message}`);
+       throw buildSupabaseError(error, 'borrado total (deleteAllVisits)');
     }
 };

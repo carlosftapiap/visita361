@@ -96,17 +96,26 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
         });
 
         const parsedData = initialData.filter(visit => {
-            // Date is essential, filter out rows where it's missing or invalid
-            return visit.date && !isNaN(visit.date.getTime());
+            // Date is essential, filter out rows where it's missing, invalid, or out of a reasonable range for Firestore
+            if (!visit.date || isNaN(visit.date.getTime())) {
+                return false;
+            }
+            const year = visit.date.getFullYear();
+            // Firestore timestamps must be between year 1 and 9999. We'll use a more practical range.
+            return year >= 1970 && year <= 2100;
         });
 
         const skippedRowCount = json.length - parsedData.length;
+
+        if (parsedData.length === 0 && json.length > 0) {
+          throw new Error("Ningún registro válido encontrado. Verifique que la columna 'FECHA' contenga fechas correctas (ej: 2024, no un año irreal como 20224).");
+        }
         
         onDataProcessed(parsedData);
         
         let description = `Archivo "${file.name}" procesado con ${parsedData.length} registros.`;
         if (skippedRowCount > 0) {
-            description += ` Se omitieron ${skippedRowCount} filas por tener una fecha inválida o ausente.`;
+            description += ` Se omitieron ${skippedRowCount} filas por tener una fecha inválida, fuera de rango o ausente.`;
         }
 
         toast({

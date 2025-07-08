@@ -248,6 +248,9 @@ export default function CronogramaTradePage() {
                         <li>
                             <strong>Base de Datos Firestore</strong>: Confirme que ha creado una base de datos de Cloud Firestore en su proyecto de Firebase y que sus reglas de seguridad permiten la lectura y escritura (puede usar el modo de prueba para empezar).
                         </li>
+                         <li>
+                            <strong>Índices de Firestore</strong>: Si el error técnico menciona un "índice faltante" (missing index), a menudo incluirá un enlace para crearlo automáticamente. Siga ese enlace en la consola de Firebase.
+                        </li>
                     </ol>
                     <Card className="bg-background/50 p-4 mt-2">
                         <h4 className="font-bold mb-2">Mensaje de Error Técnico:</h4>

@@ -12,8 +12,10 @@ import {
   Timestamp,
   QueryDocumentSnapshot,
   DocumentData,
-  WithFieldValue
+  WithFieldValue,
+  where
 } from 'firebase/firestore';
+import { subMonths } from 'date-fns';
 
 // Convierte un documento de Firestore a un objeto Visit, convirtiendo Timestamps a Dates de forma segura
 const visitFromDoc = (docSnap: QueryDocumentSnapshot<DocumentData>): Visit => {
@@ -52,7 +54,17 @@ const visitToDoc = (visit: Partial<Omit<Visit, 'id'>>): WithFieldValue<DocumentD
 export const getVisits = async (): Promise<Visit[]> => {
   const db = getDb();
   const visitsCollectionRef = collection(db, 'visits');
-  const q = query(visitsCollectionRef, orderBy("date", "desc"));
+
+  // Para mejorar el rendimiento, solo obtenemos las visitas de los últimos 6 meses.
+  // Esto evita cargar todo el historial de la base de datos al inicio.
+  const sixMonthsAgo = subMonths(new Date(), 6);
+
+  const q = query(
+    visitsCollectionRef,
+    orderBy("date", "desc"),
+    where("date", ">=", Timestamp.fromDate(sixMonthsAgo))
+  );
+
   const querySnapshot = await getDocs(q);
   
   const visits: Visit[] = [];

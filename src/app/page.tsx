@@ -1,15 +1,21 @@
 "use client";
 
 import { useState } from 'react';
-import { Trash2, BarChart3 } from 'lucide-react';
+import { Trash2, BarChart3, Plus } from 'lucide-react';
 import type { Visit } from '@/types';
 import FileUploader from '@/components/file-uploader';
 import Dashboard from '@/components/dashboard';
+import VisitForm from '@/components/visit-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
 export default function Home() {
   const [data, setData] = useState<Visit[] | null>(null);
+  const [formState, setFormState] = useState<{ open: boolean; visit?: Visit | null }>({
+    open: false,
+    visit: null,
+  });
+
 
   const handleDataProcessed = (processedData: Visit[]) => {
     setData(prevData => [...(prevData || []), ...processedData]);
@@ -18,6 +24,30 @@ export default function Home() {
   const handleReset = () => {
     setData(null);
   }
+
+  const handleSaveVisit = (visitToSave: Visit) => {
+    setData(prevData => {
+        const dataArr = prevData || [];
+        const existingIndex = dataArr.findIndex(v => v.id === visitToSave.id);
+        if (existingIndex > -1) {
+            const newData = [...dataArr];
+            newData[existingIndex] = visitToSave;
+            return newData;
+        } else {
+            return [...dataArr, visitToSave];
+        }
+    });
+    setFormState({ open: false, visit: null });
+  };
+
+  const handleEditVisit = (visit: Visit) => {
+    setFormState({ open: true, visit });
+  };
+
+  const handleAddVisitClick = () => {
+    setFormState({ open: true, visit: null });
+  };
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -33,12 +63,18 @@ export default function Home() {
             Visita360
           </h1>
         </div>
-        {data && (
-            <Button onClick={handleReset} variant="destructive">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Limpiar Datos
+        <div className="flex items-center gap-2">
+            <Button onClick={handleAddVisitClick}>
+                <Plus className="mr-2 h-4 w-4" />
+                Añadir Visita
             </Button>
-        )}
+            {data && (
+                <Button onClick={handleReset} variant="destructive">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Limpiar Datos
+                </Button>
+            )}
+        </div>
       </header>
 
       <main className="flex flex-col gap-6 p-4 md:p-6 lg:flex-row">
@@ -47,7 +83,7 @@ export default function Home() {
         </div>
         <div className="flex-1">
           {data ? (
-            <Dashboard data={data} />
+            <Dashboard data={data} onEditVisit={handleEditVisit} />
           ) : (
             <Card className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center shadow-md">
                 <CardContent className="flex flex-col items-center gap-4 p-6">
@@ -61,6 +97,13 @@ export default function Home() {
           )}
         </div>
       </main>
+      
+      <VisitForm
+        isOpen={formState.open}
+        onOpenChange={(isOpen) => setFormState({ ...formState, open: isOpen, visit: isOpen ? formState.visit : null })}
+        visit={formState.visit}
+        onSave={handleSaveVisit}
+      />
     </div>
   );
 }

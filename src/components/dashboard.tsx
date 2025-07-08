@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react";
-import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign } from "lucide-react";
+import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil } from "lucide-react";
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from "recharts";
 
 import type { Visit } from "@/types";
@@ -15,6 +15,7 @@ import ActivityCalendar from "./activity-calendar";
 
 interface DashboardProps {
     data: Visit[];
+    onEditVisit: (visit: Visit) => void;
 }
 
 const chartColors = [
@@ -25,7 +26,7 @@ const chartColors = [
     "hsl(var(--chart-5))"
 ];
 
-export default function Dashboard({ data }: DashboardProps) {
+export default function Dashboard({ data, onEditVisit }: DashboardProps) {
     const [filters, setFilters] = useState({
         trade_executive: 'all',
         agent: 'all',
@@ -272,6 +273,7 @@ export default function Dashboard({ data }: DashboardProps) {
                                     <TableHead>Actividad</TableHead>
                                     <TableHead>Horario</TableHead>
                                     <TableHead className="text-right">Presupuesto</TableHead>
+                                    <TableHead>Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -288,10 +290,16 @@ export default function Dashboard({ data }: DashboardProps) {
                                         <TableCell>{visit.activity}</TableCell>
                                         <TableCell>{visit.schedule}</TableCell>
                                         <TableCell className="text-right font-mono">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(visit.budget)}</TableCell>
+                                        <TableCell>
+                                            <Button variant="ghost" size="icon" onClick={() => onEditVisit(visit)}>
+                                                <Pencil className="h-4 w-4" />
+                                                <span className="sr-only">Editar</span>
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
                                 )) : (
                                     <TableRow>
-                                        <TableCell colSpan={11} className="h-24 text-center">No hay datos para mostrar con los filtros seleccionados.</TableCell>
+                                        <TableCell colSpan={12} className="h-24 text-center">No hay datos para mostrar con los filtros seleccionados.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

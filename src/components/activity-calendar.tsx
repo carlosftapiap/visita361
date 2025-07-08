@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -33,6 +33,46 @@ export default function ActivityCalendar({
   onAgentChange
 }: ActivityCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
+  
+  const availableMonths = useMemo(() => {
+    const monthSet = new Set<string>();
+    data.forEach(visit => {
+      monthSet.add(format(visit.date, 'yyyy-MM'));
+    });
+    
+    // Also add the next 12 months from today, and past 3 months to ensure navigation is possible
+    const today = new Date();
+    for (let i = -3; i < 12; i++) {
+        const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
+        monthSet.add(format(date, 'yyyy-MM'));
+    }
+
+    const sortedMonths = Array.from(monthSet).sort((a, b) => b.localeCompare(a));
+    return sortedMonths.map(key => ({
+      value: key,
+      label: capitalize(format(new Date(key + '-02'), 'MMMM yyyy', { locale: es })),
+    }));
+  }, [data]);
+  
+  const handleMonthChange = (monthStr: string) => {
+    if (monthStr) {
+      setSelectedMonth(monthStr);
+      // Set calendar to the first day of the selected month
+      const [year, month] = monthStr.split('-').map(Number);
+      setCurrentDate(new Date(year, month - 1, 1));
+    }
+  };
+
+  // Sync selectedMonth with currentDate when navigating with arrows
+  useEffect(() => {
+    const currentMonthStr = format(currentDate, 'yyyy-MM');
+    if (selectedMonth !== currentMonthStr) {
+      if (availableMonths.some(m => m.value === currentMonthStr)) {
+        setSelectedMonth(currentMonthStr);
+      }
+    }
+  }, [currentDate, selectedMonth, availableMonths]);
 
   const handlePrevWeek = () => {
     setCurrentDate(prev => addDays(prev, -7));
@@ -73,6 +113,18 @@ export default function ActivityCalendar({
                 <Button variant="outline" size="icon" onClick={handleNextWeek} aria-label="Semana siguiente">
                     <ChevronRight className="h-4 w-4" />
                 </Button>
+            </div>
+            <div className="w-full sm:w-52">
+                <Select value={selectedMonth} onValueChange={handleMonthChange}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar Mes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {availableMonths.map(month => (
+                        <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
             <div className="w-full sm:w-52">
               <Select value={selectedExecutive} onValueChange={onExecutiveChange} disabled={executives.length <= 1}>

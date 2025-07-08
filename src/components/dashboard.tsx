@@ -36,12 +36,27 @@ export default function Dashboard({ data }: DashboardProps) {
 
     const filterOptions = useMemo(() => {
         const trade_executives = ['all', ...Array.from(new Set(data.map(v => v.trade_executive)))];
-        const agents = ['all', ...Array.from(new Set(data.map(v => v.agent)))];
+        
+        const relevantAgentsData = filters.trade_executive === 'all'
+            ? data
+            : data.filter(v => v.trade_executive === filters.trade_executive);
+        const agents = ['all', ...Array.from(new Set(relevantAgentsData.map(v => v.agent)))];
+
         const cities = ['all', ...Array.from(new Set(data.map(v => v.city)))];
         const activities = ['all', ...Array.from(new Set(data.map(v => v.activity)))];
         const zones = ['all', ...Array.from(new Set(data.map(v => v.zone)))];
         return { trade_executives, agents, cities, activities, zones };
-    }, [data]);
+    }, [data, filters.trade_executive]);
+
+    const handleFilterChange = (filterName: keyof typeof filters) => (value: string) => {
+        setFilters(prev => {
+            const newFilters = { ...prev, [filterName]: value };
+            if (filterName === 'trade_executive') {
+                newFilters.agent = 'all';
+            }
+            return newFilters;
+        });
+    };
 
     const filteredData = useMemo(() => {
         return data.filter(visit => {
@@ -110,11 +125,6 @@ export default function Dashboard({ data }: DashboardProps) {
         ...visitsPerChannel.reduce((acc, cur) => ({...acc, [cur.name]: {label: cur.name, color: cur.fill}}), {})
     } satisfies ChartConfig;
 
-
-    const handleFilterChange = (filterName: keyof typeof filters) => (value: string) => {
-        setFilters(prev => ({ ...prev, [filterName]: value }));
-    };
-
     return (
         <div className="flex flex-col gap-6">
             <Card className="shadow-md">
@@ -123,21 +133,7 @@ export default function Dashboard({ data }: DashboardProps) {
                     <CardDescription>Refine los datos para un análisis más detallado. Puede exportar los resultados filtrados.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                    <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                        <div className="grid gap-2">
-                            <label className="text-sm font-medium">Ejecutiva de Trade</label>
-                            <Select value={filters.trade_executive} onValueChange={handleFilterChange('trade_executive')}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>{filterOptions.trade_executives.map(exec => (<SelectItem key={exec} value={exec}>{exec === 'all' ? 'Todas las ejecutivas' : exec}</SelectItem>))}</SelectContent>
-                            </Select>
-                        </div>
-                        <div className="grid gap-2">
-                            <label className="text-sm font-medium">Asesor Comercial</label>
-                            <Select value={filters.agent} onValueChange={handleFilterChange('agent')}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>{filterOptions.agents.map(agent => (<SelectItem key={agent} value={agent}>{agent === 'all' ? 'Todos los asesores' : agent}</SelectItem>))}</SelectContent>
-                            </Select>
-                        </div>
+                    <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <div className="grid gap-2">
                              <label className="text-sm font-medium">Ciudad</label>
                             <Select value={filters.city} onValueChange={handleFilterChange('city')}>
@@ -245,7 +241,15 @@ export default function Dashboard({ data }: DashboardProps) {
                 </Card>
             </div>
             
-            <ActivityCalendar data={filteredData} />
+            <ActivityCalendar 
+                data={filteredData}
+                executives={filterOptions.trade_executives}
+                agents={filterOptions.agents}
+                selectedExecutive={filters.trade_executive}
+                selectedAgent={filters.agent}
+                onExecutiveChange={handleFilterChange('trade_executive')}
+                onAgentChange={handleFilterChange('agent')}
+            />
 
             <Card className="shadow-lg">
                 <CardHeader>

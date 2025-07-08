@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -11,40 +11,26 @@ import type { Visit } from '@/types';
 
 interface ActivityCalendarProps {
   data: Visit[];
+  executives: string[];
+  agents: string[];
+  selectedExecutive: string;
+  selectedAgent: string;
+  onExecutiveChange: (value: string) => void;
+  onAgentChange: (value: string) => void;
 }
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export default function ActivityCalendar({ data }: ActivityCalendarProps) {
+export default function ActivityCalendar({ 
+  data,
+  executives,
+  agents,
+  selectedExecutive,
+  selectedAgent,
+  onExecutiveChange,
+  onAgentChange
+}: ActivityCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  
-  const [selectedExecutive, setSelectedExecutive] = useState('all');
-  const [selectedAgent, setSelectedAgent] = useState('all');
-
-  const executives = useMemo(() => ['all', ...Array.from(new Set(data.map(visit => visit.trade_executive)))], [data]);
-  
-  const agents = useMemo(() => {
-    const relevantData = selectedExecutive === 'all' 
-      ? data 
-      : data.filter(visit => visit.trade_executive === selectedExecutive);
-    return ['all', ...Array.from(new Set(relevantData.map(visit => visit.agent)))];
-  }, [data, selectedExecutive]);
-
-  useEffect(() => {
-    setSelectedAgent('all');
-  }, [selectedExecutive]);
-  
-  useEffect(() => {
-    if (!executives.includes(selectedExecutive)) {
-        setSelectedExecutive('all');
-    }
-  }, [executives, selectedExecutive]);
-
-  useEffect(() => {
-    if (!agents.includes(selectedAgent)) {
-        setSelectedAgent('all');
-    }
-  }, [agents, selectedAgent]);
 
   const handlePrevWeek = () => {
     setCurrentDate(prev => addDays(prev, -7));
@@ -58,14 +44,6 @@ export default function ActivityCalendar({ data }: ActivityCalendarProps) {
     const start = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday
     return Array.from({ length: 7 }).map((_, i) => addDays(start, i));
   }, [currentDate]);
-
-  const calendarVisits = useMemo(() => {
-    return data.filter(visit => {
-      const executiveMatch = selectedExecutive === 'all' || visit.trade_executive === selectedExecutive;
-      const agentMatch = selectedAgent === 'all' || visit.agent === selectedAgent;
-      return executiveMatch && agentMatch;
-    });
-  }, [data, selectedExecutive, selectedAgent]);
 
   const activityColors: Record<string, string> = {
     'Visita': '--primary',
@@ -95,7 +73,7 @@ export default function ActivityCalendar({ data }: ActivityCalendarProps) {
                 </Button>
             </div>
             <div className="w-full sm:w-52">
-              <Select value={selectedExecutive} onValueChange={setSelectedExecutive} disabled={executives.length <= 1}>
+              <Select value={selectedExecutive} onValueChange={onExecutiveChange} disabled={executives.length <= 1}>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar Ejecutiva" />
                 </SelectTrigger>
@@ -107,7 +85,7 @@ export default function ActivityCalendar({ data }: ActivityCalendarProps) {
               </Select>
             </div>
              <div className="w-full sm:w-52">
-              <Select value={selectedAgent} onValueChange={setSelectedAgent} disabled={agents.length <= 1}>
+              <Select value={selectedAgent} onValueChange={onAgentChange} disabled={agents.length <= 1}>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar Asesor" />
                 </SelectTrigger>
@@ -124,7 +102,7 @@ export default function ActivityCalendar({ data }: ActivityCalendarProps) {
       <CardContent>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-7">
           {weekDays.map(day => {
-            const dayVisits = calendarVisits.filter(visit => isSameDay(visit.date, day));
+            const dayVisits = data.filter(visit => isSameDay(visit.date, day));
             return (
               <div key={day.toISOString()} className="flex min-h-36 flex-col rounded-lg border bg-background p-2">
                 <div className="text-center text-sm font-semibold">{capitalize(format(day, 'eee', { locale: es }))}</div>

@@ -15,22 +15,28 @@ import {
   WithFieldValue
 } from 'firebase/firestore';
 
-// Convierte un documento de Firestore a un objeto Visit, convirtiendo Timestamps a Dates
+// Convierte un documento de Firestore a un objeto Visit, convirtiendo Timestamps a Dates de forma segura
 const visitFromDoc = (docSnap: QueryDocumentSnapshot<DocumentData>): Visit => {
     const data = docSnap.data();
+
+    // Validación robusta de la fecha
+    if (!data.date || typeof data.date.toDate !== 'function') {
+        throw new Error(`Document ${docSnap.id} has an invalid or missing 'date' field.`);
+    }
+
     return {
         id: docSnap.id,
-        trade_executive: data.trade_executive,
-        agent: data.agent,
-        channel: data.channel,
-        chain: data.chain,
-        pdv_detail: data.pdv_detail,
-        activity: data.activity,
-        schedule: data.schedule,
-        city: data.city,
-        zone: data.zone,
+        trade_executive: data.trade_executive || '',
+        agent: data.agent || '',
+        channel: data.channel || '',
+        chain: data.chain || '',
+        pdv_detail: data.pdv_detail || '',
+        activity: ['Visita', 'Impulso', 'Verificación'].includes(data.activity) ? data.activity : 'Visita',
+        schedule: data.schedule || '',
+        city: data.city || '',
+        zone: data.zone || '',
         date: data.date.toDate(),
-        budget: data.budget,
+        budget: typeof data.budget === 'number' ? data.budget : 0,
     };
 }
 
@@ -48,7 +54,17 @@ export const getVisits = async (): Promise<Visit[]> => {
   const visitsCollectionRef = collection(db, 'visits');
   const q = query(visitsCollectionRef, orderBy("date", "desc"));
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(visitFromDoc);
+  
+  const visits: Visit[] = [];
+  querySnapshot.forEach((doc) => {
+      try {
+          visits.push(visitFromDoc(doc));
+      } catch (e) {
+          console.warn(`Skipping corrupted document ${doc.id}:`, e);
+      }
+  });
+
+  return visits;
 };
 
 export const addVisit = async (visit: Omit<Visit, 'id'>) => {

@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState, useRef } from "react";
-import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil } from "lucide-react";
+import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, Boxes, Pencil } from "lucide-react";
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from "recharts";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -150,7 +150,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             'CIUDAD': visit.city,
             'ZONA': visit.zone,
             'FECHA': visit.date.toLocaleDateString('es-CO'),
-            'PRESUPUESTO': visit.budget
+            'UNIDADES': visit.budget
         }));
 
         const ws = XLSX.utils.json_to_sheet(dataToExport);
@@ -240,12 +240,12 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                 <KpiCard title="Total de Actividades" value={kpis.totalVisits} icon={Activity} description="Total de registros en el periodo" />
                 <KpiCard title="Asesores Activos" value={kpis.uniqueAgents} icon={Users} description="Asesores con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
-                <KpiCard title="Días Trabajados" value={kpis.workedDays} icon={CalendarDays} description="Días con al menos una actividad" />
+                <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="Días con al menos un registro" />
                 <KpiCard 
-                    title="Presupuesto Total" 
-                    value={new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(kpis.totalBudget)} 
-                    icon={DollarSign} 
-                    description="Suma de presupuestos" 
+                    title="Total Unidades" 
+                    value={kpis.totalBudget.toLocaleString('es-CO')}
+                    icon={Boxes} 
+                    description="Suma de unidades en el periodo" 
                 />
             </div>
 
@@ -334,7 +334,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                                     <TableHead>Canal</TableHead>
                                     <TableHead>Actividad</TableHead>
                                     <TableHead>Horario</TableHead>
-                                    <TableHead className="text-right">Presupuesto</TableHead>
+                                    <TableHead className="text-right">Unidades</TableHead>
                                     <TableHead>Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -351,7 +351,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                                         <TableCell>{visit.channel}</TableCell>
                                         <TableCell>{visit.activity}</TableCell>
                                         <TableCell>{visit.schedule}</TableCell>
-                                        <TableCell className="text-right font-mono">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(visit.budget)}</TableCell>
+                                        <TableCell className="text-right font-mono">{visit.budget.toLocaleString('es-CO')}</TableCell>
                                         <TableCell>
                                             <Button variant="ghost" size="icon" onClick={() => onEditVisit(visit)}>
                                                 <Pencil className="h-4 w-4" />

@@ -48,7 +48,7 @@ const visitSchema = z.object({
   date: z.date({
     required_error: 'La fecha es requerida.',
   }),
-  budget: z.coerce.number().min(0, 'El presupuesto no puede ser negativo.').default(0),
+  budget: z.coerce.number().min(0, 'Las unidades no pueden ser negativas.').default(0),
 });
 
 type VisitFormValues = z.infer<typeof visitSchema>;
@@ -291,7 +291,7 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
               name="budget"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Presupuesto</FormLabel>
+                  <FormLabel>Unidades</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="0" {...field} />
                   </FormControl>

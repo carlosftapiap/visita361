@@ -26,7 +26,7 @@ const spanishHeaders = [
     'CIUDAD', 
     'ZONA', 
     'FECHA',
-    'PRESUPUESTO'
+    'UNIDADES'
 ];
 
 export default function FileUploader({ onFileProcessed, disabled = false, loadedMonths = [] }: FileUploaderProps) {
@@ -75,7 +75,7 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
         const initialData = json.map((row) => {
             const visitDate = new Date(row['FECHA']);
             
-            const budgetValue = row['PRESUPUESTO'];
+            const budgetValue = row['UNIDADES'];
             let budget = Number(budgetValue);
             if (isNaN(budget)) {
                 budget = 0;
@@ -161,7 +161,7 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
 
   const handleDownloadTemplate = () => {
     const headers = [spanishHeaders];
-    const exampleRow = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 500000]];
+    const exampleRow = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 500]];
     const ws = XLSX.utils.aoa_to_sheet([...headers, ...exampleRow]);
     ws['!cols'] = [
         { wch: 25 }, 

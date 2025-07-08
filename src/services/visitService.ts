@@ -10,20 +10,32 @@ import {
   query,
   orderBy,
   Timestamp,
+  QueryDocumentSnapshot,
+  DocumentData,
+  WithFieldValue
 } from 'firebase/firestore';
 
 // Convierte un documento de Firestore a un objeto Visit, convirtiendo Timestamps a Dates
-const visitFromDoc = (docSnap: any): Visit => {
+const visitFromDoc = (docSnap: QueryDocumentSnapshot<DocumentData>): Visit => {
     const data = docSnap.data();
     return {
-        ...data,
         id: docSnap.id,
+        trade_executive: data.trade_executive,
+        agent: data.agent,
+        channel: data.channel,
+        chain: data.chain,
+        pdv_detail: data.pdv_detail,
+        activity: data.activity,
+        schedule: data.schedule,
+        city: data.city,
+        zone: data.zone,
         date: data.date.toDate(),
+        budget: data.budget,
     };
 }
 
 // Prepara un objeto Visit para ser guardado en Firestore, convirtiendo Dates a Timestamps
-const visitToDoc = (visit: Partial<Omit<Visit, 'id'>>) => {
+const visitToDoc = (visit: Partial<Omit<Visit, 'id'>>): WithFieldValue<DocumentData> => {
     const data: any = { ...visit };
     if (visit.date) {
         data.date = Timestamp.fromDate(visit.date);

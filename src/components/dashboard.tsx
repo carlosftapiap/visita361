@@ -1,11 +1,11 @@
 "use client"
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil } from "lucide-react";
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from "recharts";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
-import autoTable from 'jspdf-autotable';
+import html2canvas from "html2canvas";
 
 import type { Visit } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +30,7 @@ const chartColors = [
 ];
 
 export default function Dashboard({ data, onEditVisit }: DashboardProps) {
+    const calendarRef = useRef<HTMLDivElement>(null);
     const [filters, setFilters] = useState({
         trade_executive: 'all',
         agent: 'all',
@@ -159,38 +160,23 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
     };
 
     const handleDownloadPdf = () => {
-        if (filteredData.length === 0) return;
+        const calendarElement = calendarRef.current;
+        if (!calendarElement || filteredData.length === 0) return;
 
-        const doc = new jsPDF({ orientation: 'landscape' });
-
-        const headers = [['Fecha', 'Ejecutiva', 'Asesor', 'Cadena', 'PDV', 'Actividad', 'Horario', 'Ciudad', 'Zona', 'Canal', 'Presupuesto']];
-        
-        const body = filteredData.map(v => [
-            v.date.toLocaleDateString('es-CO'),
-            v.trade_executive,
-            v.agent,
-            v.chain,
-            v.pdv_detail,
-            v.activity,
-            v.schedule,
-            v.city,
-            v.zone,
-            v.channel,
-            new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v.budget)
-        ]);
-
-        autoTable(doc, {
-            head: headers,
-            body: body,
-            startY: 20,
-            theme: 'grid',
-            headStyles: { fillColor: [68, 23, 103] }, // Primary color
-            styles: { fontSize: 7, cellPadding: 2 },
-            columnStyles: { 10: { halign: 'right' } }
+        html2canvas(calendarElement, {
+            scale: 2, // For better quality
+        }).then((canvas) => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'px',
+                format: [canvas.width, canvas.height]
+            });
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save("Visita360_Calendario.pdf");
         });
-
-        doc.text("Reporte de Visitas Filtradas - Visita360", 14, 15);
-        doc.save("Visita360_Reporte.pdf");
     };
 
     return (
@@ -238,15 +224,17 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                 </CardContent>
             </Card>
 
-            <ActivityCalendar 
-                data={filteredData}
-                executives={filterOptions.trade_executives}
-                agents={filterOptions.agents}
-                selectedExecutive={filters.trade_executive}
-                selectedAgent={filters.agent}
-                onExecutiveChange={handleFilterChange('trade_executive')}
-                onAgentChange={handleFilterChange('agent')}
-            />
+            <div ref={calendarRef}>
+                <ActivityCalendar 
+                    data={filteredData}
+                    executives={filterOptions.trade_executives}
+                    agents={filterOptions.agents}
+                    selectedExecutive={filters.trade_executive}
+                    selectedAgent={filters.agent}
+                    onExecutiveChange={handleFilterChange('trade_executive')}
+                    onAgentChange={handleFilterChange('agent')}
+                />
+            </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
                 <KpiCard title="Total de Actividades" value={kpis.totalVisits} icon={Activity} description="Total de registros en el periodo" />

@@ -17,16 +17,16 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export default function ActivityCalendar({ data }: ActivityCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const agents = useMemo(() => Array.from(new Set(data.map(visit => visit.agent))), [data]);
-  const [selectedAgent, setSelectedAgent] = useState(agents[0] || '');
+  const executives = useMemo(() => Array.from(new Set(data.map(visit => visit.trade_executive))), [data]);
+  const [selectedExecutive, setSelectedExecutive] = useState(executives[0] || '');
 
   useEffect(() => {
-    // When data is loaded or filtered, if the selected agent is no longer valid,
-    // reset to the first available agent or empty.
-    if (!agents.includes(selectedAgent)) {
-        setSelectedAgent(agents[0] || '');
+    // When data is loaded or filtered, if the selected executive is no longer valid,
+    // reset to the first available executive or empty.
+    if (!executives.includes(selectedExecutive)) {
+        setSelectedExecutive(executives[0] || '');
     }
-  }, [agents, selectedAgent]);
+  }, [executives, selectedExecutive]);
 
   const handlePrevWeek = () => {
     setCurrentDate(prev => addDays(prev, -7));
@@ -41,9 +41,9 @@ export default function ActivityCalendar({ data }: ActivityCalendarProps) {
     return Array.from({ length: 7 }).map((_, i) => addDays(start, i));
   }, [currentDate]);
 
-  const agentVisits = useMemo(() => {
-    return data.filter(visit => visit.agent === selectedAgent);
-  }, [data, selectedAgent]);
+  const executiveVisits = useMemo(() => {
+    return data.filter(visit => visit.trade_executive === selectedExecutive);
+  }, [data, selectedExecutive]);
 
   const activityColors: Record<string, string> = {
     'Visita': '--primary',
@@ -73,14 +73,14 @@ export default function ActivityCalendar({ data }: ActivityCalendarProps) {
                 </Button>
             </div>
             <div className="w-full sm:w-52">
-              <Select value={selectedAgent} onValueChange={setSelectedAgent} disabled={agents.length === 0}>
+              <Select value={selectedExecutive} onValueChange={setSelectedExecutive} disabled={executives.length === 0}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar Agente" />
+                  <SelectValue placeholder="Seleccionar Ejecutiva" />
                 </SelectTrigger>
                 <SelectContent>
-                  {agents.length > 0 ? agents.map(agent => (
-                    <SelectItem key={agent} value={agent}>{agent}</SelectItem>
-                  )) : <SelectItem value="" disabled>No hay agentes</SelectItem>}
+                  {executives.length > 0 ? executives.map(exec => (
+                    <SelectItem key={exec} value={exec}>{exec}</SelectItem>
+                  )) : <SelectItem value="" disabled>No hay ejecutivas</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
@@ -90,7 +90,7 @@ export default function ActivityCalendar({ data }: ActivityCalendarProps) {
       <CardContent>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-7">
           {weekDays.map(day => {
-            const dayVisits = agentVisits.filter(visit => isSameDay(visit.date, day));
+            const dayVisits = executiveVisits.filter(visit => isSameDay(visit.date, day));
             return (
               <div key={day.toISOString()} className="flex min-h-36 flex-col rounded-lg border bg-background p-2">
                 <div className="text-center text-sm font-semibold">{capitalize(format(day, 'eee', { locale: es }))}</div>
@@ -103,7 +103,7 @@ export default function ActivityCalendar({ data }: ActivityCalendarProps) {
                       style={{ borderLeft: `4px solid hsl(var(${activityColors[visit.activity] || '--muted'}))` }}
                     >
                        <p className="font-semibold text-card-foreground">{visit.activity}</p>
-                       <p className="truncate text-muted-foreground">{visit.chain}</p>
+                       <p className="truncate text-muted-foreground">{visit.agent}</p>
                     </div>
                   )) : (
                     <div className="flex h-full items-center justify-center text-sm text-muted-foreground/50">

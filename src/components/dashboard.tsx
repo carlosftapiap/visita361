@@ -33,6 +33,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         city: 'all',
         activity: 'all',
         zone: 'all',
+        chain: 'all',
     });
 
     const filterOptions = useMemo(() => {
@@ -46,7 +47,8 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const cities = ['all', ...Array.from(new Set(data.map(v => v.city)))];
         const activities = ['all', ...Array.from(new Set(data.map(v => v.activity)))];
         const zones = ['all', ...Array.from(new Set(data.map(v => v.zone)))];
-        return { trade_executives, agents, cities, activities, zones };
+        const chains = ['all', ...Array.from(new Set(data.map(v => v.chain)))];
+        return { trade_executives, agents, cities, activities, zones, chains };
     }, [data, filters.trade_executive]);
 
     const handleFilterChange = (filterName: keyof typeof filters) => (value: string) => {
@@ -66,7 +68,8 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             const cityMatch = filters.city === 'all' || visit.city === filters.city;
             const activityMatch = filters.activity === 'all' || visit.activity === filters.activity;
             const zoneMatch = filters.zone === 'all' || visit.zone === filters.zone;
-            return tradeExecutiveMatch && agentMatch && cityMatch && activityMatch && zoneMatch;
+            const chainMatch = filters.chain === 'all' || visit.chain === filters.chain;
+            return tradeExecutiveMatch && agentMatch && cityMatch && activityMatch && zoneMatch && chainMatch;
         });
     }, [data, filters]);
 
@@ -134,12 +137,19 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                     <CardDescription>Refine los datos para un análisis más detallado. Puede exportar los resultados filtrados.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                    <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <div className="grid gap-2">
                              <label className="text-sm font-medium">Ciudad</label>
                             <Select value={filters.city} onValueChange={handleFilterChange('city')}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>{filterOptions.cities.map(city => (<SelectItem key={city} value={city}>{city === 'all' ? 'Todas las ciudades' : city}</SelectItem>))}</SelectContent>
+                            </Select>
+                        </div>
+                         <div className="grid gap-2">
+                             <label className="text-sm font-medium">Cadena</label>
+                            <Select value={filters.chain} onValueChange={handleFilterChange('chain')}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>{filterOptions.chains.map(chain => (<SelectItem key={chain} value={chain}>{chain === 'all' ? 'Todas las cadenas' : chain}</SelectItem>))}</SelectContent>
                             </Select>
                         </div>
                          <div className="grid gap-2">

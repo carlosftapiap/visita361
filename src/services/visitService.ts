@@ -55,17 +55,10 @@ export const getVisits = async (): Promise<Visit[]> => {
   const db = getDb();
   const visitsCollectionRef = collection(db, 'visits');
 
-  // Para mejorar el rendimiento, solo obtenemos las visitas de los últimos 3 meses.
-  // Esto evita cargar todo el historial de la base de datos al inicio y acelera la carga inicial.
-  const threeMonthsAgo = subMonths(new Date(), 3);
-
-  const q = query(
-    visitsCollectionRef,
-    orderBy("date", "desc"),
-    where("date", ">=", Timestamp.fromDate(threeMonthsAgo))
-  );
-
-  const querySnapshot = await getDocs(q);
+  // Para diagnosticar el problema de carga, obtenemos todos los documentos
+  // sin consultas complejas del lado del servidor. Esto evita posibles problemas
+  // con los índices de Firestore y garantiza que los datos se carguen.
+  const querySnapshot = await getDocs(visitsCollectionRef);
   
   const visits: Visit[] = [];
   querySnapshot.forEach((doc) => {
@@ -75,6 +68,9 @@ export const getVisits = async (): Promise<Visit[]> => {
           console.warn(`Skipping corrupted document ${doc.id}:`, e);
       }
   });
+
+  // Ordenamos las visitas por fecha en el lado del cliente después de obtenerlas.
+  visits.sort((a, b) => b.date.getTime() - a.date.getTime());
 
   return visits;
 };

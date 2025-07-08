@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from 'react';
-import { Trash2, BarChart3, Plus, Copy } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Trash2, BarChart3, Plus, Copy, Loader2 } from 'lucide-react';
 import type { Visit } from '@/types';
 import FileUploader from '@/components/file-uploader';
 import Dashboard from '@/components/dashboard';
@@ -10,9 +10,17 @@ import DuplicateMonthDialog from '@/components/duplicate-month-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import {
+  getVisits,
+  addVisit,
+  updateVisit,
+  addBatchVisits,
+  deleteAllVisits,
+} from '@/services/visitService';
 
 export default function Home() {
-  const [data, setData] = useState<Visit[] | null>(null);
+  const [data, setData] = useState<Visit[]>([]);
+  const [loading, setLoading] = useState(true);
   const [formState, setFormState] = useState<{ open: boolean; visit?: Visit | null }>({
     open: false,
     visit: null,
@@ -20,28 +28,84 @@ export default function Home() {
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const { toast } = useToast();
 
+  const refetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const visits = await getVisits();
+      setData(visits);
+    } catch (error) {
+      console.error("Error refetching data:", error);
+      toast({
+        variant: "destructive",
+        title: "Error de Sincronización",
+        description: "No se pudieron actualizar los datos desde la base de datos.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
 
-  const handleDataProcessed = (processedData: Visit[]) => {
-    setData(prevData => [...(prevData || []), ...processedData]);
+  useEffect(() => {
+    refetchData();
+  }, [refetchData]);
+
+  const handleDataProcessed = async (processedData: Visit[]) => {
+    setLoading(true);
+    const visitsToAdd = processedData.map(({ id, ...rest }) => rest);
+    await addBatchVisits(visitsToAdd as Omit<Visit, 'id'>[]);
+    await refetchData();
+     toast({
+        title: 'Éxito',
+        description: `${visitsToAdd.length} registros han sido añadidos a la base de datos.`,
+    });
   };
 
-  const handleReset = () => {
-    setData(null);
+  const handleReset = async () => {
+    setLoading(true);
+    try {
+        await deleteAllVisits();
+        setData([]);
+        toast({
+            title: "Datos Eliminados",
+            description: "Toda la información ha sido borrada de la base de datos.",
+        });
+    } catch (error) {
+         toast({
+            variant: "destructive",
+            title: "Error al Eliminar",
+            description: "No se pudieron borrar los datos de la base de datos.",
+        });
+    } finally {
+        setLoading(false);
+    }
   }
 
-  const handleSaveVisit = (visitToSave: Visit) => {
-    setData(prevData => {
-        const dataArr = prevData || [];
-        const existingIndex = dataArr.findIndex(v => v.id === visitToSave.id);
-        if (existingIndex > -1) {
-            const newData = [...dataArr];
-            newData[existingIndex] = visitToSave;
-            return newData;
+  const handleSaveVisit = async (visitToSave: Visit) => {
+    setLoading(true);
+    const isNew = !data.some(d => d.id === visitToSave.id);
+    const { id, ...dataToSave } = visitToSave;
+
+    try {
+        if (isNew) {
+            await addVisit(dataToSave as Omit<Visit, 'id'>);
         } else {
-            return [...dataArr, visitToSave];
+            await updateVisit(id, dataToSave);
         }
-    });
-    setFormState({ open: false, visit: null });
+        await refetchData();
+        toast({
+            title: 'Éxito',
+            description: `Visita ${isNew ? 'creada' : 'actualizada'} correctamente.`,
+        });
+        setFormState({ open: false, visit: null });
+    } catch (error) {
+        console.error("Error saving visit:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error al Guardar',
+            description: 'No se pudo guardar la visita en la base de datos.',
+        });
+        setLoading(false);
+    }
   };
 
   const handleEditVisit = (visit: Visit) => {
@@ -52,7 +116,7 @@ export default function Home() {
     setFormState({ open: true, visit: null });
   };
 
-  const handleDuplicateMonth = (sourceMonthStr: string, targetMonthStr: string) => {
+  const handleDuplicateMonth = async (sourceMonthStr: string, targetMonthStr: string) => {
     if (!data) return;
 
     const [sourceYear, sourceMonthNum] = sourceMonthStr.split('-').map(Number);
@@ -74,21 +138,21 @@ export default function Home() {
 
     const lastDayOfTargetMonth = new Date(targetYear, targetMonthNum, 0).getDate();
 
-    const newVisits: Visit[] = sourceVisits.map(visit => {
+    const newVisits = sourceVisits.map(visit => {
         const originalDate = new Date(visit.date);
         const dayOfMonth = originalDate.getDate();
-
         const dayToSet = Math.min(dayOfMonth, lastDayOfTargetMonth);
         const targetDate = new Date(targetYear, targetMonthNum - 1, dayToSet);
-
+        const { id, ...rest } = visit;
         return {
-            ...visit,
-            id: `duplicated-${visit.id}-${Date.now()}-${Math.random()}`,
+            ...rest,
             date: targetDate,
         };
     });
-
-    setData(prevData => [...(prevData || []), ...newVisits]);
+    
+    setLoading(true);
+    await addBatchVisits(newVisits as Omit<Visit, 'id'>[]);
+    await refetchData();
 
     toast({
         title: "Éxito",
@@ -113,16 +177,16 @@ export default function Home() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-            <Button onClick={() => setIsDuplicateDialogOpen(true)} variant="outline">
+            <Button onClick={() => setIsDuplicateDialogOpen(true)} variant="outline" disabled={loading || data.length === 0}>
                 <Copy className="mr-2 h-4 w-4" />
                 Duplicar Mes
             </Button>
-            <Button onClick={handleAddVisitClick}>
+            <Button onClick={handleAddVisitClick} disabled={loading}>
                 <Plus className="mr-2 h-4 w-4" />
                 Añadir Visita
             </Button>
-            {data && (
-                <Button onClick={handleReset} variant="destructive">
+            {data && data.length > 0 && (
+                <Button onClick={handleReset} variant="destructive" disabled={loading}>
                     <Trash2 className="mr-2 h-4 w-4" />
                     Limpiar Datos
                 </Button>
@@ -135,7 +199,15 @@ export default function Home() {
           <FileUploader onDataProcessed={handleDataProcessed} />
         </div>
         <div className="flex-1">
-          {data ? (
+          {loading ? (
+             <Card className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center shadow-md">
+                <CardContent className="flex flex-col items-center gap-4 p-6">
+                    <Loader2 className="h-16 w-16 animate-spin text-primary" />
+                    <h2 className="font-headline text-2xl">Cargando Datos...</h2>
+                    <p className="max-w-xs text-muted-foreground">Estableciendo conexión con la base de datos.</p>
+                </CardContent>
+            </Card>
+          ) : data && data.length > 0 ? (
             <Dashboard data={data} onEditVisit={handleEditVisit} />
           ) : (
             <Card className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center shadow-md">
@@ -144,7 +216,7 @@ export default function Home() {
                         <BarChart3 className="h-16 w-16 text-primary" />
                     </div>
                     <h2 className="font-headline text-2xl">Esperando datos</h2>
-                    <p className="max-w-xs text-muted-foreground">Cargue uno o más archivos de Excel para visualizar el panel de control consolidado.</p>
+                    <p className="max-w-xs text-muted-foreground">Cargue uno o más archivos de Excel o añada una visita para visualizar el panel de control.</p>
                 </CardContent>
             </Card>
           )}

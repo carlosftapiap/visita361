@@ -177,7 +177,7 @@ export default function CronogramaTradePage() {
             <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Button onClick={() => setIsDuplicateDialogOpen(true)} variant="outline" disabled={loading || data.length === 0} className="flex-1 sm:flex-none">
                     <Copy className="mr-2 h-4 w-4" />
-                    Duplicar Mes
+                    Cronograma nuevo
                 </Button>
                 <Button onClick={handleAddVisitClick} className="flex-1 sm:flex-none" disabled={loading}>
                     <Plus className="mr-2 h-4 w-4" />

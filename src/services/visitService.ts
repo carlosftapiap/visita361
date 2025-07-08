@@ -55,14 +55,14 @@ export const getVisits = async (): Promise<Visit[]> => {
   const db = getDb();
   const visitsCollectionRef = collection(db, 'visits');
 
-  // Para mejorar el rendimiento, solo obtenemos las visitas de los últimos 6 meses.
-  // Esto evita cargar todo el historial de la base de datos al inicio.
-  const sixMonthsAgo = subMonths(new Date(), 6);
+  // Para mejorar el rendimiento, solo obtenemos las visitas de los últimos 3 meses.
+  // Esto evita cargar todo el historial de la base de datos al inicio y acelera la carga inicial.
+  const threeMonthsAgo = subMonths(new Date(), 3);
 
   const q = query(
     visitsCollectionRef,
     orderBy("date", "desc"),
-    where("date", ">=", Timestamp.fromDate(sixMonthsAgo))
+    where("date", ">=", Timestamp.fromDate(threeMonthsAgo))
   );
 
   const querySnapshot = await getDocs(q);

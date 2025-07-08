@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Sidebar,
@@ -15,7 +15,10 @@ import {
   SidebarFooter,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { CalendarCheck, LineChart, Target, Package, Settings } from 'lucide-react';
+import { CalendarCheck, LineChart, Target, Package, LogOut } from 'lucide-react';
+import { getSupabase } from "@/lib/supabase";
+import type { User } from "@supabase/supabase-js";
+import DashboardSkeleton from "@/components/dashboard-skeleton";
 
 export default function AppLayout({
   children,
@@ -23,6 +26,41 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = React.useState<User | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const supabase = getSupabase();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setUser(session.user);
+        setLoading(false);
+      } else {
+        router.push('/login');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router]);
+  
+  const handleSignOut = async () => {
+    const supabase = getSupabase();
+    await supabase.auth.signOut();
+    // The auth listener will handle the redirect to /login
+  };
+  
+  if (loading) {
+    return (
+        <div className="flex h-screen w-screen items-center justify-center bg-background">
+            <DashboardSkeleton />
+        </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -79,11 +117,9 @@ export default function AppLayout({
              <SidebarFooter>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Configuración" disabled>
-                            <Link href="#">
-                                <Settings />
-                                <span>Configuración</span>
-                            </Link>
+                         <SidebarMenuButton onClick={handleSignOut} tooltip="Cerrar Sesión">
+                            <LogOut />
+                            <span>Cerrar Sesión</span>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

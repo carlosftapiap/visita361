@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Visit } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface ActivityCalendarProps {
   data: Visit[];
@@ -101,28 +102,32 @@ export default function ActivityCalendar({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-7">
+        <div className="grid grid-cols-1 gap-px md:grid-cols-7 border rounded-lg overflow-hidden">
+          <div className="hidden md:grid md:grid-cols-7 md:col-span-7">
+            {weekDays.map(day => (
+              <div key={`header-${day.toISOString()}`} className="text-center py-2 bg-muted text-sm font-semibold">{capitalize(format(day, 'eee d', { locale: es }))}</div>
+            ))}
+          </div>
           {weekDays.map(day => {
             const dayVisits = data.filter(visit => isSameDay(visit.date, day));
             return (
-              <div key={day.toISOString()} className="flex min-h-[20rem] flex-col rounded-lg border bg-background p-2">
-                <div className="text-center text-sm font-semibold">{capitalize(format(day, 'eee', { locale: es }))}</div>
-                <div className="text-center text-xs text-muted-foreground">{format(day, 'd')}</div>
-                <ScrollArea className="mt-2 flex-grow">
-                  <div className="space-y-1.5 pr-3">
-                    {dayVisits.map(visit => (
-                      <div
-                        key={visit.id}
-                        className="rounded-md bg-card p-2 text-xs shadow-sm"
-                        style={{ borderLeft: `4px solid ${activityColors[visit.activity] || 'hsl(var(--muted))'}` }}
-                      >
-                         <p className="font-semibold text-card-foreground">{visit.activity}</p>
-                         <p className="truncate text-muted-foreground">{visit.agent}</p>
-                         <p className="truncate text-muted-foreground">{visit.chain}</p>
-                         <p className="truncate text-muted-foreground">{visit.pdv_detail}</p>
-                      </div>
-                    ))}
-                    {dayVisits.length === 0 && (
+              <div key={day.toISOString()} className={cn("flex min-h-[16rem] flex-col bg-background p-2 border-t md:border-t-0 md:border-l")}>
+                 <div className="text-center text-sm font-semibold md:hidden">{capitalize(format(day, 'eee d', { locale: es }))}</div>
+                 <ScrollArea className="flex-grow mt-2">
+                  <div className="space-y-1.5 pr-2">
+                    {dayVisits.length > 0 ? (
+                      dayVisits.map(visit => (
+                        <div
+                          key={visit.id}
+                          className="rounded-md bg-card p-2 text-xs shadow-sm"
+                          style={{ borderLeft: `4px solid ${activityColors[visit.activity] || 'hsl(var(--muted))'}` }}
+                        >
+                           <p className="font-semibold text-card-foreground">{visit.activity}</p>
+                           <p className="truncate text-muted-foreground">{visit.agent}</p>
+                           <p className="truncate text-muted-foreground">{visit.chain}</p>
+                        </div>
+                      ))
+                    ) : (
                       <div className="flex h-full items-center justify-center text-sm text-muted-foreground/50">
                         -
                       </div>

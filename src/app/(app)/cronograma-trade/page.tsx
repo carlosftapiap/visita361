@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Trash2, BarChart3, Plus, Copy, AlertCircle } from 'lucide-react';
+import { Trash2, BarChart3, Plus, Copy, AlertCircle, CalendarClock } from 'lucide-react';
 import type { Visit } from '@/types';
 import FileUploader from '@/components/file-uploader';
 import Dashboard from '@/components/dashboard';
@@ -41,7 +41,15 @@ export default function CronogramaTradePage() {
     try {
       setLoading(true);
       setError(null);
-      const visits = await getVisits();
+      
+      const visitsPromise = getVisits();
+      const timeoutPromise = new Promise<Visit[]>((_, reject) =>
+        setTimeout(() => {
+          reject(new Error("La carga de datos está tardando demasiado. Esto puede deberse a un problema de conexión o a una configuración incorrecta en Firebase. Por favor, revise los puntos detallados a continuación."))
+        }, 15000) // 15-second timeout
+      );
+
+      const visits = await Promise.race([visitsPromise, timeoutPromise]);
       setData(visits);
     } catch (err: any) {
       setError(err.message);
@@ -224,9 +232,9 @@ export default function CronogramaTradePage() {
                     <div className="flex items-center gap-4">
                         <AlertCircle className="h-8 w-8 text-destructive" />
                         <div>
-                            <CardTitle className="font-headline text-2xl text-destructive">Error de Conexión a Firebase</CardTitle>
+                            <CardTitle className="font-headline text-2xl text-destructive">Error al Cargar los Datos</CardTitle>
                             <CardDescription className="text-destructive/80">
-                                No se pudo establecer la conexión con la base de datos de Firestore.
+                                No se pudo establecer una conexión funcional con la base de datos de Firestore.
                             </CardDescription>
                         </div>
                     </div>
@@ -237,19 +245,24 @@ export default function CronogramaTradePage() {
                     </p>
                     <ol className="list-decimal list-inside space-y-2">
                         <li>
-                            <strong>Archivo <code>.env.local</code></strong>: Asegúrese de que ha creado un archivo llamado <code>.env.local</code> en la raíz de su proyecto.
+                            <strong>Verificar credenciales en <code>.env.local</code></strong>: Asegúrese de que ha creado un archivo <code>.env.local</code> en la raíz de su proyecto y que sus variables (<code>NEXT_PUBLIC_FIREBASE_...</code>) son correctas.
                         </li>
                         <li>
-                            <strong>Credenciales Correctas</strong>: Verifique que las credenciales en su archivo <code>.env.local</code> coincidan con las de su proyecto de Firebase. He creado un archivo <code>.env.local.example</code> para que lo use como guía.
+                            <strong>Reiniciar el Servidor de Desarrollo</strong>: Después de crear o modificar el archivo <code>.env.local</code>, es <strong>crucial</strong> que reinicie su servidor de desarrollo. Es el error más común.
                         </li>
                         <li>
-                            <strong>Reiniciar el Servidor</strong>: Después de crear o modificar el archivo <code>.env.local</code>, es <strong>crucial</strong> que reinicie su servidor de desarrollo.
+                            <strong>Reglas de Seguridad de Firestore</strong>: En su <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-bold">Consola de Firebase</a>, vaya a Firestore Database &rarr; Reglas. Asegúrese de que permitan la lectura. Para empezar, puede usar las reglas de modo de prueba:
+                            <pre className="text-xs bg-destructive/10 p-2 rounded-md overflow-x-auto mt-1"><code>{`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.time < timestamp.date(2025, 12, 31);
+    }
+  }
+}`}</code></pre>
                         </li>
                         <li>
-                            <strong>Base de Datos Firestore</strong>: Confirme que ha creado una base de datos de Cloud Firestore en su proyecto de Firebase y que sus reglas de seguridad permiten la lectura y escritura (puede usar el modo de prueba para empezar).
-                        </li>
-                         <li>
-                            <strong>Índices de Firestore</strong>: Si el error técnico menciona un "índice faltante" (missing index), a menudo incluirá un enlace para crearlo automáticamente. Siga ese enlace en la consola de Firebase.
+                            <strong>Conexión a Internet</strong>: Verifique que su conexión a internet esté funcionando correctamente.
                         </li>
                     </ol>
                     <Card className="bg-background/50 p-4 mt-2">
@@ -302,10 +315,10 @@ export default function CronogramaTradePage() {
                 <Card className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center shadow-md">
                     <CardContent className="flex flex-col items-center gap-4 p-6">
                         <div className="rounded-full border-8 border-primary/10 bg-primary/5 p-6">
-                            <BarChart3 className="h-16 w-16 text-primary" />
+                            <CalendarClock className="h-16 w-16 text-primary" />
                         </div>
-                        <h2 className="font-headline text-2xl">No hay datos</h2>
-                        <p className="max-w-xs text-muted-foreground">Cargue un archivo o añada una visita para comenzar a analizar la información.</p>
+                        <h2 className="font-headline text-2xl">Aún no hay actividades</h2>
+                        <p className="max-w-xs text-muted-foreground">Cargue un archivo Excel o añada una visita manualmente para comenzar a visualizar el cronograma.</p>
                     </CardContent>
                 </Card>
               )}

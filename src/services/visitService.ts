@@ -15,12 +15,14 @@ const buildSupabaseError = (error: any, context: string): Error => {
     console.error(`Error with Supabase ${context}:`, error);
     let message;
 
-    if (error.code === '42P01') { // undefined table
+    // It's common for the table to not exist, especially during setup.
+    // The error code is '42P01' and the message contains 'relation "..." does not exist'.
+    if (error?.code === '42P01' || (error?.message && (error.message.includes('does not exist') || error.message.includes('no existe la relación')))) {
         message = `La tabla 'visits' no se encontró en Supabase.\n\n` +
                   `**SOLUCIÓN:**\n` +
                   `Ve al editor de SQL en tu dashboard de Supabase (Database -> SQL Editor) y ejecuta el siguiente comando para crear la tabla:\n\n` +
                   `-- INICIA SCRIPT SQL --\n` +
-                  `CREATE TABLE visits (\n` +
+                  `CREATE TABLE public.visits (\n` +
                   `  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,\n` +
                   `  trade_executive TEXT,\n` +
                   `  agent TEXT,\n` +
@@ -35,24 +37,25 @@ const buildSupabaseError = (error: any, context: string): Error => {
                   `  budget NUMERIC\n` +
                   `);\n` +
                   `-- FIN SCRIPT SQL --`;
-    } else if (error.code === '42501') { // permission denied
+    } else if (error?.code === '42501') { // permission denied
         message = `Error de Permisos en Supabase (Row Level Security).\n\n` +
                   `La política de seguridad de la tabla 'visits' no permite la operación de '${context}'.\n\n` +
                   `**SOLUCIÓN:**\n` +
                   `1. Asegúrate que RLS está habilitado para la tabla 'visits' (Authentication -> Policies).\n` +
                   `2. Crea una política que permita el acceso. Para desarrollo, puedes usar la siguiente en el editor SQL:\n\n` +
                   `-- INICIA SCRIPT SQL --\n` +
-                  `CREATE POLICY "Public full access" ON visits\n` +
+                  `CREATE POLICY "Public full access" ON public.visits\n` +
                   `FOR ALL\n` +
                   `USING (true)\n` +
                   `WITH CHECK (true);\n` +
-                  `-- FIN SCRIPT SQL --`;
+                  `-- FIN SCRIPT SQL --\n\n` +
+                  `**NOTA:** Esta política da acceso total. Para producción, debes crear reglas más restrictivas.`;
     } else {
         message = `Ocurrió un error inesperado en la operación de ${context} con Supabase.\n\n` +
                   `Asegúrate de que tus credenciales en el archivo .env.local son correctas y de que has reiniciado el servidor de desarrollo después de cualquier cambio.\n\n` +
                   `**Detalles Técnicos:**\n` +
-                  `Código: ${error.code || 'N/A'}\n` +
-                  `Mensaje: ${error.message || 'No hay un mensaje de error específico del servidor.'}`;
+                  `Código: ${error?.code || 'N/A'}\n` +
+                  `Mensaje: ${error?.message || 'No hay un mensaje de error específico del servidor.'}`;
     }
 
     return new Error(message);

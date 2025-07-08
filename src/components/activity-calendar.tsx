@@ -3,11 +3,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Building2, Network, Clock, MapPin, Boxes } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import type { Visit } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +35,7 @@ export default function ActivityCalendar({
 }: ActivityCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
+  const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
   
   const availableMonths = useMemo(() => {
     const monthSet = new Set<string>();
@@ -98,99 +100,180 @@ export default function ActivityCalendar({
   const formattedDateRange = `${capitalize(format(weekStart, 'd MMM', { locale: es }))} - ${capitalize(format(weekEnd, 'd MMM yyyy', { locale: es }))}`;
 
   return (
-    <Card className="h-full shadow-lg">
-      <CardHeader>
-        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle className="font-headline text-xl">Calendario Semanal de Actividades</CardTitle>
-            <CardDescription>Semana del {formattedDateRange}</CardDescription>
-          </div>
-          <div className="flex w-full flex-col-reverse items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
-            <div className="flex items-center justify-center gap-2">
-                <Button variant="outline" size="icon" onClick={handlePrevWeek} aria-label="Semana anterior">
-                    <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon" onClick={handleNextWeek} aria-label="Semana siguiente">
-                    <ChevronRight className="h-4 w-4" />
-                </Button>
+    <>
+      <Card className="h-full shadow-lg">
+        <CardHeader>
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="font-headline text-xl">Calendario Semanal de Actividades</CardTitle>
+              <CardDescription>Semana del {formattedDateRange}</CardDescription>
             </div>
-            <div className="w-full sm:w-52">
-                <Select value={selectedMonth} onValueChange={handleMonthChange}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar Mes" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {availableMonths.map(month => (
-                        <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            <div className="w-full sm:w-52">
-              <Select value={selectedExecutive} onValueChange={onExecutiveChange} disabled={executives.length <= 1}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar Ejecutiva" />
-                </SelectTrigger>
-                <SelectContent>
-                  {executives.length > 1 ? executives.map(exec => (
-                    <SelectItem key={exec} value={exec}>{exec === 'all' ? 'Todas las Ejecutivas' : exec}</SelectItem>
-                  )) : <SelectItem value="all" disabled>No hay ejecutivas</SelectItem>}
-                </SelectContent>
-              </Select>
-            </div>
-             <div className="w-full sm:w-52">
-              <Select value={selectedAgent} onValueChange={onAgentChange} disabled={agents.length <= 1}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar Asesor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {agents.length > 1 ? agents.map(agent => (
-                    <SelectItem key={agent} value={agent}>{agent === 'all' ? 'Todos los Asesores' : agent}</SelectItem>
-                  )) : <SelectItem value="all" disabled>No hay asesores</SelectItem>}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 gap-px md:grid-cols-7 border rounded-lg overflow-hidden">
-          <div className="hidden md:grid md:grid-cols-7 md:col-span-7">
-            {weekDays.map(day => (
-              <div key={`header-${day.toISOString()}`} className="text-center py-2 bg-muted text-sm font-semibold">{capitalize(format(day, 'eee d', { locale: es }))}</div>
-            ))}
-          </div>
-          {weekDays.map(day => {
-            const dayVisits = data.filter(visit => isSameDay(visit.date, day));
-            return (
-              <div key={day.toISOString()} className={cn("flex min-h-[16rem] flex-col bg-background p-2 border-t md:border-t-0 md:border-l")}>
-                 <div className="text-center text-sm font-semibold md:hidden">{capitalize(format(day, 'eee d', { locale: es }))}</div>
-                 <ScrollArea className="flex-grow mt-2">
-                  <div className="space-y-1.5 pr-2">
-                    {dayVisits.length > 0 ? (
-                      dayVisits.map(visit => (
-                        <div
-                          key={visit.id}
-                          className="rounded-md bg-card p-2 text-xs shadow-sm"
-                          style={{ borderLeft: `4px solid ${activityColors[visit.activity] || 'hsl(var(--muted))'}` }}
-                        >
-                           <p className="font-semibold text-card-foreground">{visit.activity}</p>
-                           <p className="truncate text-muted-foreground">{visit.trade_executive}</p>
-                           <p className="truncate text-muted-foreground">{visit.chain}</p>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground/50">
-                        -
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
+            <div className="flex w-full flex-col-reverse items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
+              <div className="flex items-center justify-center gap-2">
+                  <Button variant="outline" size="icon" onClick={handlePrevWeek} aria-label="Semana anterior">
+                      <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={handleNextWeek} aria-label="Semana siguiente">
+                      <ChevronRight className="h-4 w-4" />
+                  </Button>
               </div>
-            )
-          })}
-        </div>
-      </CardContent>
-    </Card>
+              <div className="w-full sm:w-52">
+                  <Select value={selectedMonth} onValueChange={handleMonthChange}>
+                      <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar Mes" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {availableMonths.map(month => (
+                          <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                          ))}
+                      </SelectContent>
+                  </Select>
+              </div>
+              <div className="w-full sm:w-52">
+                <Select value={selectedExecutive} onValueChange={onExecutiveChange} disabled={executives.length <= 1}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar Ejecutiva" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {executives.length > 1 ? executives.map(exec => (
+                      <SelectItem key={exec} value={exec}>{exec === 'all' ? 'Todas las Ejecutivas' : exec}</SelectItem>
+                    )) : <SelectItem value="all" disabled>No hay ejecutivas</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+               <div className="w-full sm:w-52">
+                <Select value={selectedAgent} onValueChange={onAgentChange} disabled={agents.length <= 1}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar Asesor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {agents.length > 1 ? agents.map(agent => (
+                      <SelectItem key={agent} value={agent}>{agent === 'all' ? 'Todos los Asesores' : agent}</SelectItem>
+                    )) : <SelectItem value="all" disabled>No hay asesores</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-px md:grid-cols-7 border rounded-lg overflow-hidden">
+            <div className="hidden md:grid md:grid-cols-7 md:col-span-7">
+              {weekDays.map(day => (
+                <div key={`header-${day.toISOString()}`} className="text-center py-2 bg-muted text-sm font-semibold">{capitalize(format(day, 'eee d', { locale: es }))}</div>
+              ))}
+            </div>
+            {weekDays.map(day => {
+              const dayVisits = data.filter(visit => isSameDay(visit.date, day));
+              return (
+                <div key={day.toISOString()} className={cn("flex min-h-[16rem] flex-col bg-background p-2 border-t md:border-t-0 md:border-l")}>
+                   <div className="text-center text-sm font-semibold md:hidden">{capitalize(format(day, 'eee d', { locale: es }))}</div>
+                   <ScrollArea className="flex-grow mt-2">
+                    <div className="space-y-1.5 pr-2">
+                      {dayVisits.length > 0 ? (
+                        dayVisits.map(visit => (
+                          <div
+                            key={visit.id}
+                            onClick={() => setSelectedVisit(visit)}
+                            className="rounded-md bg-card p-2 text-xs shadow-sm cursor-pointer transition-colors hover:bg-muted/50"
+                            style={{ borderLeft: `4px solid ${activityColors[visit.activity] || 'hsl(var(--muted))'}` }}
+                          >
+                             <p className="font-semibold text-card-foreground">{visit.activity}</p>
+                             <p className="truncate text-muted-foreground">{visit.trade_executive}</p>
+                             <p className="truncate text-muted-foreground">{visit.chain}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-sm text-muted-foreground/50">
+                          -
+                        </div>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!selectedVisit} onOpenChange={(isOpen) => !isOpen && setSelectedVisit(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl">{selectedVisit?.activity}</DialogTitle>
+            <DialogDescription>
+              {selectedVisit && capitalize(format(selectedVisit.date, "eeee, d 'de' MMMM, yyyy", { locale: es }))}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedVisit && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 py-4 text-sm">
+                <div className="flex items-start gap-3">
+                    <User className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1">
+                        <p className="font-medium text-muted-foreground">Ejecutiva</p>
+                        <p className="font-semibold text-card-foreground">{selectedVisit.trade_executive}</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-3">
+                    <User className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1">
+                        <p className="font-medium text-muted-foreground">Asesor</p>
+                        <p className="font-semibold text-card-foreground">{selectedVisit.agent}</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-3">
+                    <Building2 className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1">
+                        <p className="font-medium text-muted-foreground">Cadena</p>
+                        <p className="font-semibold text-card-foreground">{selectedVisit.chain}</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-3">
+                    <Building2 className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1">
+                        <p className="font-medium text-muted-foreground">Detalle PDV</p>
+                        <p className="font-semibold text-card-foreground">{selectedVisit.pdv_detail}</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-3">
+                    <Network className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1">
+                        <p className="font-medium text-muted-foreground">Canal</p>
+                        <p className="font-semibold text-card-foreground">{selectedVisit.channel}</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-3">
+                    <Clock className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1">
+                        <p className="font-medium text-muted-foreground">Horario</p>
+                        <p className="font-semibold text-card-foreground">{selectedVisit.schedule}</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-3">
+                    <MapPin className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1">
+                        <p className="font-medium text-muted-foreground">Ciudad</p>
+                        <p className="font-semibold text-card-foreground">{selectedVisit.city}</p>
+                    </div>
+                </div>
+                 <div className="flex items-start gap-3">
+                    <MapPin className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1">
+                        <p className="font-medium text-muted-foreground">Zona</p>
+                        <p className="font-semibold text-card-foreground">{selectedVisit.zone}</p>
+                    </div>
+                </div>
+                 <div className="flex items-start gap-3 md:col-span-2">
+                    <Boxes className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1">
+                        <p className="font-medium text-muted-foreground">Unidades</p>
+                        <p className="font-semibold text-card-foreground">{selectedVisit.budget.toLocaleString('es-CO')}</p>
+                    </div>
+                </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

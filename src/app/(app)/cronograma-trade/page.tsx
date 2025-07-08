@@ -1,9 +1,11 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { Trash2, Plus, Copy, CalendarClock, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Trash2, Plus, Copy, CalendarClock, AlertTriangle, RefreshCw, Loader2, Settings } from 'lucide-react';
 import type { Visit } from '@/types';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import FileUploader from '@/components/file-uploader';
 import Dashboard from '@/components/dashboard';
 import VisitForm from '@/components/visit-form';
@@ -11,6 +13,13 @@ import DuplicateMonthDialog from '@/components/duplicate-month-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,8 +37,10 @@ import {
   updateVisit,
   addBatchVisits,
   deleteAllVisits,
+  deleteVisitsInMonths,
 } from '@/services/visitService';
 
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export default function CronogramaTradePage() {
   const [data, setData] = useState<Visit[]>([]);
@@ -39,8 +50,9 @@ export default function CronogramaTradePage() {
     visit: null,
   });
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const { toast } = useToast();
-  const [pendingData, setPendingData] = useState<Omit<Visit, 'id'>[] | null>(null);
+  const [pendingData, setPendingData] = useState<{ data: Omit<Visit, 'id'>[]; months: string[] } | null>(null);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -68,9 +80,22 @@ export default function CronogramaTradePage() {
     refreshData();
   }, [refreshData]);
 
+  const loadedMonthsFormatted = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    const months = [...new Set(data.map(v => format(v.date, 'yyyy-MM')))].sort().reverse();
+    return months.map(m => capitalize(format(new Date(m + '-02'), 'MMMM yyyy', { locale: es })));
+  }, [data]);
+
   const handleFileProcessed = (processedData: Omit<Visit, 'id'>[]) => {
-    if (data.length > 0 && !errorMessage) {
-      setPendingData(processedData);
+    if (processedData.length === 0) return;
+
+    const uploadedMonths = [...new Set(processedData.map(v => format(v.date, 'yyyy-MM')))];
+    const existingMonths = [...new Set(data.map(v => format(v.date, 'yyyy-MM')))];
+    
+    const overlappingMonths = uploadedMonths.filter(m => existingMonths.includes(m));
+
+    if (overlappingMonths.length > 0 && !errorMessage) {
+      setPendingData({ data: processedData, months: overlappingMonths });
       setShowOverwriteConfirm(true);
     } else {
       uploadNewData(processedData);
@@ -109,12 +134,12 @@ export default function CronogramaTradePage() {
     setErrorMessage(null);
 
     try {
-        await deleteAllVisits();
-        await addBatchVisits(pendingData);
+        await deleteVisitsInMonths(pendingData.months);
+        await addBatchVisits(pendingData.data);
         await refreshData();
         toast({
             title: 'Datos Reemplazados',
-            description: `Se han reemplazado los datos con ${pendingData.length} nuevos registros.`,
+            description: `Se han actualizado los datos para los meses correspondientes con ${pendingData.data.length} nuevos registros.`,
         });
     } catch (error) {
         console.error("Error replacing data:", error);
@@ -263,6 +288,10 @@ export default function CronogramaTradePage() {
                     <Plus className="mr-2 h-4 w-4" />
                     Añadir Visita
                 </Button>
+                <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" size="icon" disabled={loading} title="Cargar y configurar datos">
+                    <Settings className="h-5 w-5" />
+                    <span className="sr-only">Cargar y configurar datos</span>
+                </Button>
                 {!loading && data.length > 0 && (
                     <Button onClick={handleReset} variant="destructive" className="flex-1 sm:flex-none">
                         <Trash2 className="mr-2 h-4 w-4" />
@@ -271,51 +300,46 @@ export default function CronogramaTradePage() {
                 )}
             </div>
         </div>
-
-        <div className="flex flex-col gap-6 lg:flex-row">
-            <div className="w-full lg:w-96 lg:shrink-0">
-              <FileUploader onFileProcessed={handleFileProcessed} disabled={loading} />
-            </div>
-            <div className="flex-1">
-              {loading ? (
-                <DashboardSkeleton />
-              ) : errorMessage ? (
-                <Card className="shadow-md border-destructive bg-destructive/5">
-                  <CardHeader>
-                    <CardTitle className="font-headline text-xl text-destructive flex items-center gap-2">
-                        <AlertTriangle /> Error de Configuración de la Base de Datos
-                    </CardTitle>
-                    <CardDescription className="text-destructive/90">
-                        No se pudo completar la operación debido a un problema de conexión o configuración con la base de datos de Supabase.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <h3 className="font-semibold mb-2 text-card-foreground">Sigue estas instrucciones para solucionarlo:</h3>
-                    <pre className="text-sm bg-background p-4 rounded-md whitespace-pre-wrap font-code border">
-                        {errorMessage}
-                    </pre>
-                  </CardContent>
-                  <CardFooter>
-                    <Button onClick={refreshData} disabled={loading}>
-                      {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                      Reintentar Conexión
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ) : data.length > 0 ? (
-                <Dashboard data={data} onEditVisit={handleEditVisit} />
-              ) : (
-                <Card className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center shadow-md">
-                    <CardContent className="flex flex-col items-center gap-4 p-6">
-                        <div className="rounded-full border-8 border-primary/10 bg-primary/5 p-6">
-                            <CalendarClock className="h-16 w-16 text-primary" />
-                        </div>
-                        <h2 className="font-headline text-2xl">Aún no hay actividades</h2>
-                        <p className="max-w-xs text-muted-foreground">Cargue un archivo Excel o añada una visita manualmente para comenzar a visualizar el cronograma.</p>
-                    </CardContent>
-                </Card>
-              )}
-            </div>
+        
+        <div className="flex-1">
+          {loading ? (
+            <DashboardSkeleton />
+          ) : errorMessage ? (
+            <Card className="shadow-md border-destructive bg-destructive/5">
+              <CardHeader>
+                <CardTitle className="font-headline text-xl text-destructive flex items-center gap-2">
+                    <AlertTriangle /> Error de Configuración de la Base de Datos
+                </CardTitle>
+                <CardDescription className="text-destructive/90">
+                    No se pudo completar la operación debido a un problema de conexión o configuración con la base de datos de Supabase.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <h3 className="font-semibold mb-2 text-card-foreground">Sigue estas instrucciones para solucionarlo:</h3>
+                <pre className="text-sm bg-background p-4 rounded-md whitespace-pre-wrap font-code border">
+                    {errorMessage}
+                </pre>
+              </CardContent>
+              <CardFooter>
+                <Button onClick={refreshData} disabled={loading}>
+                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                  Reintentar Conexión
+                </Button>
+              </CardFooter>
+            </Card>
+          ) : data.length > 0 ? (
+            <Dashboard data={data} onEditVisit={handleEditVisit} />
+          ) : (
+            <Card className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center shadow-md">
+                <CardContent className="flex flex-col items-center gap-4 p-6">
+                    <div className="rounded-full border-8 border-primary/10 bg-primary/5 p-6">
+                        <CalendarClock className="h-16 w-16 text-primary" />
+                    </div>
+                    <h2 className="font-headline text-2xl">Aún no hay actividades</h2>
+                    <p className="max-w-xs text-muted-foreground">Cargue un archivo Excel o añada una visita manualmente para comenzar a visualizar el cronograma.</p>
+                </CardContent>
+            </Card>
+          )}
         </div>
 
         <VisitForm
@@ -323,13 +347,33 @@ export default function CronogramaTradePage() {
             onOpenChange={(isOpen) => setFormState({ ...formState, open: isOpen, visit: isOpen ? formState.visit : null })}
             visit={formState.visit}
             onSave={handleSaveVisit}
-          />
+        />
         <DuplicateMonthDialog
             isOpen={isDuplicateDialogOpen}
             onOpenChange={setIsDuplicateDialogOpen}
             onDuplicate={handleDuplicateMonth}
             data={data}
         />
+        <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Cargar y Configurar Datos</DialogTitle>
+                    <DialogDescription>
+                        Cargue archivos, descargue plantillas y administre sus datos.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="pt-4">
+                    <FileUploader 
+                        onFileProcessed={(processedData) => {
+                            handleFileProcessed(processedData);
+                            setIsUploadDialogOpen(false);
+                        }} 
+                        disabled={loading} 
+                        loadedMonths={loadedMonthsFormatted}
+                    />
+                </div>
+            </DialogContent>
+        </Dialog>
         <AlertDialog 
             open={showOverwriteConfirm} 
             onOpenChange={(isOpen) => {
@@ -343,8 +387,9 @@ export default function CronogramaTradePage() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>¿Desea reemplazar los datos existentes?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Ya hay información cargada. Al continuar, se eliminarán todos los datos actuales
-                        y se reemplazarán por los del archivo. Esta acción no se puede deshacer.
+                        Ya hay información cargada para {pendingData?.months.length === 1 ? 'el mes de' : 'los meses de'}: <span className="font-semibold text-card-foreground">{pendingData?.months.map(m => capitalize(format(new Date(m + '-02'), 'MMMM yyyy', { locale: es }))).join(', ')}</span>.
+                        <br/><br/>
+                        Al continuar, se eliminarán todos los datos de {pendingData?.months.length === 1 ? 'este mes' : 'estos meses'} y se reemplazarán por los del archivo. Esta acción no se puede deshacer.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

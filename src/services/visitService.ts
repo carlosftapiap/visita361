@@ -1,6 +1,6 @@
 import { getSupabase } from '@/lib/supabase';
 import type { Visit } from '@/types';
-import { subMonths } from 'date-fns';
+import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
 
 // Supabase returns dates as ISO strings. This helper ensures they are Date objects.
 const visitFromSupabase = (record: any): Visit => {
@@ -114,5 +114,27 @@ export const deleteAllVisits = async () => {
     
     if (error) {
        throw buildSupabaseError(error, 'borrado total (deleteAllVisits)');
+    }
+};
+
+export const deleteVisitsInMonths = async (months: string[]) => {
+    const supabase = getSupabase();
+    
+    // Create an 'OR' filter for all date ranges.
+    const filters = months.map(monthStr => {
+        // Use a neutral day and time to avoid timezone issues.
+        const dateInMonth = new Date(monthStr + '-02T12:00:00Z');
+        const startDate = startOfMonth(dateInMonth).toISOString();
+        const endDate = endOfMonth(dateInMonth).toISOString();
+        return `and(date.gte.${startDate},date.lte.${endDate})`;
+    }).join(',');
+
+    const { error } = await supabase
+        .from('visits')
+        .delete()
+        .or(filters);
+
+    if (error) {
+       throw buildSupabaseError(error, 'borrado por meses (deleteVisitsInMonths)');
     }
 };

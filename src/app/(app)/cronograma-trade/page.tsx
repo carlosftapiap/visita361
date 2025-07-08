@@ -1,8 +1,7 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Trash2, BarChart3, Plus, Copy, Loader2, AlertCircle } from 'lucide-react';
+import { Trash2, BarChart3, Plus, Copy, AlertCircle } from 'lucide-react';
 import type { Visit } from '@/types';
 import FileUploader from '@/components/file-uploader';
 import Dashboard from '@/components/dashboard';
@@ -22,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import DashboardSkeleton from '@/components/dashboard-skeleton';
 
 
 export default function CronogramaTradePage() {
@@ -261,9 +261,6 @@ export default function CronogramaTradePage() {
     );
   }
 
-  const isDataReady = !loading && data.length > 0;
-  const showEmptyState = !loading && data.length === 0;
-
   return (
     <div className="p-4 md:p-6 flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
@@ -272,15 +269,15 @@ export default function CronogramaTradePage() {
                 <p className="text-muted-foreground">Panel de control de actividades y visitas.</p>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Button onClick={() => setIsDuplicateDialogOpen(true)} variant="outline" disabled={data.length === 0} className="flex-1 sm:flex-none">
+                <Button onClick={() => setIsDuplicateDialogOpen(true)} variant="outline" disabled={loading || data.length === 0} className="flex-1 sm:flex-none">
                     <Copy className="mr-2 h-4 w-4" />
                     Duplicar Mes
                 </Button>
-                <Button onClick={handleAddVisitClick} className="flex-1 sm:flex-none">
+                <Button onClick={handleAddVisitClick} className="flex-1 sm:flex-none" disabled={loading}>
                     <Plus className="mr-2 h-4 w-4" />
                     Añadir Visita
                 </Button>
-                {isDataReady && (
+                {!loading && data.length > 0 && (
                     <Button onClick={handleReset} variant="destructive" className="flex-1 sm:flex-none">
                         <Trash2 className="mr-2 h-4 w-4" />
                         Limpiar Datos
@@ -295,16 +292,10 @@ export default function CronogramaTradePage() {
             </div>
             <div className="flex-1">
               {loading ? (
-                 <Card className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center shadow-md">
-                    <CardContent className="flex flex-col items-center gap-4 p-6">
-                        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-                        <h2 className="font-headline text-2xl">Cargando datos...</h2>
-                        <p className="max-w-xs text-muted-foreground">Estableciendo conexión con la base de datos.</p>
-                    </CardContent>
-                </Card>
-              ) : isDataReady ? (
+                <DashboardSkeleton />
+              ) : data.length > 0 ? (
                 <Dashboard data={data} onEditVisit={handleEditVisit} />
-              ) : showEmptyState ? (
+              ) : (
                 <Card className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center shadow-md">
                     <CardContent className="flex flex-col items-center gap-4 p-6">
                         <div className="rounded-full border-8 border-primary/10 bg-primary/5 p-6">
@@ -314,7 +305,7 @@ export default function CronogramaTradePage() {
                         <p className="max-w-xs text-muted-foreground">Cargue un archivo o añada una visita para comenzar a analizar la información.</p>
                     </CardContent>
                 </Card>
-              ) : null}
+              )}
             </div>
         </div>
 

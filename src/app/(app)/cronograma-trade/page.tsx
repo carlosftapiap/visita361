@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Trash2, Plus, Copy, CalendarClock } from 'lucide-react';
 import type { Visit } from '@/types';
 import FileUploader from '@/components/file-uploader';
@@ -22,6 +22,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import DashboardSkeleton from '@/components/dashboard-skeleton';
+import {
+  getVisits,
+  addVisit,
+  updateVisit,
+  addBatchVisits,
+  deleteAllVisits,
+} from '@/services/visitService';
 
 
 export default function CronogramaTradePage() {
@@ -36,11 +43,26 @@ export default function CronogramaTradePage() {
   const [pendingData, setPendingData] = useState<Omit<Visit, 'id'>[] | null>(null);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
 
+  const refreshData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const visits = await getVisits();
+      setData(visits);
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      toast({
+        variant: "destructive",
+        title: "Error al Cargar Datos",
+        description: (error instanceof Error ? error.message : "No se pudieron obtener los datos de la base de datos."),
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
   useEffect(() => {
-    // Simulate initial loading for skeleton
-    const timer = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+    refreshData();
+  }, [refreshData]);
 
   const handleFileProcessed = (processedData: Omit<Visit, 'id'>[]) => {
     if (data.length > 0) {
@@ -51,18 +73,25 @@ export default function CronogramaTradePage() {
     }
   };
 
-  const uploadNewData = (dataToUpload: Omit<Visit, 'id'>[]) => {
+  const uploadNewData = async (dataToUpload: Omit<Visit, 'id'>[]) => {
     setLoading(true);
-    const dataWithIds = dataToUpload.map((visit, index) => ({
-      ...visit,
-      id: `file-${Date.now()}-${index}`
-    }));
-    setData(dataWithIds);
-    toast({
-      title: 'Éxito',
-      description: `${dataToUpload.length} registros han sido cargados en memoria.`,
-    });
-    setLoading(false);
+    try {
+      await addBatchVisits(dataToUpload);
+      await refreshData();
+      toast({
+        title: 'Éxito',
+        description: `${dataToUpload.length} registros han sido cargados y guardados.`,
+      });
+    } catch (error) {
+      console.error("Error uploading new data:", error);
+      toast({
+        variant: "destructive",
+        title: "Error al Guardar",
+        description: "No se pudieron guardar los nuevos registros.",
+      });
+    } finally {
+        setLoading(false);
+    }
   };
   
   const handleReplaceData = async () => {
@@ -71,43 +100,71 @@ export default function CronogramaTradePage() {
     setShowOverwriteConfirm(false);
     setLoading(true);
 
-    const dataWithIds = pendingData.map((visit, index) => ({
-      ...visit,
-      id: `file-replace-${Date.now()}-${index}`
-    }));
-    setData(dataWithIds);
-    
-    toast({
-      title: 'Datos Reemplazados',
-      description: `Se han reemplazado los datos con ${pendingData.length} nuevos registros.`,
-    });
-    
-    setLoading(false);
-    setPendingData(null);
+    try {
+        await deleteAllVisits();
+        await addBatchVisits(pendingData);
+        await refreshData();
+        toast({
+            title: 'Datos Reemplazados',
+            description: `Se han reemplazado los datos con ${pendingData.length} nuevos registros.`,
+        });
+    } catch (error) {
+        console.error("Error replacing data:", error);
+        toast({
+            variant: "destructive",
+            title: "Error al Reemplazar",
+            description: "No se pudieron reemplazar los datos.",
+        });
+    } finally {
+        setLoading(false);
+        setPendingData(null);
+    }
   };
 
   const handleReset = async () => {
     setLoading(true);
-    setData([]);
-    toast({
-      title: "Datos Eliminados",
-      description: "Toda la información ha sido borrada de la memoria.",
-    });
-    setLoading(false);
+    try {
+        await deleteAllVisits();
+        setData([]); // Clear data locally immediately
+        toast({
+          title: "Datos Eliminados",
+          description: "Toda la información ha sido borrada.",
+        });
+    } catch(error) {
+        console.error("Error deleting data:", error);
+        toast({
+            variant: "destructive",
+            title: "Error al Eliminar",
+            description: "No se pudo borrar la información.",
+        });
+    } finally {
+        setLoading(false);
+    }
   }
 
   const handleSaveVisit = async (visitToSave: Visit) => {
-    const visitExists = data.some(v => v.id === visitToSave.id);
+    const { id, ...visitData } = visitToSave;
     
-    if (visitExists) {
-      setData(prevData => prevData.map(v => v.id === visitToSave.id ? visitToSave : v));
-      toast({ title: 'Éxito', description: 'Visita actualizada correctamente.' });
-    } else {
-      setData(prevData => [...prevData, visitToSave]);
-      toast({ title: 'Éxito', description: 'Visita creada correctamente.' });
+    setLoading(true);
+    try {
+        if (formState.visit) { // Editing existing visit
+            await updateVisit(id, visitData);
+        } else { // Creating new visit
+            await addVisit(visitData);
+        }
+        await refreshData();
+        toast({ title: 'Éxito', description: 'Visita guardada correctamente.' });
+        setFormState({ open: false, visit: null });
+    } catch (error) {
+        console.error("Error saving visit:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error al Guardar',
+            description: 'No se pudo guardar la visita.',
+        });
+    } finally {
+        setLoading(false);
     }
-
-    setFormState({ open: false, visit: null });
   };
 
   const handleEditVisit = (visit: Visit) => {
@@ -151,28 +208,32 @@ export default function CronogramaTradePage() {
     });
     
     setLoading(true);
-    const dataWithIds = newVisits.map((visit, index) => ({
-      ...visit,
-      id: `dup-${Date.now()}-${index}`
-    }));
-    
-    setData(prevData => [...prevData, ...dataWithIds]);
-    
-    toast({
-      title: "Éxito",
-      description: `${newVisits.length} visitas han sido duplicadas y guardadas.`,
-    });
-    
-    setIsDuplicateDialogOpen(false);
-    setLoading(false);
+    try {
+        await addBatchVisits(newVisits);
+        await refreshData();
+        toast({
+          title: "Éxito",
+          description: `${newVisits.length} visitas han sido duplicadas y guardadas.`,
+        });
+    } catch (error) {
+        console.error("Error duplicating month:", error);
+        toast({
+            variant: "destructive",
+            title: "Error al Duplicar",
+            description: "No se pudieron duplicar las visitas.",
+        });
+    } finally {
+        setIsDuplicateDialogOpen(false);
+        setLoading(false);
+    }
   };
 
   return (
     <div className="p-4 md:p-6 flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
             <div>
-                <h1 className="font-headline text-3xl font-bold text-primary">Cronograma Trade (Memoria Local)</h1>
-                <p className="text-muted-foreground">Panel de control de actividades y visitas. Los datos no se guardarán permanentemente.</p>
+                <h1 className="font-headline text-3xl font-bold text-primary">Cronograma Trade</h1>
+                <p className="text-muted-foreground">Panel de control de actividades y visitas conectado a Supabase.</p>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Button onClick={() => setIsDuplicateDialogOpen(true)} variant="outline" disabled={loading || data.length === 0} className="flex-1 sm:flex-none">

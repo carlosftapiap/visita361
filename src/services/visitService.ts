@@ -1,110 +1,73 @@
-import { getDb } from '@/lib/firebase';
+import { getSupabase } from '@/lib/supabase';
 import type { Visit } from '@/types';
-import {
-  collection,
-  getDocs,
-  addDoc,
-  updateDoc,
-  doc,
-  writeBatch,
-  query,
-  orderBy,
-  Timestamp,
-  QueryDocumentSnapshot,
-  DocumentData,
-  WithFieldValue,
-  where
-} from 'firebase/firestore';
 import { subMonths } from 'date-fns';
 
-// Convierte un documento de Firestore a un objeto Visit, convirtiendo Timestamps a Dates de forma segura
-const visitFromDoc = (docSnap: QueryDocumentSnapshot<DocumentData>): Visit => {
-    const data = docSnap.data();
-
-    // Validación robusta de la fecha
-    if (!data.date || typeof data.date.toDate !== 'function') {
-        throw new Error(`Document ${docSnap.id} has an invalid or missing 'date' field.`);
-    }
-
+// Supabase returns dates as ISO strings. This helper ensures they are Date objects.
+const visitFromSupabase = (record: any): Visit => {
     return {
-        id: docSnap.id,
-        trade_executive: data.trade_executive || '',
-        agent: data.agent || '',
-        channel: data.channel || '',
-        chain: data.chain || '',
-        pdv_detail: data.pdv_detail || '',
-        activity: ['Visita', 'Impulso', 'Verificación'].includes(data.activity) ? data.activity : 'Visita',
-        schedule: data.schedule || '',
-        city: data.city || '',
-        zone: data.zone || '',
-        date: data.date.toDate(),
-        budget: typeof data.budget === 'number' ? data.budget : 0,
+        ...record,
+        id: String(record.id), // Ensure id is a string, as Supabase might return a number
+        date: new Date(record.date),
     };
-}
-
-// Prepara un objeto Visit para ser guardado en Firestore, convirtiendo Dates a Timestamps
-const visitToDoc = (visit: Partial<Omit<Visit, 'id'>>): WithFieldValue<DocumentData> => {
-    const data: any = { ...visit };
-    if (visit.date) {
-        data.date = Timestamp.fromDate(visit.date);
-    }
-    return data;
-}
+};
 
 export const getVisits = async (): Promise<Visit[]> => {
-  const db = getDb();
-  const visitsCollectionRef = collection(db, 'visits');
+    const supabase = getSupabase();
+    // Fetch records from the last 3 months to keep it fast
+    const threeMonthsAgo = subMonths(new Date(), 3);
 
-  // Para diagnosticar el problema de carga, obtenemos todos los documentos
-  // sin consultas complejas del lado del servidor. Esto evita posibles problemas
-  // con los índices de Firestore y garantiza que los datos se carguen.
-  const querySnapshot = await getDocs(visitsCollectionRef);
-  
-  const visits: Visit[] = [];
-  querySnapshot.forEach((doc) => {
-      try {
-          visits.push(visitFromDoc(doc));
-      } catch (e) {
-          console.warn(`Skipping corrupted document ${doc.id}:`, e);
-      }
-  });
+    const { data, error } = await supabase
+        .from('visits')
+        .select('*')
+        .gte('date', threeMonthsAgo.toISOString())
+        .order('date', { ascending: false });
 
-  // Ordenamos las visitas por fecha en el lado del cliente después de obtenerlas.
-  visits.sort((a, b) => b.date.getTime() - a.date.getTime());
+    if (error) {
+        console.error("Error fetching visits from Supabase:", error);
+        throw new Error(`Error al obtener visitas: ${error.message}. Asegúrate de que la tabla 'visits' existe y las credenciales son correctas.`);
+    }
 
-  return visits;
+    return data ? data.map(visitFromSupabase) : [];
 };
 
 export const addVisit = async (visit: Omit<Visit, 'id'>) => {
-    const db = getDb();
-    const visitsCollectionRef = collection(db, 'visits');
-    return await addDoc(visitsCollectionRef, visitToDoc(visit));
-}
+    const supabase = getSupabase();
+    // Supabase auto-generates the ID, so we don't include it in the insert.
+    const { error } = await supabase.from('visits').insert([visit]);
+
+    if (error) {
+        console.error("Error adding visit to Supabase:", error);
+        throw new Error(`Error al añadir visita: ${error.message}`);
+    }
+};
 
 export const updateVisit = async (id: string, visit: Partial<Omit<Visit, 'id'>>) => {
-    const db = getDb();
-    const visitDoc = doc(db, 'visits', id);
-    return await updateDoc(visitDoc, visitToDoc(visit));
-}
+    const supabase = getSupabase();
+    const { error } = await supabase.from('visits').update(visit).eq('id', id);
+
+    if (error) {
+        console.error("Error updating visit in Supabase:", error);
+        throw new Error(`Error al actualizar visita: ${error.message}`);
+    }
+};
 
 export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
-    const db = getDb();
-    const visitsCollectionRef = collection(db, 'visits');
-    const batch = writeBatch(db);
-    visits.forEach((visit) => {
-        const newDocRef = doc(visitsCollectionRef);
-        batch.set(newDocRef, visitToDoc(visit));
-    });
-    await batch.commit();
-}
+    const supabase = getSupabase();
+    const { error } = await supabase.from('visits').insert(visits);
+    
+    if (error) {
+        console.error("Error batch adding visits to Supabase:", error);
+        throw new Error(`Error al añadir visitas en lote: ${error.message}`);
+    }
+};
 
 export const deleteAllVisits = async () => {
-    const db = getDb();
-    const visitsCollectionRef = collection(db, 'visits');
-    const querySnapshot = await getDocs(visitsCollectionRef);
-    const batch = writeBatch(db);
-    querySnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
-    });
-    await batch.commit();
-}
+    const supabase = getSupabase();
+    // A safe way to delete all rows. We can match any row.
+    const { error } = await supabase.from('visits').delete().neq('id', '-1'); // Assuming ID is never -1
+    
+    if (error) {
+        console.error("Error deleting all visits from Supabase:", error);
+        throw new Error(`Error al eliminar todas las visitas: ${error.message}`);
+    }
+};

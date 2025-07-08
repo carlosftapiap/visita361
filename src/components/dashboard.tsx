@@ -3,6 +3,9 @@
 import { useMemo, useState } from "react";
 import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil } from "lucide-react";
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from "recharts";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from 'jspdf-autotable';
 
 import type { Visit } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,7 +40,8 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
     });
 
     const filterOptions = useMemo(() => {
-        const getUniqueNonEmpty = (items: string[]) => [...new Set(items.filter(Boolean))];
+        const getUniqueNonEmpty = (items: (string | null | undefined)[]) => 
+            [...new Set(items.filter((item): item is string => !!item && item.trim() !== ''))];
 
         const trade_executives = ['all', ...getUniqueNonEmpty(data.map(v => v.trade_executive))];
         
@@ -131,6 +135,64 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         ...visitsPerChannel.reduce((acc, cur) => ({...acc, [cur.name]: {label: cur.name, color: cur.fill}}), {})
     } satisfies ChartConfig;
 
+    const handleDownloadExcel = () => {
+        if (filteredData.length === 0) return;
+
+        const dataToExport = filteredData.map(visit => ({
+            'EJECUTIVA DE TRADE': visit.trade_executive,
+            'ASESOR COMERCIAL': visit.agent,
+            'CANAL': visit.channel,
+            'CADENA': visit.chain,
+            'DETALLE DEL PDV': visit.pdv_detail,
+            'ACTIVIDAD': visit.activity,
+            'HORARIO': visit.schedule,
+            'CIUDAD': visit.city,
+            'ZONA': visit.zone,
+            'FECHA': visit.date.toLocaleDateString('es-CO'),
+            'PRESUPUESTO': visit.budget
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Visitas");
+        XLSX.writeFile(wb, "Visita360_Reporte.xlsx");
+    };
+
+    const handleDownloadPdf = () => {
+        if (filteredData.length === 0) return;
+
+        const doc = new jsPDF({ orientation: 'landscape' });
+
+        const headers = [['Fecha', 'Ejecutiva', 'Asesor', 'Cadena', 'PDV', 'Actividad', 'Horario', 'Ciudad', 'Zona', 'Canal', 'Presupuesto']];
+        
+        const body = filteredData.map(v => [
+            v.date.toLocaleDateString('es-CO'),
+            v.trade_executive,
+            v.agent,
+            v.chain,
+            v.pdv_detail,
+            v.activity,
+            v.schedule,
+            v.city,
+            v.zone,
+            v.channel,
+            new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v.budget)
+        ]);
+
+        autoTable(doc, {
+            head: headers,
+            body: body,
+            startY: 20,
+            theme: 'grid',
+            headStyles: { fillColor: [68, 23, 103] }, // Primary color
+            styles: { fontSize: 7, cellPadding: 2 },
+            columnStyles: { 10: { halign: 'right' } }
+        });
+
+        doc.text("Reporte de Visitas Filtradas - Visita360", 14, 15);
+        doc.save("Visita360_Reporte.pdf");
+    };
+
     return (
         <div className="flex flex-col gap-6">
             <Card className="shadow-md">
@@ -170,8 +232,8 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline"><Download className="mr-2 h-4 w-4" /> Excel</Button>
-                        <Button variant="outline"><Download className="mr-2 h-4 w-4" /> PDF</Button>
+                        <Button variant="outline" onClick={handleDownloadExcel} disabled={filteredData.length === 0}><Download className="mr-2 h-4 w-4" /> Excel</Button>
+                        <Button variant="outline" onClick={handleDownloadPdf} disabled={filteredData.length === 0}><Download className="mr-2 h-4 w-4" /> PDF</Button>
                     </div>
                 </CardContent>
             </Card>

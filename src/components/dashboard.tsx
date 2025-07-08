@@ -163,6 +163,16 @@ export default function Dashboard({ data }: DashboardProps) {
                 </CardContent>
             </Card>
 
+            <ActivityCalendar 
+                data={filteredData}
+                executives={filterOptions.trade_executives}
+                agents={filterOptions.agents}
+                selectedExecutive={filters.trade_executive}
+                selectedAgent={filters.agent}
+                onExecutiveChange={handleFilterChange('trade_executive')}
+                onAgentChange={handleFilterChange('agent')}
+            />
+
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
                 <KpiCard title="Total de Actividades" value={kpis.totalVisits} icon={Activity} description="Total de registros en el periodo" />
                 <KpiCard title="Asesores Activos" value={kpis.uniqueAgents} icon={Users} description="Asesores con actividad registrada" />
@@ -240,16 +250,6 @@ export default function Dashboard({ data }: DashboardProps) {
                     </CardContent>
                 </Card>
             </div>
-            
-            <ActivityCalendar 
-                data={filteredData}
-                executives={filterOptions.trade_executives}
-                agents={filterOptions.agents}
-                selectedExecutive={filters.trade_executive}
-                selectedAgent={filters.agent}
-                onExecutiveChange={handleFilterChange('trade_executive')}
-                onAgentChange={handleFilterChange('agent')}
-            />
 
             <Card className="shadow-lg">
                 <CardHeader>

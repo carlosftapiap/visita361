@@ -2,14 +2,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { Trash2, Plus, Copy, CalendarClock, AlertTriangle } from 'lucide-react';
+import { Trash2, Plus, Copy, CalendarClock, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
 import type { Visit } from '@/types';
 import FileUploader from '@/components/file-uploader';
 import Dashboard from '@/components/dashboard';
 import VisitForm from '@/components/visit-form';
 import DuplicateMonthDialog from '@/components/duplicate-month-dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -295,6 +295,12 @@ export default function CronogramaTradePage() {
                         {errorMessage}
                     </pre>
                   </CardContent>
+                  <CardFooter>
+                    <Button onClick={refreshData} disabled={loading}>
+                      {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                      Reintentar Conexión
+                    </Button>
+                  </CardFooter>
                 </Card>
               ) : data.length > 0 ? (
                 <Dashboard data={data} onEditVisit={handleEditVisit} />

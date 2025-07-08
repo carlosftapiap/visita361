@@ -20,7 +20,7 @@ interface DuplicateMonthDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onDuplicate: (sourceDateStr: string, targetDateStr: string) => void;
-  data: Visit[] | null;
+  data: Visit[];
 }
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -30,7 +30,6 @@ export default function DuplicateMonthDialog({ isOpen, onOpenChange, onDuplicate
   const [targetMonth, setTargetMonth] = useState<string | undefined>();
 
   const availableMonths = useMemo(() => {
-    if (!data) return [];
     const monthSet = new Set<string>();
     data.forEach(visit => {
       const monthYearKey = format(visit.date, 'yyyy-MM');
@@ -46,35 +45,24 @@ export default function DuplicateMonthDialog({ isOpen, onOpenChange, onDuplicate
   const targetMonthsOptions = useMemo(() => {
     const allMonths = new Set<string>();
     
-    // Add all existing months from data
-    if (data) {
-        data.forEach(visit => {
-            allMonths.add(format(visit.date, 'yyyy-MM'));
-        });
-    }
-
-    // Determine the starting point for future months
-    let lastDateInState;
-    if (data && data.length > 0) {
-        lastDateInState = data.reduce((latest, visit) => (new Date(visit.date) > new Date(latest.date) ? visit : latest)).date;
-    } else {
-        lastDateInState = new Date(); // Default to current date if no data
-    }
+    // Add all existing months from data, allowing user to add to/overwrite them
+    data.forEach(visit => {
+        allMonths.add(format(visit.date, 'yyyy-MM'));
+    });
     
-    let currentDate = new Date(lastDateInState);
-
-    // Add the next 12 months
-    for (let i = 1; i <= 12; i++) {
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        allMonths.add(format(currentDate, 'yyyy-MM'));
+    // Also add the next 12 months from today, to allow duplicating to the future
+    const today = new Date();
+    for (let i = 0; i < 12; i++) {
+        // Create a new date for each iteration to avoid mutation issues
+        const futureDate = new Date(today.getFullYear(), today.getMonth() + i, 1);
+        allMonths.add(format(futureDate, 'yyyy-MM'));
     }
 
     const sortedMonths = Array.from(allMonths).sort().reverse();
-     return sortedMonths.map(key => ({
+    return sortedMonths.map(key => ({
       value: key,
       label: capitalize(format(new Date(key + '-02'), 'MMMM yyyy', { locale: es })),
     }));
-
   }, [data]);
 
 
@@ -101,7 +89,7 @@ export default function DuplicateMonthDialog({ isOpen, onOpenChange, onDuplicate
             <Label htmlFor="source-month" className="text-right">
               Mes Origen
             </Label>
-            <Select value={sourceMonth} onValueChange={setSourceMonth}>
+            <Select value={sourceMonth} onValueChange={setSourceMonth} disabled={availableMonths.length === 0}>
                 <SelectTrigger id="source-month" className="col-span-3">
                     <SelectValue placeholder="Seleccionar mes..." />
                 </SelectTrigger>

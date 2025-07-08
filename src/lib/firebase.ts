@@ -13,24 +13,31 @@ const firebaseConfig = {
 let db: Firestore | null = null;
 
 // Obtiene una instancia de Firestore, inicializando Firebase si es necesario.
-// Este enfoque de "carga diferida" evita errores de inicialización a nivel de módulo
-// y permite que los componentes de la interfaz de usuario capturen y muestren los errores de conexión.
 export const getDb = (): Firestore => {
   if (db) {
     return db;
   }
 
-  // Verifica que la configuración de Firebase no esté vacía.
-  if (!firebaseConfig.projectId || !firebaseConfig.apiKey) {
-      throw new Error(
-        'La configuración de Firebase está incompleta. ' +
-        'Asegúrate de que tu archivo .env.local existe y contiene todas las credenciales de Firebase necesarias. ' +
-        'Después de crearlo, reinicia el servidor de desarrollo.'
-      );
-  }
+  try {
+    // Verifica que la configuración de Firebase no esté vacía.
+    if (!firebaseConfig.projectId || !firebaseConfig.apiKey) {
+        throw new Error(
+          'La configuración de Firebase está incompleta. ' +
+          'Asegúrate de que tu archivo .env.local existe y contiene todas las credenciales necesarias. ' +
+          'Después de crearlo o modificarlo, REINICIA el servidor de desarrollo.'
+        );
+    }
 
-  // Inicializar Firebase
-  const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  db = getFirestore(app);
-  return db;
+    // Inicializar Firebase
+    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    db = getFirestore(app);
+    return db;
+  } catch (error: any) {
+    // Re-lanza el error con un mensaje más descriptivo que orienta al usuario.
+    console.error("Firebase initialization error:", error);
+    throw new Error(
+      `Falló la inicialización de Firebase: ${error.message}. ` +
+      'Por favor, revise que las credenciales en su archivo .env.local son correctas y que no hay errores de tipeo.'
+    );
+  }
 };

@@ -41,15 +41,7 @@ export default function CronogramaTradePage() {
     try {
       setLoading(true);
       setError(null);
-      
-      const visitsPromise = getVisits();
-      const timeoutPromise = new Promise<Visit[]>((_, reject) =>
-        setTimeout(() => {
-          reject(new Error("La carga de datos está tardando demasiado. Esto puede deberse a un problema de conexión o a una configuración incorrecta en Firebase. Por favor, revise los puntos detallados a continuación."))
-        }, 15000) // 15-second timeout
-      );
-
-      const visits = await Promise.race([visitsPromise, timeoutPromise]);
+      const visits = await getVisits();
       setData(visits);
     } catch (err: any) {
       setError(err.message);
@@ -232,41 +224,28 @@ export default function CronogramaTradePage() {
                     <div className="flex items-center gap-4">
                         <AlertCircle className="h-8 w-8 text-destructive" />
                         <div>
-                            <CardTitle className="font-headline text-2xl text-destructive">Error al Cargar los Datos</CardTitle>
+                            <CardTitle className="font-headline text-2xl text-destructive">Error de Conexión con Firebase</CardTitle>
                             <CardDescription className="text-destructive/80">
-                                No se pudo establecer una conexión funcional con la base de datos de Firestore.
+                                La aplicación no pudo cargar los datos. Esto casi siempre se debe a un problema de configuración.
                             </CardDescription>
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4 text-sm">
-                    <p>
-                        Por favor, revise los siguientes puntos para solucionar el problema:
-                    </p>
-                    <ol className="list-decimal list-inside space-y-2">
+                    <p className="font-bold">Por favor, siga estos pasos en orden:</p>
+                    <ol className="list-decimal list-inside space-y-3">
                         <li>
-                            <strong>Verificar credenciales en <code>.env.local</code></strong>: Asegúrese de que ha creado un archivo <code>.env.local</code> en la raíz de su proyecto y que sus variables (<code>NEXT_PUBLIC_FIREBASE_...</code>) son correctas.
+                            <strong>REINICIE el servidor de desarrollo</strong>. Si cambió el archivo <code>.env.local</code>, debe detener y reiniciar el servidor. Es el paso más importante.
                         </li>
                         <li>
-                            <strong>Reiniciar el Servidor de Desarrollo</strong>: Después de crear o modificar el archivo <code>.env.local</code>, es <strong>crucial</strong> que reinicie su servidor de desarrollo. Es el error más común.
+                            <strong>VERIFIQUE las credenciales</strong> en <code>.env.local</code>. Compárelas con las de su proyecto de Firebase. Un error de tipeo es la causa más común.
                         </li>
                         <li>
-                            <strong>Reglas de Seguridad de Firestore</strong>: En su <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-bold">Consola de Firebase</a>, vaya a Firestore Database &rarr; Reglas. Asegúrese de que permitan la lectura. Para empezar, puede usar las reglas de modo de prueba:
-                            <pre className="text-xs bg-destructive/10 p-2 rounded-md overflow-x-auto mt-1"><code>{`rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2025, 12, 31);
-    }
-  }
-}`}</code></pre>
-                        </li>
-                        <li>
-                            <strong>Conexión a Internet</strong>: Verifique que su conexión a internet esté funcionando correctamente.
+                           <strong>COMPRUEBE las reglas de Firestore</strong> en su <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-bold">Consola de Firebase</a>. Deben permitir la lectura (use el modo de prueba para empezar).
                         </li>
                     </ol>
                     <Card className="bg-background/50 p-4 mt-2">
-                        <h4 className="font-bold mb-2">Mensaje de Error Técnico:</h4>
+                        <h4 className="font-bold mb-2">Mensaje de Error del Sistema:</h4>
                         <pre className="text-xs text-destructive-foreground/80 bg-destructive/10 p-2 rounded-md overflow-x-auto">
                             <code>{error}</code>
                         </pre>

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { Trash2, Plus, Copy, CalendarClock } from 'lucide-react';
+import { Trash2, Plus, Copy, CalendarClock, AlertTriangle } from 'lucide-react';
 import type { Visit } from '@/types';
 import FileUploader from '@/components/file-uploader';
 import Dashboard from '@/components/dashboard';
@@ -42,18 +42,22 @@ export default function CronogramaTradePage() {
   const { toast } = useToast();
   const [pendingData, setPendingData] = useState<Omit<Visit, 'id'>[] | null>(null);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const refreshData = useCallback(async () => {
     setLoading(true);
+    setErrorMessage(null);
     try {
       const visits = await getVisits();
       setData(visits);
     } catch (error) {
       console.error("Error refreshing data:", error);
+      const message = error instanceof Error ? error.message : "No se pudieron obtener los datos de la base de datos.";
+      setErrorMessage(message);
       toast({
         variant: "destructive",
         title: "Error al Cargar Datos",
-        description: (error instanceof Error ? error.message : "No se pudieron obtener los datos de la base de datos."),
+        description: "No se pudo conectar a la base de datos. Revisa el mensaje en pantalla.",
       });
     } finally {
       setLoading(false);
@@ -65,7 +69,7 @@ export default function CronogramaTradePage() {
   }, [refreshData]);
 
   const handleFileProcessed = (processedData: Omit<Visit, 'id'>[]) => {
-    if (data.length > 0) {
+    if (data.length > 0 && !errorMessage) {
       setPendingData(processedData);
       setShowOverwriteConfirm(true);
     } else {
@@ -75,6 +79,7 @@ export default function CronogramaTradePage() {
 
   const uploadNewData = async (dataToUpload: Omit<Visit, 'id'>[]) => {
     setLoading(true);
+    setErrorMessage(null);
     try {
       await addBatchVisits(dataToUpload);
       await refreshData();
@@ -84,10 +89,12 @@ export default function CronogramaTradePage() {
       });
     } catch (error) {
       console.error("Error uploading new data:", error);
+      const message = error instanceof Error ? error.message : "No se pudieron guardar los nuevos registros.";
+      setErrorMessage(message);
       toast({
         variant: "destructive",
         title: "Error al Guardar",
-        description: "No se pudieron guardar los nuevos registros.",
+        description: "No se pudieron guardar los nuevos registros. Revisa el mensaje en pantalla.",
       });
     } finally {
         setLoading(false);
@@ -99,6 +106,7 @@ export default function CronogramaTradePage() {
 
     setShowOverwriteConfirm(false);
     setLoading(true);
+    setErrorMessage(null);
 
     try {
         await deleteAllVisits();
@@ -110,10 +118,12 @@ export default function CronogramaTradePage() {
         });
     } catch (error) {
         console.error("Error replacing data:", error);
+        const message = error instanceof Error ? error.message : "No se pudieron reemplazar los datos.";
+        setErrorMessage(message);
         toast({
             variant: "destructive",
             title: "Error al Reemplazar",
-            description: "No se pudieron reemplazar los datos.",
+            description: "No se pudieron reemplazar los datos. Revisa el mensaje en pantalla.",
         });
     } finally {
         setLoading(false);
@@ -123,6 +133,7 @@ export default function CronogramaTradePage() {
 
   const handleReset = async () => {
     setLoading(true);
+    setErrorMessage(null);
     try {
         await deleteAllVisits();
         setData([]); // Clear data locally immediately
@@ -132,10 +143,12 @@ export default function CronogramaTradePage() {
         });
     } catch(error) {
         console.error("Error deleting data:", error);
+        const message = error instanceof Error ? error.message : "No se pudo borrar la información.";
+        setErrorMessage(message);
         toast({
             variant: "destructive",
             title: "Error al Eliminar",
-            description: "No se pudo borrar la información.",
+            description: "No se pudo borrar la información. Revisa el mensaje en pantalla.",
         });
     } finally {
         setLoading(false);
@@ -146,6 +159,7 @@ export default function CronogramaTradePage() {
     const { id, ...visitData } = visitToSave;
     
     setLoading(true);
+    setErrorMessage(null);
     try {
         if (formState.visit) { // Editing existing visit
             await updateVisit(id, visitData);
@@ -157,10 +171,12 @@ export default function CronogramaTradePage() {
         setFormState({ open: false, visit: null });
     } catch (error) {
         console.error("Error saving visit:", error);
+        const message = error instanceof Error ? error.message : "No se pudo guardar la visita.";
+        setErrorMessage(message);
         toast({
             variant: 'destructive',
             title: 'Error al Guardar',
-            description: 'No se pudo guardar la visita.',
+            description: 'No se pudo guardar la visita. Revisa el mensaje en pantalla.',
         });
     } finally {
         setLoading(false);
@@ -208,6 +224,7 @@ export default function CronogramaTradePage() {
     });
     
     setLoading(true);
+    setErrorMessage(null);
     try {
         await addBatchVisits(newVisits);
         await refreshData();
@@ -217,10 +234,12 @@ export default function CronogramaTradePage() {
         });
     } catch (error) {
         console.error("Error duplicating month:", error);
+        const message = error instanceof Error ? error.message : "No se pudieron duplicar las visitas.";
+        setErrorMessage(message);
         toast({
             variant: "destructive",
             title: "Error al Duplicar",
-            description: "No se pudieron duplicar las visitas.",
+            description: "No se pudieron duplicar las visitas. Revisa el mensaje en pantalla.",
         });
     } finally {
         setIsDuplicateDialogOpen(false);
@@ -260,6 +279,23 @@ export default function CronogramaTradePage() {
             <div className="flex-1">
               {loading ? (
                 <DashboardSkeleton />
+              ) : errorMessage ? (
+                <Card className="shadow-md border-destructive bg-destructive/5">
+                  <CardHeader>
+                    <CardTitle className="font-headline text-xl text-destructive flex items-center gap-2">
+                        <AlertTriangle /> Error de Configuración de la Base de Datos
+                    </CardTitle>
+                    <CardDescription className="text-destructive/90">
+                        No se pudo completar la operación debido a un problema de conexión o configuración con la base de datos de Supabase.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <h3 className="font-semibold mb-2 text-card-foreground">Sigue estas instrucciones para solucionarlo:</h3>
+                    <pre className="text-sm bg-background p-4 rounded-md whitespace-pre-wrap font-code border">
+                        {errorMessage}
+                    </pre>
+                  </CardContent>
+                </Card>
               ) : data.length > 0 ? (
                 <Dashboard data={data} onEditVisit={handleEditVisit} />
               ) : (

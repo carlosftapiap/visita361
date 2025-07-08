@@ -13,17 +13,48 @@ const visitFromSupabase = (record: any): Visit => {
 
 const buildSupabaseError = (error: any, context: string): Error => {
     console.error(`Error with Supabase ${context}:`, error);
-    let message = `Error en la operación de ${context} con Supabase.`;
+    let message;
 
-    if (error.code === '42501') { // permission denied
-        message += `\n\nError de permisos. Esto suele ocurrir porque la política de seguridad RLS (Row Level Security) de la tabla 'visits' no permite esta operación. Asegúrate de que has creado una política para SELECT, INSERT, UPDATE, y DELETE.`;
-    } else if (error.code === '42P01') { // undefined table
-        message += `\n\nLa tabla 'visits' no se encontró. Asegúrate de que la tabla ha sido creada correctamente en tu base de datos.`;
+    if (error.code === '42P01') { // undefined table
+        message = `La tabla 'visits' no se encontró en Supabase.\n\n` +
+                  `**SOLUCIÓN:**\n` +
+                  `Ve al editor de SQL en tu dashboard de Supabase (Database -> SQL Editor) y ejecuta el siguiente comando para crear la tabla:\n\n` +
+                  `-- INICIA SCRIPT SQL --\n` +
+                  `CREATE TABLE visits (\n` +
+                  `  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,\n` +
+                  `  trade_executive TEXT,\n` +
+                  `  agent TEXT,\n` +
+                  `  channel TEXT,\n` +
+                  `  chain TEXT,\n` +
+                  `  pdv_detail TEXT,\n` +
+                  `  activity TEXT,\n` +
+                  `  schedule TEXT,\n` +
+                  `  city TEXT,\n` +
+                  `  zone TEXT,\n` +
+                  `  date TIMESTAMPTZ,\n` +
+                  `  budget NUMERIC\n` +
+                  `);\n` +
+                  `-- FIN SCRIPT SQL --`;
+    } else if (error.code === '42501') { // permission denied
+        message = `Error de Permisos en Supabase (Row Level Security).\n\n` +
+                  `La política de seguridad de la tabla 'visits' no permite la operación de '${context}'.\n\n` +
+                  `**SOLUCIÓN:**\n` +
+                  `1. Asegúrate que RLS está habilitado para la tabla 'visits' (Authentication -> Policies).\n` +
+                  `2. Crea una política que permita el acceso. Para desarrollo, puedes usar la siguiente en el editor SQL:\n\n` +
+                  `-- INICIA SCRIPT SQL --\n` +
+                  `CREATE POLICY "Public full access" ON visits\n` +
+                  `FOR ALL\n` +
+                  `USING (true)\n` +
+                  `WITH CHECK (true);\n` +
+                  `-- FIN SCRIPT SQL --`;
     } else {
-        message += `\n\nDetalles: ${error.message || 'No hay un mensaje de error específico del servidor.'}`;
+        message = `Ocurrió un error inesperado en la operación de ${context} con Supabase.\n\n` +
+                  `Asegúrate de que tus credenciales en el archivo .env.local son correctas y de que has reiniciado el servidor de desarrollo después de cualquier cambio.\n\n` +
+                  `**Detalles Técnicos:**\n` +
+                  `Código: ${error.code || 'N/A'}\n` +
+                  `Mensaje: ${error.message || 'No hay un mensaje de error específico del servidor.'}`;
     }
 
-    message += `\n\nRevisa la consola del navegador y la de desarrollo para más detalles técnicos.`;
     return new Error(message);
 }
 

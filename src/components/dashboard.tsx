@@ -37,17 +37,19 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
     });
 
     const filterOptions = useMemo(() => {
-        const trade_executives = ['all', ...Array.from(new Set(data.map(v => v.trade_executive)))];
+        const getUniqueNonEmpty = (items: string[]) => [...new Set(items.filter(Boolean))];
+
+        const trade_executives = ['all', ...getUniqueNonEmpty(data.map(v => v.trade_executive))];
         
         const relevantAgentsData = filters.trade_executive === 'all'
             ? data
             : data.filter(v => v.trade_executive === filters.trade_executive);
-        const agents = ['all', ...Array.from(new Set(relevantAgentsData.map(v => v.agent)))];
+        const agents = ['all', ...getUniqueNonEmpty(relevantAgentsData.map(v => v.agent))];
 
-        const cities = ['all', ...Array.from(new Set(data.map(v => v.city)))];
-        const activities = ['all', ...Array.from(new Set(data.map(v => v.activity)))];
-        const zones = ['all', ...Array.from(new Set(data.map(v => v.zone)))];
-        const chains = ['all', ...Array.from(new Set(data.map(v => v.chain)))];
+        const cities = ['all', ...getUniqueNonEmpty(data.map(v => v.city))];
+        const activities = ['all', ...getUniqueNonEmpty(data.map(v => v.activity))];
+        const zones = ['all', ...getUniqueNonEmpty(data.map(v => v.zone))];
+        const chains = ['all', ...getUniqueNonEmpty(data.map(v => v.chain))];
         return { trade_executives, agents, cities, activities, zones, chains };
     }, [data, filters.trade_executive]);
 

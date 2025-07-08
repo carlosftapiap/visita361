@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Trash2, BarChart3, Plus, Copy, AlertCircle, CalendarClock } from 'lucide-react';
+import { Trash2, Plus, Copy, AlertCircle, CalendarClock } from 'lucide-react';
 import type { Visit } from '@/types';
 import FileUploader from '@/components/file-uploader';
 import Dashboard from '@/components/dashboard';
@@ -218,35 +219,65 @@ export default function CronogramaTradePage() {
 
   if (error) {
     return (
-        <div className="p-4 md:p-6">
-            <Card className="shadow-md bg-destructive/10 border-destructive">
+        <div className="p-4 md:p-6 lg:p-8">
+            <Card className="shadow-lg bg-destructive/10 border-destructive border-2">
                 <CardHeader>
                     <div className="flex items-center gap-4">
-                        <AlertCircle className="h-8 w-8 text-destructive" />
+                        <AlertCircle className="h-10 w-10 text-destructive flex-shrink-0" />
                         <div>
-                            <CardTitle className="font-headline text-2xl text-destructive">Error de Conexión con Firebase</CardTitle>
-                            <CardDescription className="text-destructive/80">
-                                La aplicación no pudo cargar los datos. Esto casi siempre se debe a un problema de configuración.
+                            <CardTitle className="font-headline text-3xl text-destructive">No se Pueden Cargar los Datos: Problema de Configuración</CardTitle>
+                            <CardDescription className="text-destructive/90 text-base">
+                                La conexión con la base de datos de Firebase está fallando. Esto casi siempre se debe a un error en la configuración de su proyecto.
                             </CardDescription>
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="flex flex-col gap-4 text-sm">
-                    <p className="font-bold">Por favor, siga estos pasos en orden:</p>
-                    <ol className="list-decimal list-inside space-y-3">
-                        <li>
-                            <strong>REINICIE el servidor de desarrollo</strong>. Si cambió el archivo <code>.env.local</code>, debe detener y reiniciar el servidor. Es el paso más importante.
-                        </li>
-                        <li>
-                            <strong>VERIFIQUE las credenciales</strong> en <code>.env.local</code>. Compárelas con las de su proyecto de Firebase. Un error de tipeo es la causa más común.
-                        </li>
-                        <li>
-                           <strong>COMPRUEBE las reglas de Firestore</strong> en su <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-bold">Consola de Firebase</a>. Deben permitir la lectura (use el modo de prueba para empezar).
-                        </li>
-                    </ol>
-                    <Card className="bg-background/50 p-4 mt-2">
-                        <h4 className="font-bold mb-2">Mensaje de Error del Sistema:</h4>
-                        <pre className="text-xs text-destructive-foreground/80 bg-destructive/10 p-2 rounded-md overflow-x-auto">
+                <CardContent className="flex flex-col gap-6 text-sm text-destructive-foreground/90">
+                    <p className="font-bold text-lg">Por favor, siga esta guía de 3 pasos para solucionarlo:</p>
+                    
+                    <Card className="bg-background/60 p-4">
+                        <h3 className="font-bold text-md mb-2">Paso 1: Cree y Verifique su archivo <code>.env.local</code></h3>
+                        <p className="mb-3">En la raíz de su proyecto, asegúrese de que existe un archivo llamado <code>.env.local</code>. Copie la siguiente estructura y rellene con sus propias credenciales de Firebase.</p>
+                        <pre className="text-xs bg-black/70 text-white p-3 rounded-md overflow-x-auto">
+                            <code>
+{`NEXT_PUBLIC_FIREBASE_API_KEY="AIzaSy..."
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project-id.firebaseapp.com"
+NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project-id.appspot.com"
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="1234567890"
+NEXT_PUBLIC_FIREBASE_APP_ID="1:1234567890:web:..."`}
+                            </code>
+                        </pre>
+                    </Card>
+
+                    <Card className="bg-background/60 p-4">
+                        <h3 className="font-bold text-md mb-2">Paso 2: ¡REINICIE el Servidor! (El paso más importante)</h3>
+                        <p>Después de guardar su archivo <code>.env.local</code>, debe **detener y reiniciar completamente el servidor de desarrollo**. La aplicación no leerá las nuevas credenciales hasta que no lo haga.</p>
+                    </Card>
+
+                     <Card className="bg-background/60 p-4">
+                        <h3 className="font-bold text-md mb-2">Paso 3: Verifique las Reglas de Seguridad de Firestore</h3>
+                        <p className="mb-3">Vaya a su <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-bold">Consola de Firebase</a>, seleccione su proyecto, vaya a **Firestore Database** y luego a la pestaña **Reglas**. Copie y pegue las siguientes reglas para permitir el acceso durante el desarrollo.
+                        </p>
+                        <pre className="text-xs bg-black/70 text-white p-3 rounded-md overflow-x-auto">
+                            <code>
+{`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      // Permite leer y escribir a cualquiera hasta fin de 2025.
+      // Ideal para empezar a desarrollar.
+      allow read, write: if request.time < timestamp.date(2025, 12, 31);
+    }
+  }
+}`}
+                            </code>
+                        </pre>
+                    </Card>
+
+                    <Card className="bg-destructive/20 p-4 mt-2 border border-destructive">
+                        <h4 className="font-bold mb-2 text-destructive-foreground">Mensaje de Error del Sistema:</h4>
+                        <pre className="text-sm text-destructive-foreground bg-transparent p-2 rounded-md overflow-x-auto">
                             <code>{error}</code>
                         </pre>
                     </Card>
@@ -342,3 +373,5 @@ export default function CronogramaTradePage() {
     </div>
   );
 }
+
+    

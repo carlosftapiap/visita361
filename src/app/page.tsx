@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from 'react';
-import { Trash2, BarChart3, Plus } from 'lucide-react';
+import { Trash2, BarChart3, Plus, Copy } from 'lucide-react';
 import type { Visit } from '@/types';
 import FileUploader from '@/components/file-uploader';
 import Dashboard from '@/components/dashboard';
 import VisitForm from '@/components/visit-form';
+import DuplicateMonthDialog from '@/components/duplicate-month-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const [data, setData] = useState<Visit[] | null>(null);
@@ -15,6 +17,8 @@ export default function Home() {
     open: false,
     visit: null,
   });
+  const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
+  const { toast } = useToast();
 
 
   const handleDataProcessed = (processedData: Visit[]) => {
@@ -48,6 +52,51 @@ export default function Home() {
     setFormState({ open: true, visit: null });
   };
 
+  const handleDuplicateMonth = (sourceMonthStr: string, targetMonthStr: string) => {
+    if (!data) return;
+
+    const [sourceYear, sourceMonthNum] = sourceMonthStr.split('-').map(Number);
+    const [targetYear, targetMonthNum] = targetMonthStr.split('-').map(Number);
+
+    const sourceVisits = data.filter(visit => {
+        const visitDate = new Date(visit.date);
+        return visitDate.getFullYear() === sourceYear && visitDate.getMonth() + 1 === sourceMonthNum;
+    });
+
+    if (sourceVisits.length === 0) {
+        toast({
+            variant: "destructive",
+            title: "Sin datos",
+            description: "No se encontraron visitas en el mes de origen para duplicar.",
+        });
+        return;
+    }
+
+    const lastDayOfTargetMonth = new Date(targetYear, targetMonthNum, 0).getDate();
+
+    const newVisits: Visit[] = sourceVisits.map(visit => {
+        const originalDate = new Date(visit.date);
+        const dayOfMonth = originalDate.getDate();
+
+        const dayToSet = Math.min(dayOfMonth, lastDayOfTargetMonth);
+        const targetDate = new Date(targetYear, targetMonthNum - 1, dayToSet);
+
+        return {
+            ...visit,
+            id: `duplicated-${visit.id}-${Date.now()}-${Math.random()}`,
+            date: targetDate,
+        };
+    });
+
+    setData(prevData => [...(prevData || []), ...newVisits]);
+
+    toast({
+        title: "Éxito",
+        description: `${newVisits.length} visitas han sido duplicadas al nuevo mes.`,
+    });
+    setIsDuplicateDialogOpen(false);
+  };
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -64,6 +113,10 @@ export default function Home() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
+            <Button onClick={() => setIsDuplicateDialogOpen(true)} variant="outline">
+                <Copy className="mr-2 h-4 w-4" />
+                Duplicar Mes
+            </Button>
             <Button onClick={handleAddVisitClick}>
                 <Plus className="mr-2 h-4 w-4" />
                 Añadir Visita
@@ -103,6 +156,12 @@ export default function Home() {
         onOpenChange={(isOpen) => setFormState({ ...formState, open: isOpen, visit: isOpen ? formState.visit : null })}
         visit={formState.visit}
         onSave={handleSaveVisit}
+      />
+      <DuplicateMonthDialog
+        isOpen={isDuplicateDialogOpen}
+        onOpenChange={setIsDuplicateDialogOpen}
+        onDuplicate={handleDuplicateMonth}
+        data={data}
       />
     </div>
   );

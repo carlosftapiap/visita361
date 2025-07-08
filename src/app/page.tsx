@@ -1,19 +1,21 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { Trash2, BarChart3, Plus, Copy, Loader2 } from 'lucide-react';
+import { Trash2, BarChart3, Plus, Copy, Loader2, AlertTriangle } from 'lucide-react';
 import type { Visit } from '@/types';
 import FileUploader from '@/components/file-uploader';
 import Dashboard from '@/components/dashboard';
 import VisitForm from '@/components/visit-form';
 import DuplicateMonthDialog from '@/components/duplicate-month-dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { getVisits, addBatchVisits, deleteAllVisits, addVisit, updateVisit } from '@/services/visitService';
 
 export default function Home() {
   const [data, setData] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [formState, setFormState] = useState<{ open: boolean; visit?: Visit | null }>({
     open: false,
     visit: null,
@@ -21,41 +23,82 @@ export default function Home() {
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Simula la carga inicial de la página
-    setLoading(false);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const visits = await getVisits();
+      setData(visits);
+    } catch (err: any) {
+      console.error("Error fetching data:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const handleDataProcessed = (processedData: Visit[]) => {
-    setData(prevData => [...prevData, ...processedData].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    toast({
-        title: 'Éxito',
-        description: `${processedData.length} registros han sido añadidos.`,
-    });
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleDataProcessed = async (processedData: Omit<Visit, 'id'>[]) => {
+    try {
+      await addBatchVisits(processedData);
+      toast({
+          title: 'Éxito',
+          description: `${processedData.length} registros han sido añadidos a la base de datos.`,
+      });
+      await fetchData();
+    } catch (err: any) {
+        toast({
+            variant: "destructive",
+            title: "Error al guardar",
+            description: "No se pudieron añadir los registros a la base de datos."
+        });
+        setError(err.message);
+    }
   };
 
-  const handleReset = () => {
-    setData([]);
-    toast({
-        title: "Datos Eliminados",
-        description: "Toda la información ha sido borrada.",
-    });
+  const handleReset = async () => {
+    try {
+        await deleteAllVisits();
+        toast({
+            title: "Datos Eliminados",
+            description: "Toda la información ha sido borrada de la base de datos.",
+        });
+        await fetchData();
+    } catch (err: any) {
+        toast({
+            variant: "destructive",
+            title: "Error al eliminar",
+            description: "No se pudieron borrar los datos."
+        });
+        setError(err.message);
+    }
   }
 
-  const handleSaveVisit = (visitToSave: Visit) => {
-    setData(currentData => {
-      const isNew = !currentData.some(d => d.id === visitToSave.id);
-      let newData;
+  const handleSaveVisit = async (visitToSave: Visit) => {
+    const isNew = !formState.visit;
+    try {
       if (isNew) {
-        newData = [...currentData, visitToSave];
-        toast({ title: 'Éxito', description: `Visita creada correctamente.` });
+        const { id, ...newVisit } = visitToSave;
+        await addVisit(newVisit);
+        toast({ title: 'Éxito', description: 'Visita creada correctamente.' });
       } else {
-        newData = currentData.map(d => d.id === visitToSave.id ? visitToSave : d);
-        toast({ title: 'Éxito', description: `Visita actualizada correctamente.` });
+        const { id, ...updatedVisit } = visitToSave;
+        await updateVisit(formState.visit!.id, updatedVisit);
+        toast({ title: 'Éxito', description: 'Visita actualizada correctamente.' });
       }
-      return newData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    });
-    setFormState({ open: false, visit: null });
+      await fetchData();
+      setFormState({ open: false, visit: null });
+    } catch (err: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'No se pudo guardar la visita.',
+        });
+        setError(err.message);
+    }
   };
 
   const handleEditVisit = (visit: Visit) => {
@@ -66,7 +109,7 @@ export default function Home() {
     setFormState({ open: true, visit: null });
   };
 
-  const handleDuplicateMonth = (sourceMonthStr: string, targetMonthStr: string) => {
+  const handleDuplicateMonth = async (sourceMonthStr: string, targetMonthStr: string) => {
     if (!data) return;
 
     const [sourceYear, sourceMonthNum] = sourceMonthStr.split('-').map(Number);
@@ -88,7 +131,7 @@ export default function Home() {
 
     const lastDayOfTargetMonth = new Date(targetYear, targetMonthNum, 0).getDate();
 
-    const newVisits = sourceVisits.map((visit, index) => {
+    const newVisits: Omit<Visit, 'id'>[] = sourceVisits.map((visit) => {
         const originalDate = new Date(visit.date);
         const dayOfMonth = originalDate.getDate();
         const dayToSet = Math.min(dayOfMonth, lastDayOfTargetMonth);
@@ -96,22 +139,91 @@ export default function Home() {
         const { id, ...rest } = visit;
         return {
             ...rest,
-            id: `manual-duplicated-${Date.now()}-${index}`,
             date: targetDate,
         };
     });
     
-    setData(prevData => [...prevData, ...newVisits].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-
-    toast({
-        title: "Éxito",
-        description: `${newVisits.length} visitas han sido duplicadas al nuevo mes.`,
-    });
-    setIsDuplicateDialogOpen(false);
+    try {
+        await addBatchVisits(newVisits);
+        toast({
+            title: "Éxito",
+            description: `${newVisits.length} visitas han sido duplicadas al nuevo mes.`,
+        });
+        await fetchData();
+        setIsDuplicateDialogOpen(false);
+    } catch(err: any) {
+        toast({
+            variant: "destructive",
+            title: "Error al duplicar",
+            description: "No se pudieron guardar las visitas duplicadas."
+        });
+        setError(err.message);
+    }
   };
 
-  const isDataReady = !loading && data.length > 0;
-  const showEmptyState = !loading && data.length === 0;
+  const isDataReady = !loading && data.length > 0 && !error;
+  const showEmptyState = !loading && data.length === 0 && !error;
+
+  if (error) {
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-background">
+            <Card className="w-full max-w-2xl m-4 shadow-2xl border-destructive">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-3 text-2xl text-destructive font-headline">
+                        <AlertTriangle className="h-8 w-8" />
+                        Error de Conexión con la Base de Datos
+                    </CardTitle>
+                    <CardDescription>
+                        No se pudo establecer la conexión con Firebase. Por favor, revise los siguientes puntos.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                    <div className="p-4 rounded-md bg-muted">
+                        <h3 className="font-semibold">Paso 1: Verifique el archivo <code>.env.local</code></h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Asegúrese de que existe un archivo llamado <code>.env.local</code> en la raíz de su proyecto y que contiene todas sus credenciales de Firebase.
+                        </p>
+                        <pre className="mt-2 p-2 text-xs bg-black text-white rounded-md overflow-x-auto">
+                            <code>
+{`NEXT_PUBLIC_FIREBASE_API_KEY="AIzaSy..."
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="tu-proyecto.firebaseapp.com"
+NEXT_PUBLIC_FIREBASE_PROJECT_ID="tu-proyecto"
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="tu-proyecto.appspot.com"
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="..."
+NEXT_PUBLIC_FIREBASE_APP_ID="1:..."`}
+                            </code>
+                        </pre>
+                        <p className="text-sm text-muted-foreground mt-2">
+                            Si acaba de crear o modificar este archivo, debe <strong>reiniciar el servidor de desarrollo</strong> para que los cambios surtan efecto.
+                        </p>
+                    </div>
+                     <div className="p-4 rounded-md bg-muted">
+                        <h3 className="font-semibold">Paso 2: Reglas de Seguridad de Firestore</h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Verifique que las reglas de seguridad de su base de datos en la consola de Firebase permitan la lectura y escritura. Para desarrollo, puede usar las siguientes reglas (<strong>no recomendadas para producción</strong>):
+                        </p>
+                        <pre className="mt-2 p-2 text-xs bg-black text-white rounded-md">
+                            <code>
+{`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}`}
+                            </code>
+                        </pre>
+                    </div>
+                    <div className="p-4 border border-destructive/50 rounded-md bg-destructive/10">
+                         <h3 className="font-semibold text-destructive">Mensaje de Error Original</h3>
+                         <p className="font-mono text-sm text-destructive mt-1">{error}</p>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -154,13 +266,13 @@ export default function Home() {
              <Card className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center shadow-md">
                 <CardContent className="flex flex-col items-center gap-4 p-6">
                     <Loader2 className="h-16 w-16 animate-spin text-primary" />
-                    <h2 className="font-headline text-2xl">Cargando Panel...</h2>
-                    <p className="max-w-xs text-muted-foreground">Preparando todo para empezar.</p>
+                    <h2 className="font-headline text-2xl">Conectando a la Base de Datos...</h2>
+                    <p className="max-w-xs text-muted-foreground">Cargando los datos de las visitas.</p>
                 </CardContent>
             </Card>
           ) : isDataReady ? (
             <Dashboard data={data} onEditVisit={handleEditVisit} />
-          ) : (
+          ) : showEmptyState ? (
             <Card className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center shadow-md">
                 <CardContent className="flex flex-col items-center gap-4 p-6">
                     <div className="rounded-full border-8 border-primary/10 bg-primary/5 p-6">
@@ -170,7 +282,7 @@ export default function Home() {
                     <p className="max-w-xs text-muted-foreground">Cargue un archivo o añada una visita para comenzar a analizar la información.</p>
                 </CardContent>
             </Card>
-          )}
+          ) : null}
         </div>
       </main>
       

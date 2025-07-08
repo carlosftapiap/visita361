@@ -9,6 +9,7 @@ import {
   writeBatch,
   query,
   orderBy,
+  Timestamp,
 } from 'firebase/firestore';
 
 // Convierte un documento de Firestore a un objeto Visit, convirtiendo Timestamps a Dates
@@ -19,6 +20,15 @@ const visitFromDoc = (docSnap: any): Visit => {
         id: docSnap.id,
         date: data.date.toDate(),
     };
+}
+
+// Prepara un objeto Visit para ser guardado en Firestore, convirtiendo Dates a Timestamps
+const visitToDoc = (visit: Partial<Omit<Visit, 'id'>>) => {
+    const data: any = { ...visit };
+    if (visit.date) {
+        data.date = Timestamp.fromDate(visit.date);
+    }
+    return data;
 }
 
 export const getVisits = async (): Promise<Visit[]> => {
@@ -32,13 +42,13 @@ export const getVisits = async (): Promise<Visit[]> => {
 export const addVisit = async (visit: Omit<Visit, 'id'>) => {
     const db = getDb();
     const visitsCollectionRef = collection(db, 'visits');
-    return await addDoc(visitsCollectionRef, visit);
+    return await addDoc(visitsCollectionRef, visitToDoc(visit));
 }
 
 export const updateVisit = async (id: string, visit: Partial<Omit<Visit, 'id'>>) => {
     const db = getDb();
     const visitDoc = doc(db, 'visits', id);
-    return await updateDoc(visitDoc, visit);
+    return await updateDoc(visitDoc, visitToDoc(visit));
 }
 
 export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
@@ -47,7 +57,7 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     const batch = writeBatch(db);
     visits.forEach((visit) => {
         const newDocRef = doc(visitsCollectionRef);
-        batch.set(newDocRef, visit);
+        batch.set(newDocRef, visitToDoc(visit));
     });
     await batch.commit();
 }

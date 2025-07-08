@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
 interface FileUploaderProps {
-  onDataProcessed: (data: Visit[]) => void;
+  onDataProcessed: (data: Omit<Visit, 'id'>[]) => void;
 }
 
 const spanishHeaders = [
@@ -69,7 +69,7 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
             throw new Error(`Faltan las columnas: ${missingHeaders.join(', ')}. Descargue la plantilla actualizada.`);
         }
 
-        const initialData = json.map((row, index) => {
+        const initialData = json.map((row) => {
             const visitDate = new Date(row['FECHA']);
             
             const budgetValue = row['PRESUPUESTO'];
@@ -81,7 +81,6 @@ export default function FileUploader({ onDataProcessed }: FileUploaderProps) {
             const getString = (value: any) => value === undefined || value === null ? '' : String(value);
 
             return {
-                id: `${file.name}-${Date.now()}-${index}`,
                 trade_executive: getString(row['EJECUTIVA DE TRADE']),
                 agent: getString(row['ASESOR COMERCIAL']),
                 channel: getString(row['CANAL']),

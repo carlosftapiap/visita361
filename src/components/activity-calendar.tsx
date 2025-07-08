@@ -123,7 +123,7 @@ export default function ActivityCalendar({
                           style={{ borderLeft: `4px solid ${activityColors[visit.activity] || 'hsl(var(--muted))'}` }}
                         >
                            <p className="font-semibold text-card-foreground">{visit.activity}</p>
-                           <p className="truncate text-muted-foreground">{visit.agent}</p>
+                           <p className="truncate text-muted-foreground">{visit.trade_executive}</p>
                            <p className="truncate text-muted-foreground">{visit.chain}</p>
                         </div>
                       ))

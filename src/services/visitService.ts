@@ -1,3 +1,4 @@
+
 import { getSupabase } from '@/lib/supabase';
 import type { Visit } from '@/types';
 import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
@@ -31,8 +32,6 @@ const buildSupabaseError = (error: any, context: string): Error => {
     console.error(`Error with Supabase ${context}:`, error);
     let message;
 
-    // It's common for the table to not exist, especially during setup.
-    // The error code is '42P01' and the message contains 'relation "..." does not exist'.
     if (error?.code === '42P01' || (error?.message && (error.message.includes('does not exist') || error.message.includes('no existe la relación')))) {
         message = `La tabla 'visits' no se encontró en Supabase o le faltan columnas.\n\n` +
                   `**SOLUCIÓN:**\n` +
@@ -75,11 +74,10 @@ const buildSupabaseError = (error: any, context: string): Error => {
                   `-- FIN SCRIPT SQL --\n\n` +
                   `**NOTA:** Esta política da acceso total a usuarios autenticados. Para producción, debes crear reglas más restrictivas.`;
     } else {
-        message = `Ocurrió un error inesperado en la operación de ${context} con Supabase.\n\n` +
-                  `Asegúrate de que tus credenciales en el archivo .env.local son correctas y de que has reiniciado el servidor de desarrollo después de cualquier cambio.\n\n` +
+        message = `Ocurrió un error en la operación de ${context} con Supabase.\n\n` +
                   `**Detalles Técnicos:**\n` +
                   `Código: ${error?.code || 'N/A'}\n` +
-                  `Mensaje: ${error?.message || 'No hay un mensaje de error específico del servidor.'}`;
+                  `Mensaje: ${error?.message || 'No hay un mensaje de error específico.'}`;
     }
 
     return new Error(message);

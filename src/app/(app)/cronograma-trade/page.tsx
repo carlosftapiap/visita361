@@ -55,16 +55,17 @@ export default function CronogramaTradePage() {
   const [pendingData, setPendingData] = useState<{ data: Omit<Visit, 'id'>[]; months: string[] } | null>(null);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const refreshData = useCallback(async () => {
-    setLoading(true);
+    setIsLoading(true);
     setErrorMessage(null);
     try {
       const visits = await getVisits();
       setData(visits);
     } catch (error) {
-      console.error("Error refreshing data:", error);
       const message = error instanceof Error ? error.message : "No se pudieron obtener los datos de la base de datos.";
+      console.error("Error refreshing data:", error);
       setErrorMessage(message);
       toast({
         variant: "destructive",
@@ -72,7 +73,7 @@ export default function CronogramaTradePage() {
         description: "No se pudo conectar a la base de datos. Revisa el mensaje en pantalla.",
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, [toast]);
 
@@ -103,7 +104,7 @@ export default function CronogramaTradePage() {
   };
 
   const uploadNewData = async (dataToUpload: Omit<Visit, 'id'>[]) => {
-    setLoading(true);
+    setIsLoading(true);
     setErrorMessage(null);
     try {
       await addBatchVisits(dataToUpload);
@@ -112,17 +113,16 @@ export default function CronogramaTradePage() {
         title: 'Éxito',
         description: `${dataToUpload.length} registros han sido cargados y guardados.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading new data:", error);
-      const message = error instanceof Error ? error.message : "No se pudieron guardar los nuevos registros.";
-      setErrorMessage(message);
+      setErrorMessage(error.message);
       toast({
         variant: "destructive",
         title: "Error al Guardar",
         description: "No se pudieron guardar los nuevos registros. Revisa el mensaje en pantalla.",
       });
     } finally {
-        setLoading(false);
+        setIsLoading(false);
     }
   };
   
@@ -130,7 +130,7 @@ export default function CronogramaTradePage() {
     if (!pendingData) return;
 
     setShowOverwriteConfirm(false);
-    setLoading(true);
+    setIsLoading(true);
     setErrorMessage(null);
 
     try {
@@ -141,23 +141,22 @@ export default function CronogramaTradePage() {
             title: 'Datos Reemplazados',
             description: `Se han actualizado los datos para los meses correspondientes con ${pendingData.data.length} nuevos registros.`,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error replacing data:", error);
-        const message = error instanceof Error ? error.message : "No se pudieron reemplazar los datos.";
-        setErrorMessage(message);
+        setErrorMessage(error.message);
         toast({
             variant: "destructive",
             title: "Error al Reemplazar",
             description: "No se pudieron reemplazar los datos. Revisa el mensaje en pantalla.",
         });
     } finally {
-        setLoading(false);
+        setIsLoading(false);
         setPendingData(null);
     }
   };
 
   const handleReset = async () => {
-    setLoading(true);
+    setIsLoading(true);
     setErrorMessage(null);
     try {
         await deleteAllVisits();
@@ -166,24 +165,23 @@ export default function CronogramaTradePage() {
           title: "Datos Eliminados",
           description: "Toda la información ha sido borrada.",
         });
-    } catch(error) {
+    } catch(error: any) {
         console.error("Error deleting data:", error);
-        const message = error instanceof Error ? error.message : "No se pudo borrar la información.";
-        setErrorMessage(message);
+        setErrorMessage(error.message);
         toast({
             variant: "destructive",
             title: "Error al Eliminar",
             description: "No se pudo borrar la información. Revisa el mensaje en pantalla.",
         });
     } finally {
-        setLoading(false);
+        setIsLoading(false);
     }
   }
 
   const handleSaveVisit = async (visitToSave: Visit) => {
     const { id, ...visitData } = visitToSave;
     
-    setLoading(true);
+    setIsLoading(true);
     setErrorMessage(null);
     try {
         if (formState.visit && formState.visit.id) { // Editing existing visit
@@ -194,17 +192,16 @@ export default function CronogramaTradePage() {
         await refreshData();
         toast({ title: 'Éxito', description: 'Visita guardada correctamente.' });
         setFormState({ open: false, visit: null });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error saving visit:", error);
-        const message = error instanceof Error ? error.message : "No se pudo guardar la visita.";
-        setErrorMessage(message);
+        setErrorMessage(error.message);
         toast({
             variant: 'destructive',
             title: 'Error al Guardar',
             description: 'No se pudo guardar la visita. Revisa el mensaje en pantalla.',
         });
     } finally {
-        setLoading(false);
+        setIsLoading(false);
     }
   };
 
@@ -248,7 +245,7 @@ export default function CronogramaTradePage() {
         };
     });
     
-    setLoading(true);
+    setIsLoading(true);
     setErrorMessage(null);
     try {
         await addBatchVisits(newVisits);
@@ -257,10 +254,9 @@ export default function CronogramaTradePage() {
           title: "Éxito",
           description: `${newVisits.length} visitas han sido duplicadas y guardadas.`,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error duplicating month:", error);
-        const message = error instanceof Error ? error.message : "No se pudieron duplicar las visitas.";
-        setErrorMessage(message);
+        setErrorMessage(error.message);
         toast({
             variant: "destructive",
             title: "Error al Duplicar",
@@ -268,12 +264,12 @@ export default function CronogramaTradePage() {
         });
     } finally {
         setIsDuplicateDialogOpen(false);
-        setLoading(false);
+        setIsLoading(false);
     }
   };
 
   const renderContent = () => {
-    if (loading) {
+    if (isLoading) {
       return <DashboardSkeleton />;
     }
     if (errorMessage) {
@@ -281,21 +277,21 @@ export default function CronogramaTradePage() {
         <Card className="shadow-md border-destructive bg-destructive/5">
           <CardHeader>
             <CardTitle className="font-headline text-xl text-destructive flex items-center gap-2">
-                <AlertTriangle /> Error de Configuración de la Base de Datos
+                <AlertTriangle /> Error de Conexión o Configuración
             </CardTitle>
             <CardDescription className="text-destructive/90">
-                No se pudo completar la operación debido a un problema de conexión o configuración con la base de datos de Supabase.
+                No se pudo completar la operación debido a un problema. Revisa el siguiente mensaje para solucionarlo.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <h3 className="font-semibold mb-2 text-card-foreground">Sigue estas instrucciones para solucionarlo:</h3>
+            <h3 className="font-semibold mb-2 text-card-foreground">Mensaje de Error Detallado:</h3>
             <pre className="text-sm bg-background p-4 rounded-md whitespace-pre-wrap font-code border">
                 {errorMessage}
             </pre>
           </CardContent>
           <CardFooter>
-            <Button onClick={refreshData} disabled={loading}>
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            <Button onClick={refreshData} disabled={isLoading}>
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
               Reintentar Conexión
             </Button>
           </CardFooter>
@@ -326,19 +322,19 @@ export default function CronogramaTradePage() {
                 <p className="text-muted-foreground">Panel de control de actividades y visitas conectado a Supabase.</p>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Button onClick={() => setIsDuplicateDialogOpen(true)} variant="outline" disabled={loading || data.length === 0} className="flex-1 sm:flex-none">
+                <Button onClick={() => setIsDuplicateDialogOpen(true)} variant="outline" disabled={isLoading || data.length === 0} className="flex-1 sm:flex-none">
                     <Copy className="mr-2 h-4 w-4" />
                     Cronograma nuevo
                 </Button>
-                <Button onClick={handleAddVisitClick} className="flex-1 sm:flex-none" disabled={loading}>
+                <Button onClick={handleAddVisitClick} className="flex-1 sm:flex-none" disabled={isLoading}>
                     <Plus className="mr-2 h-4 w-4" />
                     Añadir Visita
                 </Button>
-                <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" size="icon" disabled={loading} title="Cargar y configurar datos">
+                <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" size="icon" disabled={isLoading} title="Cargar y configurar datos">
                     <Settings className="h-5 w-5" />
                     <span className="sr-only">Cargar y configurar datos</span>
                 </Button>
-                {!loading && data.length > 0 && (
+                {!isLoading && data.length > 0 && (
                     <Button onClick={handleReset} variant="destructive" className="flex-1 sm:flex-none">
                         <Trash2 className="mr-2 h-4 w-4" />
                         Limpiar Datos
@@ -377,7 +373,7 @@ export default function CronogramaTradePage() {
                             handleFileProcessed(processedData);
                             setIsUploadDialogOpen(false);
                         }} 
-                        disabled={loading} 
+                        disabled={isLoading} 
                         loadedMonths={loadedMonthsFormatted}
                     />
                 </div>

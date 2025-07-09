@@ -259,7 +259,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                 <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="Días con al menos un registro" />
                 <KpiCard 
                     title="Presupuesto Total" 
-                    value={kpis.totalBudget.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })}
+                    value={kpis.totalBudget.toLocaleString('es-CO')}
                     icon={DollarSign} 
                     description="Suma de presupuestos en el periodo" 
                 />

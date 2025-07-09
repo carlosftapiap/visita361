@@ -93,7 +93,7 @@ export default function ActivityCalendar({
 
   const activityColors: Record<string, string> = {
     'Visita': 'hsl(var(--primary))',
-    'Impulso': 'hsl(var(--accent))',
+    'IMPULSACIÓN': 'hsl(var(--accent))',
     'Verificación': 'hsl(var(--chart-3))',
   };
   

@@ -39,7 +39,7 @@ const visitSchema = z.object({
   agent: z.string().min(1, 'El asesor es requerido.'),
   channel: z.string().min(1, 'El canal es requerido.'),
   chain: z.string().min(1, 'La cadena es requerida.'),
-  pdv_detail: z.string().min(1, 'El detalle del PDV es requerido.'),
+  pdv_address: z.string().min(1, 'La dirección del PDV es requerida.'),
   activity: z.enum(['Visita', 'Impulso', 'Verificación'], {
     required_error: 'Debe seleccionar una actividad.',
   }),
@@ -50,13 +50,12 @@ const visitSchema = z.object({
     required_error: 'La fecha es requerida.',
   }),
   budget: z.coerce.number().min(0, 'El presupuesto no puede ser negativo.').default(0),
-  expected_people: z.coerce.number().min(0).optional(),
+  expected_attendance: z.coerce.number().min(0).optional(),
   material_delivery_date: z.date().optional(),
-  delivery_place: z.string().optional(),
-  objective: z.string().optional(),
+  activity_objective: z.string().optional(),
   sample_count: z.coerce.number().min(0).optional(),
   material_pop: z.string().optional(),
-  other_materials: z.string().optional(),
+  observation: z.string().optional(),
 });
 
 type VisitFormValues = z.infer<typeof visitSchema>;
@@ -78,20 +77,19 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
         agent: '',
         channel: '',
         chain: '',
-        pdv_detail: '',
+        pdv_address: '',
         activity: undefined,
         schedule: '',
         city: '',
         zone: '',
         date: undefined,
         budget: 0,
-        expected_people: undefined,
+        expected_attendance: undefined,
         material_delivery_date: undefined,
-        delivery_place: '',
-        objective: '',
+        activity_objective: '',
         sample_count: undefined,
         material_pop: '',
-        other_materials: '',
+        observation: '',
     },
   });
 
@@ -107,20 +105,19 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
           agent: '',
           channel: '',
           chain: '',
-          pdv_detail: '',
+          pdv_address: '',
           activity: undefined,
           schedule: '',
           city: '',
           zone: '',
           date: new Date(),
           budget: 0,
-          expected_people: undefined,
+          expected_attendance: undefined,
           material_delivery_date: undefined,
-          delivery_place: '',
-          objective: '',
+          activity_objective: '',
           sample_count: undefined,
           material_pop: '',
-          other_materials: '',
+          observation: '',
         });
       }
     }
@@ -166,7 +163,7 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
             {/* Fila 2 */}
             <FormField control={form.control} name="channel" render={({ field }) => ( <FormItem><FormLabel>Canal</FormLabel><FormControl><Input placeholder="Ej: Moderno" {...field} /></FormControl><FormMessage /></FormItem> )} />
             <FormField control={form.control} name="chain" render={({ field }) => ( <FormItem><FormLabel>Cadena</FormLabel><FormControl><Input placeholder="Ej: Éxito" {...field} /></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="pdv_detail" render={({ field }) => ( <FormItem><FormLabel>Detalle del PDV</FormLabel><FormControl><Input placeholder="Ej: Éxito Calle 80" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="pdv_address" render={({ field }) => ( <FormItem><FormLabel>Dirección del PDV</FormLabel><FormControl><Input placeholder="Ej: Av. Siempreviva 123" {...field} /></FormControl><FormMessage /></FormItem> )} />
             
             {/* Fila 3 */}
             <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>Ciudad</FormLabel><FormControl><Input placeholder="Ej: Bogotá" {...field} /></FormControl><FormMessage /></FormItem> )}/>
@@ -176,17 +173,16 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
             {/* Fila 4 */}
             <FormField control={form.control} name="activity" render={({ field }) => ( <FormItem><FormLabel>Actividad</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una actividad" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Visita">Visita</SelectItem><SelectItem value="Impulso">Impulso</SelectItem><SelectItem value="Verificación">Verificación</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
             <FormField control={form.control} name="budget" render={({ field }) => ( <FormItem><FormLabel>Presupuesto</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-            <FormField control={form.control} name="expected_people" render={({ field }) => ( <FormItem><FormLabel>Afluencia Esperada</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+            <FormField control={form.control} name="expected_attendance" render={({ field }) => ( <FormItem><FormLabel>Afluencia Esperada</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
 
             {/* Fila 5 */}
             <FormField control={form.control} name="material_delivery_date" render={({ field }) => ( <FormItem className="flex flex-col pt-2"><FormLabel>Fecha Entrega Material</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(field.value, "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-            <FormField control={form.control} name="delivery_place" render={({ field }) => ( <FormItem><FormLabel>Lugar de Entrega</FormLabel><FormControl><Input placeholder="Ej: Bodega Central" {...field} /></FormControl><FormMessage /></FormItem> )}/>
             <FormField control={form.control} name="sample_count" render={({ field }) => ( <FormItem><FormLabel>Cantidad de Muestras</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+            <FormField control={form.control} name="material_pop" render={({ field }) => ( <FormItem><FormLabel>Material POP</FormLabel><FormControl><Input placeholder="Describa el material POP" {...field} /></FormControl><FormMessage /></FormItem> )}/>
             
             {/* Fila 6 */}
-            <FormField control={form.control} name="material_pop" render={({ field }) => ( <FormItem><FormLabel>Material POP</FormLabel><FormControl><Textarea placeholder="Describa el material POP" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-            <FormField control={form.control} name="other_materials" render={({ field }) => ( <FormItem><FormLabel>Otros Materiales</FormLabel><FormControl><Textarea placeholder="Describa otros materiales" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-            <FormField control={form.control} name="objective" render={({ field }) => ( <FormItem><FormLabel>Objetivo</FormLabel><FormControl><Textarea placeholder="Describa el objetivo de la visita" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+            <FormField control={form.control} name="activity_objective" render={({ field }) => ( <FormItem className="md:col-span-3"><FormLabel>Objetivo de la Actividad</FormLabel><FormControl><Textarea placeholder="Describa el objetivo de la actividad" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+            <FormField control={form.control} name="observation" render={({ field }) => ( <FormItem className="md:col-span-3"><FormLabel>Observación</FormLabel><FormControl><Textarea placeholder="Añada observaciones adicionales" {...field} /></FormControl><FormMessage /></FormItem> )}/>
 
              <DialogFooter className="md:col-span-3 pt-4">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

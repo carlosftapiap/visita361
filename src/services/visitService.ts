@@ -32,20 +32,19 @@ const buildSupabaseError = (error: any, context: string): Error => {
                   `  agent TEXT,\n` +
                   `  channel TEXT,\n` +
                   `  chain TEXT,\n` +
-                  `  pdv_detail TEXT,\n` +
+                  `  pdv_address TEXT,\n` +
                   `  activity TEXT,\n` +
                   `  schedule TEXT,\n` +
                   `  city TEXT,\n` +
                   `  zone TEXT,\n` +
                   `  date TIMESTAMPTZ,\n` +
                   `  budget NUMERIC,\n` +
-                  `  expected_people INT,\n` +
+                  `  expected_attendance INT,\n` +
                   `  material_delivery_date DATE,\n` +
-                  `  delivery_place TEXT,\n` +
-                  `  objective TEXT,\n` +
+                  `  activity_objective TEXT,\n` +
                   `  sample_count INT,\n` +
                   `  material_pop TEXT,\n` +
-                  `  other_materials TEXT\n` +
+                  `  observation TEXT\n` +
                   `);\n` +
                   `-- FIN SCRIPT SQL --`;
     } else if (error?.code === '42501') { // permission denied

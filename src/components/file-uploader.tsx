@@ -20,20 +20,19 @@ const spanishHeaders = [
     'ASESOR COMERCIAL',
     'CANAL',
     'CADENA',
-    'DETALLE DEL PDV',
+    'DIRECCION DEL PDV',
     'ACTIVIDAD',
     'HORARIO',
     'CIUDAD',
     'ZONA',
     'FECHA',
     'PRESUPUESTO',
-    'AFLUENCIA ESPERADA DE PERSONAS',
+    'AFLUENCIA ESPERADA',
     'FECHA DE ENTREGA DE MATERIAL',
-    'LUGAR DE ENTREGA',
-    'OBJETIVO',
+    'OBJETIVO DE LA ACTIVIDAD',
     'CANTIDAD DE MUESTRAS',
     'MATERIAL POP',
-    'OTROS MATERIALES'
+    'OBSERVACION'
 ];
 
 export default function FileUploader({ onFileProcessed, disabled = false, loadedMonths = [] }: FileUploaderProps) {
@@ -74,7 +73,7 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
         const firstRow = json[0] || {};
         const headers = Object.keys(firstRow);
         const requiredHeaders = [
-            'EJECUTIVA DE TRADE', 'ASESOR COMERCIAL', 'CANAL', 'CADENA', 'DETALLE DEL PDV', 
+            'EJECUTIVA DE TRADE', 'ASESOR COMERCIAL', 'CANAL', 'CADENA', 'DIRECCION DEL PDV', 
             'ACTIVIDAD', 'HORARIO', 'CIUDAD', 'ZONA', 'FECHA'
         ];
         const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
@@ -88,8 +87,9 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
             const deliveryDate = row['FECHA DE ENTREGA DE MATERIAL'] ? new Date(row['FECHA DE ENTREGA DE MATERIAL']) : undefined;
 
             const getNumber = (value: any) => {
+                if (value === undefined || value === null || value === '') return undefined;
                 const num = Number(value);
-                return isNaN(num) ? 0 : num;
+                return isNaN(num) ? undefined : num;
             };
             
             const getString = (value: any) => value === undefined || value === null ? '' : String(value);
@@ -99,20 +99,19 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
                 agent: getString(row['ASESOR COMERCIAL']),
                 channel: getString(row['CANAL']),
                 chain: getString(row['CADENA']),
-                pdv_detail: getString(row['DETALLE DEL PDV']),
+                pdv_address: getString(row['DIRECCION DEL PDV']),
                 activity: getString(row['ACTIVIDAD']) as Visit['activity'],
                 schedule: getString(row['HORARIO']),
                 city: getString(row['CIUDAD']),
                 zone: getString(row['ZONA']),
                 date: visitDate,
-                budget: getNumber(row['PRESUPUESTO']),
-                expected_people: row['AFLUENCIA ESPERADA DE PERSONAS'] ? getNumber(row['AFLUENCIA ESPERADA DE PERSONAS']) : undefined,
+                budget: getNumber(row['PRESUPUESTO']) || 0,
+                expected_attendance: getNumber(row['AFLUENCIA ESPERADA']),
                 material_delivery_date: deliveryDate,
-                delivery_place: getString(row['LUGAR DE ENTREGA']),
-                objective: getString(row['OBJETIVO']),
-                sample_count: row['CANTIDAD DE MUESTRAS'] ? getNumber(row['CANTIDAD DE MUESTRAS']) : undefined,
+                activity_objective: getString(row['OBJETIVO DE LA ACTIVIDAD']),
+                sample_count: getNumber(row['CANTIDAD DE MUESTRAS']),
                 material_pop: getString(row['MATERIAL POP']),
-                other_materials: getString(row['OTROS MATERIALES']),
+                observation: getString(row['OBSERVACION']),
             };
         });
 
@@ -130,7 +129,7 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
           throw new Error("Ningún registro válido encontrado. Verifique que la columna 'FECHA' contenga fechas correctas.");
         }
         
-        onFileProcessed(parsedData);
+        onFileProcessed(parsedData as Omit<Visit, 'id'>[]);
         
         let description = `Archivo "${file.name}" procesado con ${parsedData.length} registros.`;
         if (skippedRowCount > 0) {
@@ -179,7 +178,7 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
 
   const handleDownloadTemplate = () => {
     const headers = [spanishHeaders];
-    const exampleRow = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 1000000, 50, '2024-07-19', 'Bodega Central', 'Aumentar visibilidad', 100, 'Afiches, volantes', 'Globos']];
+    const exampleRow = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 1000000, 50, '2024-07-19', 'Aumentar visibilidad', 100, 'Afiches, volantes', 'Sin novedades']];
     const ws = XLSX.utils.aoa_to_sheet([...headers, ...exampleRow]);
     ws['!cols'] = spanishHeaders.map(() => ({ wch: 25 }));
     const wb = XLSX.utils.book_new();

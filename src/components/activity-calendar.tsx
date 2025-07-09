@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import type { Visit } from '@/types';
 import { cn } from '@/lib/utils';
+import { Textarea } from './ui/textarea';
 
 interface ActivityCalendarProps {
   data: Visit[];
@@ -229,7 +230,7 @@ export default function ActivityCalendar({
                 </div>
                 <div className="flex items-start gap-3">
                     <Info className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Detalle PDV</p><p className="font-semibold text-card-foreground">{selectedVisit.pdv_detail}</p></div>
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Dirección PDV</p><p className="font-semibold text-card-foreground">{selectedVisit.pdv_address}</p></div>
                 </div>
                 <div className="flex items-start gap-3">
                     <MapPin className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
@@ -245,31 +246,27 @@ export default function ActivityCalendar({
                 </div>
                 <div className="flex items-start gap-3">
                     <Users2 className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Afluencia Esperada</p><p className="font-semibold text-card-foreground">{selectedVisit.expected_people?.toLocaleString('es-CO') || 'N/A'}</p></div>
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Afluencia Esperada</p><p className="font-semibold text-card-foreground">{selectedVisit.expected_attendance?.toLocaleString('es-CO') || 'N/A'}</p></div>
                 </div>
                 <div className="flex items-start gap-3">
                     <Calendar className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
                     <div className="space-y-1"><p className="font-medium text-muted-foreground">Entrega Material</p><p className="font-semibold text-card-foreground">{selectedVisit.material_delivery_date ? capitalize(format(selectedVisit.material_delivery_date, "d MMM, yyyy", { locale: es })) : 'N/A'}</p></div>
                 </div>
-                <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Lugar Entrega</p><p className="font-semibold text-card-foreground">{selectedVisit.delivery_place || 'N/A'}</p></div>
-                </div>
                  <div className="flex items-start gap-3">
                     <Edit className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
                     <div className="space-y-1"><p className="font-medium text-muted-foreground">Muestras</p><p className="font-semibold text-card-foreground">{selectedVisit.sample_count?.toLocaleString('es-CO') || 'N/A'}</p></div>
                 </div>
-                 <div className="flex items-start gap-3">
+                 <div className="flex items-start gap-3 md:col-span-3">
                     <Package className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Material POP</p><p className="font-semibold text-card-foreground">{selectedVisit.material_pop || 'N/A'}</p></div>
-                </div>
-                 <div className="flex items-start gap-3">
-                    <Package className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Otros Materiales</p><p className="font-semibold text-card-foreground">{selectedVisit.other_materials || 'N/A'}</p></div>
+                    <div className="space-y-1 w-full"><p className="font-medium text-muted-foreground">Material POP</p><Textarea readOnly value={selectedVisit.material_pop || 'N/A'} className="mt-1 h-auto bg-transparent" /></div>
                 </div>
                  <div className="flex items-start gap-3 md:col-span-3">
                     <Target className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Objetivo</p><p className="font-semibold text-card-foreground">{selectedVisit.objective || 'N/A'}</p></div>
+                    <div className="space-y-1 w-full"><p className="font-medium text-muted-foreground">Objetivo de la Actividad</p><Textarea readOnly value={selectedVisit.activity_objective || 'N/A'} className="mt-1 h-auto bg-transparent" /></div>
+                </div>
+                <div className="flex items-start gap-3 md:col-span-3">
+                    <Info className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1 w-full"><p className="font-medium text-muted-foreground">Observación</p><Textarea readOnly value={selectedVisit.observation || 'N/A'} className="mt-1 h-auto bg-transparent" /></div>
                 </div>
             </div>
           )}

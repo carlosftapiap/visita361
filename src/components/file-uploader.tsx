@@ -20,7 +20,7 @@ const spanishHeaders = [
     'ASESOR COMERCIAL',
     'CANAL',
     'CADENA',
-    'DIRECCION DEL PDV',
+    'DIRECCIÓN DEL PDV',
     'ACTIVIDAD',
     'HORARIO',
     'CIUDAD',
@@ -73,7 +73,7 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
         const firstRow = json[0] || {};
         const headers = Object.keys(firstRow);
         const requiredHeaders = [
-            'EJECUTIVA DE TRADE', 'ASESOR COMERCIAL', 'CANAL', 'CADENA', 'DIRECCION DEL PDV', 
+            'EJECUTIVA DE TRADE', 'ASESOR COMERCIAL', 'CANAL', 'CADENA', 'DIRECCIÓN DEL PDV', 
             'ACTIVIDAD', 'HORARIO', 'CIUDAD', 'ZONA', 'FECHA'
         ];
         const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
@@ -99,7 +99,7 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
                 agent: getString(row['ASESOR COMERCIAL']),
                 channel: getString(row['CANAL']),
                 chain: getString(row['CADENA']),
-                pdv_address: getString(row['DIRECCION DEL PDV']),
+                pdv_address: getString(row['DIRECCIÓN DEL PDV']),
                 activity: getString(row['ACTIVIDAD']) as Visit['activity'],
                 schedule: getString(row['HORARIO']),
                 city: getString(row['CIUDAD']),

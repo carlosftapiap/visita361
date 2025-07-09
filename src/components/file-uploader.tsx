@@ -17,26 +17,23 @@ interface FileUploaderProps {
 
 const spanishHeaders = [
     'EJECUTIVA DE TRADE',
-    'ASESOR COMERCIAL', 
-    'CANAL', 
-    'CADENA', 
-    'DETALLE DEL PDV', 
-    'ACTIVIDAD', 
-    'HORARIO', 
-    'CIUDAD', 
-    'ZONA', 
+    'ASESOR COMERCIAL',
+    'CANAL',
+    'CADENA',
+    'DETALLE DEL PDV',
+    'ACTIVIDAD',
+    'HORARIO',
+    'CIUDAD',
+    'ZONA',
     'FECHA',
-    'UNIDADES',
-    'CÓDIGO DE CLIENTE',
-    'CLIENTE',
-    'DIRECCIÓN',
-    'CÓDIGO DEL VENDEDOR',
-    'VENDEDOR',
-    'COORDINADOR',
+    'PRESUPUESTO',
+    'AFLUENCIA ESPERADA DE PERSONAS',
+    'FECHA DE ENTREGA DE MATERIAL',
+    'LUGAR DE ENTREGA',
+    'OBJETIVO',
+    'CANTIDAD DE MUESTRAS',
     'MATERIAL POP',
-    'OBJETIVO DE LA VISITA',
-    'GESTIÓN REALIZADA',
-    'OBSERVACIONES'
+    'OTROS MATERIALES'
 ];
 
 export default function FileUploader({ onFileProcessed, disabled = false, loadedMonths = [] }: FileUploaderProps) {
@@ -76,21 +73,25 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
 
         const firstRow = json[0] || {};
         const headers = Object.keys(firstRow);
-        const missingHeaders = spanishHeaders.filter(h => !headers.includes(h));
+        const requiredHeaders = [
+            'EJECUTIVA DE TRADE', 'ASESOR COMERCIAL', 'CANAL', 'CADENA', 'DETALLE DEL PDV', 
+            'ACTIVIDAD', 'HORARIO', 'CIUDAD', 'ZONA', 'FECHA'
+        ];
+        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
 
         if (missingHeaders.length > 0) {
-            throw new Error(`Faltan las columnas: ${missingHeaders.join(', ')}. Descargue la plantilla actualizada.`);
+            throw new Error(`Faltan las columnas requeridas: ${missingHeaders.join(', ')}. Descargue la plantilla actualizada.`);
         }
 
         const initialData = json.map((row) => {
-            const visitDate = new Date(row['FECHA']);
-            
-            const budgetValue = row['UNIDADES'];
-            let budget = Number(budgetValue);
-            if (isNaN(budget)) {
-                budget = 0;
-            }
+            const visitDate = row['FECHA'] ? new Date(row['FECHA']) : new Date();
+            const deliveryDate = row['FECHA DE ENTREGA DE MATERIAL'] ? new Date(row['FECHA DE ENTREGA DE MATERIAL']) : undefined;
 
+            const getNumber = (value: any) => {
+                const num = Number(value);
+                return isNaN(num) ? 0 : num;
+            };
+            
             const getString = (value: any) => value === undefined || value === null ? '' : String(value);
 
             return {
@@ -104,17 +105,14 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
                 city: getString(row['CIUDAD']),
                 zone: getString(row['ZONA']),
                 date: visitDate,
-                budget: budget,
-                customer_code: getString(row['CÓDIGO DE CLIENTE']),
-                customer_name: getString(row['CLIENTE']),
-                address: getString(row['DIRECCIÓN']),
-                seller_code: getString(row['CÓDIGO DEL VENDEDOR']),
-                seller_name: getString(row['VENDEDOR']),
-                coordinator: getString(row['COORDINADOR']),
+                budget: getNumber(row['PRESUPUESTO']),
+                expected_people: row['AFLUENCIA ESPERADA DE PERSONAS'] ? getNumber(row['AFLUENCIA ESPERADA DE PERSONAS']) : undefined,
+                material_delivery_date: deliveryDate,
+                delivery_place: getString(row['LUGAR DE ENTREGA']),
+                objective: getString(row['OBJETIVO']),
+                sample_count: row['CANTIDAD DE MUESTRAS'] ? getNumber(row['CANTIDAD DE MUESTRAS']) : undefined,
                 material_pop: getString(row['MATERIAL POP']),
-                visit_objective: getString(row['OBJETIVO DE LA VISITA']),
-                management_done: getString(row['GESTIÓN REALIZADA']),
-                observations: getString(row['OBSERVACIONES']),
+                other_materials: getString(row['OTROS MATERIALES']),
             };
         });
 
@@ -129,7 +127,7 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
         const skippedRowCount = json.length - parsedData.length;
 
         if (parsedData.length === 0 && json.length > 0) {
-          throw new Error("Ningún registro válido encontrado. Verifique que la columna 'FECHA' contenga fechas correctas (ej: 2024, no un año irreal como 20224).");
+          throw new Error("Ningún registro válido encontrado. Verifique que la columna 'FECHA' contenga fechas correctas.");
         }
         
         onFileProcessed(parsedData);
@@ -181,7 +179,7 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
 
   const handleDownloadTemplate = () => {
     const headers = [spanishHeaders];
-    const exampleRow = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 500, 'C001', 'Cliente Ejemplo', 'Calle Falsa 123', 'V001', 'Vendedor Ejemplo', 'Coordinador Ejemplo', 'Afiches', 'Revisar exhibición', 'Se ajustó el material', 'Todo en orden']];
+    const exampleRow = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 1000000, 50, '2024-07-19', 'Bodega Central', 'Aumentar visibilidad', 100, 'Afiches, volantes', 'Globos']];
     const ws = XLSX.utils.aoa_to_sheet([...headers, ...exampleRow]);
     ws['!cols'] = spanishHeaders.map(() => ({ wch: 25 }));
     const wb = XLSX.utils.book_new();

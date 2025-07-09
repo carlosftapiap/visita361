@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState, useRef } from "react";
-import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, Boxes, Pencil } from "lucide-react";
+import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil } from "lucide-react";
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from "recharts";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -150,7 +150,14 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             'CIUDAD': visit.city,
             'ZONA': visit.zone,
             'FECHA': visit.date.toLocaleDateString('es-CO'),
-            'UNIDADES': visit.budget
+            'PRESUPUESTO': visit.budget,
+            'AFLUENCIA ESPERADA DE PERSONAS': visit.expected_people,
+            'FECHA DE ENTREGA DE MATERIAL': visit.material_delivery_date ? visit.material_delivery_date.toLocaleDateString('es-CO') : '',
+            'LUGAR DE ENTREGA': visit.delivery_place,
+            'OBJETIVO': visit.objective,
+            'CANTIDAD DE MUESTRAS': visit.sample_count,
+            'MATERIAL POP': visit.material_pop,
+            'OTROS MATERIALES': visit.other_materials,
         }));
 
         const ws = XLSX.utils.json_to_sheet(dataToExport);
@@ -242,10 +249,10 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
                 <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="Días con al menos un registro" />
                 <KpiCard 
-                    title="Total Unidades" 
-                    value={kpis.totalBudget.toLocaleString('es-CO')}
-                    icon={Boxes} 
-                    description="Suma de unidades en el periodo" 
+                    title="Presupuesto Total" 
+                    value={kpis.totalBudget.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })}
+                    icon={DollarSign} 
+                    description="Suma de presupuestos en el periodo" 
                 />
             </div>
 
@@ -328,13 +335,8 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                                     <TableHead>Ejecutiva de Trade</TableHead>
                                     <TableHead>Asesor Comercial</TableHead>
                                     <TableHead>Cadena</TableHead>
-                                    <TableHead>Detalle PDV</TableHead>
-                                    <TableHead>Ciudad</TableHead>
-                                    <TableHead>Zona</TableHead>
-                                    <TableHead>Canal</TableHead>
                                     <TableHead>Actividad</TableHead>
-                                    <TableHead>Horario</TableHead>
-                                    <TableHead className="text-right">Unidades</TableHead>
+                                    <TableHead className="text-right">Presupuesto</TableHead>
                                     <TableHead>Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -345,13 +347,8 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                                         <TableCell>{visit.trade_executive}</TableCell>
                                         <TableCell className="font-medium">{visit.agent}</TableCell>
                                         <TableCell>{visit.chain}</TableCell>
-                                        <TableCell>{visit.pdv_detail}</TableCell>
-                                        <TableCell>{visit.city}</TableCell>
-                                        <TableCell>{visit.zone}</TableCell>
-                                        <TableCell>{visit.channel}</TableCell>
                                         <TableCell>{visit.activity}</TableCell>
-                                        <TableCell>{visit.schedule}</TableCell>
-                                        <TableCell className="text-right font-mono">{visit.budget.toLocaleString('es-CO')}</TableCell>
+                                        <TableCell className="text-right font-mono">{visit.budget.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })}</TableCell>
                                         <TableCell>
                                             <Button variant="ghost" size="icon" onClick={() => onEditVisit(visit)}>
                                                 <Pencil className="h-4 w-4" />
@@ -361,7 +358,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                                     </TableRow>
                                 )) : (
                                     <TableRow>
-                                        <TableCell colSpan={12} className="h-24 text-center">No hay datos para mostrar con los filtros seleccionados.</TableCell>
+                                        <TableCell colSpan={7} className="h-24 text-center">No hay datos para mostrar con los filtros seleccionados.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

@@ -4,11 +4,15 @@ import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
 
 // Supabase returns dates as ISO strings. This helper ensures they are Date objects.
 const visitFromSupabase = (record: any): Visit => {
-    return {
+    const visit: Visit = {
         ...record,
         id: String(record.id), // Ensure id is a string, as Supabase might return a number
         date: new Date(record.date),
     };
+    if (record.material_delivery_date) {
+        visit.material_delivery_date = new Date(record.material_delivery_date);
+    }
+    return visit;
 };
 
 const buildSupabaseError = (error: any, context: string): Error => {
@@ -35,16 +39,13 @@ const buildSupabaseError = (error: any, context: string): Error => {
                   `  zone TEXT,\n` +
                   `  date TIMESTAMPTZ,\n` +
                   `  budget NUMERIC,\n` +
-                  `  customer_code TEXT,\n` +
-                  `  customer_name TEXT,\n` +
-                  `  address TEXT,\n` +
-                  `  seller_code TEXT,\n` +
-                  `  seller_name TEXT,\n` +
-                  `  coordinator TEXT,\n` +
+                  `  expected_people INT,\n` +
+                  `  material_delivery_date DATE,\n` +
+                  `  delivery_place TEXT,\n` +
+                  `  objective TEXT,\n` +
+                  `  sample_count INT,\n` +
                   `  material_pop TEXT,\n` +
-                  `  visit_objective TEXT,\n` +
-                  `  management_done TEXT,\n` +
-                  `  observations TEXT\n` +
+                  `  other_materials TEXT\n` +
                   `);\n` +
                   `-- FIN SCRIPT SQL --`;
     } else if (error?.code === '42501') { // permission denied

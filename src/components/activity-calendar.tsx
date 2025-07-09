@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Building2, Network, Clock, MapPin, Boxes } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Building2, Network, Clock, MapPin, DollarSign, Users2, Calendar, Edit, Info, Package, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -198,7 +198,7 @@ export default function ActivityCalendar({
       </Card>
 
       <Dialog open={!!selectedVisit} onOpenChange={(isOpen) => !isOpen && setSelectedVisit(null)}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle className="font-headline text-2xl">{selectedVisit?.activity}</DialogTitle>
             <DialogDescription>
@@ -206,69 +206,70 @@ export default function ActivityCalendar({
             </DialogDescription>
           </DialogHeader>
           {selectedVisit && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 py-4 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 py-4 text-sm">
                 <div className="flex items-start gap-3">
                     <User className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1">
-                        <p className="font-medium text-muted-foreground">Ejecutiva</p>
-                        <p className="font-semibold text-card-foreground">{selectedVisit.trade_executive}</p>
-                    </div>
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Ejecutiva</p><p className="font-semibold text-card-foreground">{selectedVisit.trade_executive}</p></div>
                 </div>
                 <div className="flex items-start gap-3">
                     <User className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1">
-                        <p className="font-medium text-muted-foreground">Asesor</p>
-                        <p className="font-semibold text-card-foreground">{selectedVisit.agent}</p>
-                    </div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <Building2 className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1">
-                        <p className="font-medium text-muted-foreground">Cadena</p>
-                        <p className="font-semibold text-card-foreground">{selectedVisit.chain}</p>
-                    </div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <Building2 className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1">
-                        <p className="font-medium text-muted-foreground">Detalle PDV</p>
-                        <p className="font-semibold text-card-foreground">{selectedVisit.pdv_detail}</p>
-                    </div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <Network className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1">
-                        <p className="font-medium text-muted-foreground">Canal</p>
-                        <p className="font-semibold text-card-foreground">{selectedVisit.channel}</p>
-                    </div>
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Asesor</p><p className="font-semibold text-card-foreground">{selectedVisit.agent}</p></div>
                 </div>
                 <div className="flex items-start gap-3">
                     <Clock className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1">
-                        <p className="font-medium text-muted-foreground">Horario</p>
-                        <p className="font-semibold text-card-foreground">{selectedVisit.schedule}</p>
-                    </div>
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Horario</p><p className="font-semibold text-card-foreground">{selectedVisit.schedule}</p></div>
+                </div>
+                <div className="flex items-start gap-3">
+                    <Network className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Canal</p><p className="font-semibold text-card-foreground">{selectedVisit.channel}</p></div>
+                </div>
+                <div className="flex items-start gap-3">
+                    <Building2 className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Cadena</p><p className="font-semibold text-card-foreground">{selectedVisit.chain}</p></div>
+                </div>
+                <div className="flex items-start gap-3">
+                    <Info className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Detalle PDV</p><p className="font-semibold text-card-foreground">{selectedVisit.pdv_detail}</p></div>
                 </div>
                 <div className="flex items-start gap-3">
                     <MapPin className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1">
-                        <p className="font-medium text-muted-foreground">Ciudad</p>
-                        <p className="font-semibold text-card-foreground">{selectedVisit.city}</p>
-                    </div>
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Ciudad</p><p className="font-semibold text-card-foreground">{selectedVisit.city}</p></div>
                 </div>
                  <div className="flex items-start gap-3">
                     <MapPin className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1">
-                        <p className="font-medium text-muted-foreground">Zona</p>
-                        <p className="font-semibold text-card-foreground">{selectedVisit.zone}</p>
-                    </div>
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Zona</p><p className="font-semibold text-card-foreground">{selectedVisit.zone}</p></div>
                 </div>
-                 <div className="flex items-start gap-3 md:col-span-2">
-                    <Boxes className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1">
-                        <p className="font-medium text-muted-foreground">Unidades</p>
-                        <p className="font-semibold text-card-foreground">{selectedVisit.budget.toLocaleString('es-CO')}</p>
-                    </div>
+                 <div className="flex items-start gap-3">
+                    <DollarSign className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Presupuesto</p><p className="font-semibold text-card-foreground">{selectedVisit.budget.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })}</p></div>
+                </div>
+                <div className="flex items-start gap-3">
+                    <Users2 className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Afluencia Esperada</p><p className="font-semibold text-card-foreground">{selectedVisit.expected_people?.toLocaleString('es-CO') || 'N/A'}</p></div>
+                </div>
+                <div className="flex items-start gap-3">
+                    <Calendar className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Entrega Material</p><p className="font-semibold text-card-foreground">{selectedVisit.material_delivery_date ? capitalize(format(selectedVisit.material_delivery_date, "d MMM, yyyy", { locale: es })) : 'N/A'}</p></div>
+                </div>
+                <div className="flex items-start gap-3">
+                    <MapPin className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Lugar Entrega</p><p className="font-semibold text-card-foreground">{selectedVisit.delivery_place || 'N/A'}</p></div>
+                </div>
+                 <div className="flex items-start gap-3">
+                    <Edit className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Muestras</p><p className="font-semibold text-card-foreground">{selectedVisit.sample_count?.toLocaleString('es-CO') || 'N/A'}</p></div>
+                </div>
+                 <div className="flex items-start gap-3">
+                    <Package className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Material POP</p><p className="font-semibold text-card-foreground">{selectedVisit.material_pop || 'N/A'}</p></div>
+                </div>
+                 <div className="flex items-start gap-3">
+                    <Package className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Otros Materiales</p><p className="font-semibold text-card-foreground">{selectedVisit.other_materials || 'N/A'}</p></div>
+                </div>
+                 <div className="flex items-start gap-3 md:col-span-3">
+                    <Target className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Objetivo</p><p className="font-semibold text-card-foreground">{selectedVisit.objective || 'N/A'}</p></div>
                 </div>
             </div>
           )}

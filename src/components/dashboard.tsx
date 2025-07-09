@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState, useRef } from "react";
@@ -402,8 +401,3 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
 
         </div>
     );
-}
-
-    
-
-    

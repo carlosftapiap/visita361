@@ -73,7 +73,7 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
         const firstRow = json[0] || {};
         const headers = Object.keys(firstRow);
         const requiredHeaders = [
-            'EJECUTIVA DE TRADE', 'ASESOR COMERCIAL', 'CANAL', 'CADENA', 'DIRECCIÓN DEL PDV', 
+            'EJECUTIVA DE TRADE', 'ASESOR COMERCIAL', 'CANAL', 'CADENA', 'DIRECCIÓN DEL PDV',
             'ACTIVIDAD', 'HORARIO', 'CIUDAD', 'ZONA', 'FECHA'
         ];
         const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));

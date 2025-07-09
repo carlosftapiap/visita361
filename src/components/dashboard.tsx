@@ -89,9 +89,10 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
         
         // KPIs for 'Impulso'
-        const expectedAttendance = filteredData.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
-        const totalSamples = filteredData.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
-        const definedObjectives = filteredData.filter(v => v['OBJETIVO DE LA ACTIVIDAD'] && v['OBJETIVO DE LA ACTIVIDAD'].trim() !== '').length;
+        const impulseData = filteredData.filter(v => v['ACTIVIDAD'] === 'Impulso');
+        const expectedAttendance = impulseData.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
+        const totalSamples = impulseData.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
+        const definedObjectives = impulseData.filter(v => v['OBJETIVO DE LA ACTIVIDAD'] && v['OBJETIVO DE LA ACTIVIDAD'].trim() !== '').length;
 
         return { totalVisits, uniqueAgents, uniqueChains, workedDays, totalBudget, expectedAttendance, totalSamples, definedObjectives };
     }, [filteredData]);
@@ -265,22 +266,22 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                 />
             </div>
             
-            {filters.activity === 'Impulso' && (
+            {(filters.activity === 'Impulso' || filters.activity === 'all') && kpis.definedObjectives > 0 && (
                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <KpiCard 
-                        title="Personas Esperadas" 
+                        title="Personas Esperadas (Impulso)" 
                         value={kpis.expectedAttendance.toLocaleString('es-CO')}
                         icon={Users2} 
                         description="Suma de afluencia esperada en impulsos" 
                     />
                      <KpiCard 
-                        title="Muestras Entregadas" 
+                        title="Muestras Entregadas (Impulso)" 
                         value={kpis.totalSamples.toLocaleString('es-CO')}
                         icon={PackageCheck} 
                         description="Suma de muestras a entregar en impulsos" 
                     />
                      <KpiCard 
-                        title="Objetivos Definidos" 
+                        title="Objetivos Definidos (Impulso)" 
                         value={kpis.definedObjectives}
                         icon={Target} 
                         description="Cantidad de impulsos con un objetivo claro" 

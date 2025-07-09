@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from 'react';
@@ -48,10 +49,10 @@ const visitSchema = z.object({
   'ZONA': z.string().min(1, 'La zona es requerida.'),
   'FECHA': z.date({
     required_error: 'La fecha es requerida.',
-  }),
+  }).or(z.string().min(1, "La fecha es requerida.")),
   'PRESUPUESTO': z.coerce.number().min(0, 'El presupuesto no puede ser negativo.').default(0),
   'AFLUENCIA ESPERADA': z.coerce.number().min(0).optional(),
-  'FECHA DE ENTREGA DE MATERIAL': z.date().optional(),
+  'FECHA DE ENTREGA DE MATERIAL': z.date().optional().or(z.string().optional()),
   'OBJETIVO DE LA ACTIVIDAD': z.string().optional(),
   'CANTIDAD DE MUESTRAS': z.coerce.number().min(0).optional(),
   'MATERIAL POP': z.string().optional(),
@@ -72,32 +73,15 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
   
   const form = useForm<VisitFormValues>({
     resolver: zodResolver(visitSchema),
-    defaultValues: {
-      'EJECUTIVA DE TRADE': '',
-      'ASESOR COMERCIAL': '',
-      'CANAL': '',
-      'CADENA': '',
-      'DIRECCIÓN DEL PDV': '',
-      'ACTIVIDAD': undefined,
-      'HORARIO': '',
-      'CIUDAD': '',
-      'ZONA': '',
-      'FECHA': undefined,
-      'PRESUPUESTO': 0,
-      'AFLUENCIA ESPERADA': undefined,
-      'FECHA DE ENTREGA DE MATERIAL': undefined,
-      'OBJETIVO DE LA ACTIVIDAD': '',
-      'CANTIDAD DE MUESTRAS': undefined,
-      'MATERIAL POP': '',
-      'OBSERVACION': '',
-    },
   });
 
   useEffect(() => {
     if (isOpen) {
       if (visit) {
         form.reset({
-          ...visit
+          ...visit,
+          'FECHA': visit['FECHA'] ? new Date(visit['FECHA']) : new Date(),
+          'FECHA DE ENTREGA DE MATERIAL': visit['FECHA DE ENTREGA DE MATERIAL'] ? new Date(visit['FECHA DE ENTREGA DE MATERIAL']) : undefined,
         });
       } else {
         form.reset({
@@ -125,15 +109,13 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
 
   const onSubmit = (data: VisitFormValues) => {
     try {
-        const visitToSave: Visit = {
+        const visitToSave: any = {
             ...data,
             id: visit?.id || `manual-${Date.now()}`,
+            'FECHA': data['FECHA'] instanceof Date ? data['FECHA'].toISOString() : data['FECHA'],
+            'FECHA DE ENTREGA DE MATERIAL': data['FECHA DE ENTREGA DE MATERIAL'] instanceof Date ? data['FECHA DE ENTREGA DE MATERIAL'].toISOString() : data['FECHA DE ENTREGA DE MATERIAL'],
         };
         onSave(visitToSave);
-        toast({
-            title: 'Éxito',
-            description: `Visita ${visit ? 'actualizada' : 'creada'} correctamente.`,
-        });
         onOpenChange(false);
     } catch (error) {
         toast({
@@ -158,7 +140,7 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
             {/* Fila 1 */}
             <FormField control={form.control} name="EJECUTIVA DE TRADE" render={({ field }) => ( <FormItem><FormLabel>Ejecutiva de Trade</FormLabel><FormControl><Input placeholder="Nombre de la ejecutiva" {...field} /></FormControl><FormMessage /></FormItem> )} />
             <FormField control={form.control} name="ASESOR COMERCIAL" render={({ field }) => ( <FormItem><FormLabel>Asesor Comercial</FormLabel><FormControl><Input placeholder="Nombre del asesor" {...field} /></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="FECHA" render={({ field }) => ( <FormItem className="flex flex-col pt-2"><FormLabel>Fecha de Visita</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(field.value, "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="FECHA" render={({ field }) => ( <FormItem className="flex flex-col pt-2"><FormLabel>Fecha de Visita</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)} />
             
             {/* Fila 2 */}
             <FormField control={form.control} name="CANAL" render={({ field }) => ( <FormItem><FormLabel>Canal</FormLabel><FormControl><Input placeholder="Ej: Moderno" {...field} /></FormControl><FormMessage /></FormItem> )} />
@@ -176,7 +158,7 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
             <FormField control={form.control} name="AFLUENCIA ESPERADA" render={({ field }) => ( <FormItem><FormLabel>Afluencia Esperada</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
 
             {/* Fila 5 */}
-            <FormField control={form.control} name="FECHA DE ENTREGA DE MATERIAL" render={({ field }) => ( <FormItem className="flex flex-col pt-2"><FormLabel>Fecha Entrega Material</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(field.value, "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+            <FormField control={form.control} name="FECHA DE ENTREGA DE MATERIAL" render={({ field }) => ( <FormItem className="flex flex-col pt-2"><FormLabel>Fecha Entrega Material</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
             <FormField control={form.control} name="CANTIDAD DE MUESTRAS" render={({ field }) => ( <FormItem><FormLabel>Cantidad de Muestras</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
             <FormField control={form.control} name="MATERIAL POP" render={({ field }) => ( <FormItem><FormLabel>Material POP</FormLabel><FormControl><Input placeholder="Describa el material POP" {...field} /></FormControl><FormMessage /></FormItem> )}/>
             
@@ -199,3 +181,5 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
     </Dialog>
   );
 }
+
+    

@@ -55,17 +55,16 @@ export default function CronogramaTradePage() {
   const [pendingData, setPendingData] = useState<{ data: Omit<Visit, 'id'>[]; months: string[] } | null>(null);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   const refreshData = useCallback(async () => {
-    setIsLoading(true);
+    setLoading(true);
     setErrorMessage(null);
     try {
       const visits = await getVisits();
       setData(visits);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "No se pudieron obtener los datos de la base de datos.";
+    } catch (error: any) {
       console.error("Error refreshing data:", error);
+      const message = error.message || "No se pudieron obtener los datos de la base de datos.";
       setErrorMessage(message);
       toast({
         variant: "destructive",
@@ -73,7 +72,7 @@ export default function CronogramaTradePage() {
         description: "No se pudo conectar a la base de datos. Revisa el mensaje en pantalla.",
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }, [toast]);
 
@@ -83,15 +82,15 @@ export default function CronogramaTradePage() {
 
   const loadedMonthsFormatted = useMemo(() => {
     if (!data || data.length === 0) return [];
-    const months = [...new Set(data.map(v => format(v['FECHA'], 'yyyy-MM')))].sort().reverse();
+    const months = [...new Set(data.map(v => format(new Date(v['FECHA']), 'yyyy-MM')))].sort().reverse();
     return months.map(m => capitalize(format(new Date(m + '-02'), 'MMMM yyyy', { locale: es })));
   }, [data]);
 
   const handleFileProcessed = (processedData: Omit<Visit, 'id'>[]) => {
     if (processedData.length === 0) return;
 
-    const uploadedMonths = [...new Set(processedData.map(v => format(v['FECHA'], 'yyyy-MM')))];
-    const existingMonths = [...new Set(data.map(v => format(v['FECHA'], 'yyyy-MM')))];
+    const uploadedMonths = [...new Set(processedData.map(v => format(new Date(v['FECHA']), 'yyyy-MM')))];
+    const existingMonths = [...new Set(data.map(v => format(new Date(v['FECHA']), 'yyyy-MM')))];
     
     const overlappingMonths = uploadedMonths.filter(m => existingMonths.includes(m));
 
@@ -104,7 +103,7 @@ export default function CronogramaTradePage() {
   };
 
   const uploadNewData = async (dataToUpload: Omit<Visit, 'id'>[]) => {
-    setIsLoading(true);
+    setLoading(true);
     setErrorMessage(null);
     try {
       await addBatchVisits(dataToUpload);
@@ -122,7 +121,7 @@ export default function CronogramaTradePage() {
         description: "No se pudieron guardar los nuevos registros. Revisa el mensaje en pantalla.",
       });
     } finally {
-        setIsLoading(false);
+        setLoading(false);
     }
   };
   
@@ -130,7 +129,7 @@ export default function CronogramaTradePage() {
     if (!pendingData) return;
 
     setShowOverwriteConfirm(false);
-    setIsLoading(true);
+    setLoading(true);
     setErrorMessage(null);
 
     try {
@@ -150,13 +149,13 @@ export default function CronogramaTradePage() {
             description: "No se pudieron reemplazar los datos. Revisa el mensaje en pantalla.",
         });
     } finally {
-        setIsLoading(false);
+        setLoading(false);
         setPendingData(null);
     }
   };
 
   const handleReset = async () => {
-    setIsLoading(true);
+    setLoading(true);
     setErrorMessage(null);
     try {
         await deleteAllVisits();
@@ -174,14 +173,14 @@ export default function CronogramaTradePage() {
             description: "No se pudo borrar la información. Revisa el mensaje en pantalla.",
         });
     } finally {
-        setIsLoading(false);
+        setLoading(false);
     }
   }
 
   const handleSaveVisit = async (visitToSave: Visit) => {
     const { id, ...visitData } = visitToSave;
     
-    setIsLoading(true);
+    setLoading(true);
     setErrorMessage(null);
     try {
         if (formState.visit && formState.visit.id) { // Editing existing visit
@@ -190,8 +189,8 @@ export default function CronogramaTradePage() {
             await addVisit(visitData);
         }
         await refreshData();
-        toast({ title: 'Éxito', description: 'Visita guardada correctamente.' });
         setFormState({ open: false, visit: null });
+        toast({ title: 'Éxito', description: 'Visita guardada correctamente.' });
     } catch (error: any) {
         console.error("Error saving visit:", error);
         setErrorMessage(error.message);
@@ -201,7 +200,7 @@ export default function CronogramaTradePage() {
             description: 'No se pudo guardar la visita. Revisa el mensaje en pantalla.',
         });
     } finally {
-        setIsLoading(false);
+        setLoading(false);
     }
   };
 
@@ -241,11 +240,11 @@ export default function CronogramaTradePage() {
         const { id, ...rest } = visit;
         return {
             ...rest,
-            'FECHA': targetDate,
+            'FECHA': targetDate.toISOString(),
         };
     });
     
-    setIsLoading(true);
+    setLoading(true);
     setErrorMessage(null);
     try {
         await addBatchVisits(newVisits);
@@ -264,12 +263,12 @@ export default function CronogramaTradePage() {
         });
     } finally {
         setIsDuplicateDialogOpen(false);
-        setIsLoading(false);
+        setLoading(false);
     }
   };
 
   const renderContent = () => {
-    if (isLoading) {
+    if (loading) {
       return <DashboardSkeleton />;
     }
     if (errorMessage) {
@@ -290,8 +289,8 @@ export default function CronogramaTradePage() {
             </pre>
           </CardContent>
           <CardFooter>
-            <Button onClick={refreshData} disabled={isLoading}>
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            <Button onClick={refreshData} disabled={loading}>
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
               Reintentar Conexión
             </Button>
           </CardFooter>
@@ -322,19 +321,19 @@ export default function CronogramaTradePage() {
                 <p className="text-muted-foreground">Panel de control de actividades y visitas conectado a Supabase.</p>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Button onClick={() => setIsDuplicateDialogOpen(true)} variant="outline" disabled={isLoading || data.length === 0} className="flex-1 sm:flex-none">
+                <Button onClick={() => setIsDuplicateDialogOpen(true)} variant="outline" disabled={loading || data.length === 0} className="flex-1 sm:flex-none">
                     <Copy className="mr-2 h-4 w-4" />
                     Cronograma nuevo
                 </Button>
-                <Button onClick={handleAddVisitClick} className="flex-1 sm:flex-none" disabled={isLoading}>
+                <Button onClick={handleAddVisitClick} className="flex-1 sm:flex-none" disabled={loading}>
                     <Plus className="mr-2 h-4 w-4" />
                     Añadir Visita
                 </Button>
-                <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" size="icon" disabled={isLoading} title="Cargar y configurar datos">
+                <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" size="icon" disabled={loading} title="Cargar y configurar datos">
                     <Settings className="h-5 w-5" />
                     <span className="sr-only">Cargar y configurar datos</span>
                 </Button>
-                {!isLoading && data.length > 0 && (
+                {!loading && data.length > 0 && (
                     <Button onClick={handleReset} variant="destructive" className="flex-1 sm:flex-none">
                         <Trash2 className="mr-2 h-4 w-4" />
                         Limpiar Datos
@@ -373,7 +372,7 @@ export default function CronogramaTradePage() {
                             handleFileProcessed(processedData);
                             setIsUploadDialogOpen(false);
                         }} 
-                        disabled={isLoading} 
+                        disabled={loading} 
                         loadedMonths={loadedMonthsFormatted}
                     />
                 </div>
@@ -406,3 +405,5 @@ export default function CronogramaTradePage() {
     </div>
   );
 }
+
+    

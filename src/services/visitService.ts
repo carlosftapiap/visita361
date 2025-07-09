@@ -3,31 +3,6 @@ import { getSupabase } from '@/lib/supabase';
 import type { Visit } from '@/types';
 import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
 
-// Supabase returns dates as ISO strings. This helper ensures they are Date objects.
-const visitFromSupabase = (record: any): Visit => {
-    const visit: Visit = {
-        id: String(record.id),
-        'EJECUTIVA DE TRADE': record['EJECUTIVA DE TRADE'],
-        'ASESOR COMERCIAL': record['ASESOR COMERCIAL'],
-        'CANAL': record['CANAL'],
-        'CADENA': record['CADENA'],
-        'DIRECCIÓN DEL PDV': record['DIRECCIÓN DEL PDV'],
-        'ACTIVIDAD': record['ACTIVIDAD'],
-        'HORARIO': record['HORARIO'],
-        'CIUDAD': record['CIUDAD'],
-        'ZONA': record['ZONA'],
-        'FECHA': new Date(record['FECHA']),
-        'PRESUPUESTO': record['PRESUPUESTO'],
-        'AFLUENCIA ESPERADA': record['AFLUENCIA ESPERADA'],
-        'FECHA DE ENTREGA DE MATERIAL': record['FECHA DE ENTREGA DE MATERIAL'] ? new Date(record['FECHA DE ENTREGA DE MATERIAL']) : undefined,
-        'OBJETIVO DE LA ACTIVIDAD': record['OBJETIVO DE LA ACTIVIDAD'],
-        'CANTIDAD DE MUESTRAS': record['CANTIDAD DE MUESTRAS'],
-        'MATERIAL POP': record['MATERIAL POP'],
-        'OBSERVACION': record['OBSERVACION'],
-    };
-    return visit;
-};
-
 const buildSupabaseError = (error: any, context: string): Error => {
     console.error(`Error with Supabase ${context}:`, error);
     let message;
@@ -66,6 +41,7 @@ const buildSupabaseError = (error: any, context: string): Error => {
                   `1. Asegúrate que RLS está habilitado para la tabla 'visits' (Authentication -> Policies).\n` +
                   `2. Crea una política que permita el acceso. Para desarrollo, puedes usar la siguiente en el editor SQL:\n\n` +
                   `-- INICIA SCRIPT SQL --\n` +
+                  `DROP POLICY IF EXISTS "Public full access" ON public.visits;\n` +
                   `CREATE POLICY "Public full access" ON public.visits\n` +
                   `FOR ALL\n` +
                   `TO authenticated\n` +
@@ -86,7 +62,6 @@ const buildSupabaseError = (error: any, context: string): Error => {
 
 export const getVisits = async (): Promise<Visit[]> => {
     const supabase = getSupabase();
-    // Fetch records from the last 3 months to keep it fast
     const threeMonthsAgo = subMonths(new Date(), 3);
 
     const { data, error } = await supabase
@@ -99,12 +74,11 @@ export const getVisits = async (): Promise<Visit[]> => {
         throw buildSupabaseError(error, 'lectura (getVisits)');
     }
 
-    return data ? data.map(visitFromSupabase) : [];
+    return data || [];
 };
 
 export const addVisit = async (visit: Omit<Visit, 'id'>) => {
     const supabase = getSupabase();
-    // Supabase auto-generates the ID, so we don't include it in the insert.
     const { error } = await supabase.from('visits').insert([visit]);
 
     if (error) {
@@ -132,8 +106,7 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
 
 export const deleteAllVisits = async () => {
     const supabase = getSupabase();
-    // A safe way to delete all rows. We can match any row.
-    const { error } = await supabase.from('visits').delete().neq('id', '-1'); // Assuming ID is never -1
+    const { error } = await supabase.from('visits').delete().neq('id', '-1');
     
     if (error) {
        throw buildSupabaseError(error, 'borrado total (deleteAllVisits)');
@@ -143,9 +116,7 @@ export const deleteAllVisits = async () => {
 export const deleteVisitsInMonths = async (months: string[]) => {
     const supabase = getSupabase();
     
-    // Create an 'OR' filter for all date ranges.
     const filters = months.map(monthStr => {
-        // Use a neutral day and time to avoid timezone issues.
         const dateInMonth = new Date(monthStr + '-02T12:00:00Z');
         const startDate = startOfMonth(dateInMonth).toISOString();
         const endDate = endOfMonth(dateInMonth).toISOString();
@@ -161,3 +132,5 @@ export const deleteVisitsInMonths = async (months: string[]) => {
        throw buildSupabaseError(error, 'borrado por meses (deleteVisitsInMonths)');
     }
 };
+
+    

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -41,7 +42,7 @@ export default function ActivityCalendar({
   const availableMonths = useMemo(() => {
     const monthSet = new Set<string>();
     data.forEach(visit => {
-      monthSet.add(format(visit['FECHA'], 'yyyy-MM'));
+      monthSet.add(format(new Date(visit['FECHA']), 'yyyy-MM'));
     });
     
     // Also add the next 12 months from today, and past 3 months to ensure navigation is possible
@@ -165,7 +166,7 @@ export default function ActivityCalendar({
               ))}
             </div>
             {weekDays.map(day => {
-              const dayVisits = data.filter(visit => isSameDay(visit['FECHA'], day));
+              const dayVisits = data.filter(visit => isSameDay(new Date(visit['FECHA']), day));
               return (
                 <div key={day.toISOString()} className={cn("flex min-h-[16rem] flex-col bg-background p-2 border-t md:border-t-0 md:border-l")}>
                    <div className="text-center text-sm font-semibold md:hidden">{capitalize(format(day, 'eee d', { locale: es }))}</div>
@@ -203,7 +204,7 @@ export default function ActivityCalendar({
           <DialogHeader>
             <DialogTitle className="font-headline text-2xl">{selectedVisit?.['ACTIVIDAD']}</DialogTitle>
             <DialogDescription>
-              {selectedVisit && capitalize(format(selectedVisit['FECHA'], "eeee, d 'de' MMMM, yyyy", { locale: es }))}
+              {selectedVisit && capitalize(format(new Date(selectedVisit['FECHA']), "eeee, d 'de' MMMM, yyyy", { locale: es }))}
             </DialogDescription>
           </DialogHeader>
           {selectedVisit && (
@@ -242,7 +243,7 @@ export default function ActivityCalendar({
                 </div>
                  <div className="flex items-start gap-3">
                     <DollarSign className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Presupuesto</p><p className="font-semibold text-card-foreground">{selectedVisit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })}</p></div>
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Presupuesto</p><p className="font-semibold text-card-foreground">{selectedVisit['PRESUPUESTO'] ? selectedVisit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }) : 'N/A'}</p></div>
                 </div>
                 <div className="flex items-start gap-3">
                     <Users2 className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
@@ -250,7 +251,7 @@ export default function ActivityCalendar({
                 </div>
                 <div className="flex items-start gap-3">
                     <Calendar className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Entrega Material</p><p className="font-semibold text-card-foreground">{selectedVisit['FECHA DE ENTREGA DE MATERIAL'] ? capitalize(format(selectedVisit['FECHA DE ENTREGA DE MATERIAL'], "d MMM, yyyy", { locale: es })) : 'N/A'}</p></div>
+                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Entrega Material</p><p className="font-semibold text-card-foreground">{selectedVisit['FECHA DE ENTREGA DE MATERIAL'] ? capitalize(format(new Date(selectedVisit['FECHA DE ENTREGA DE MATERIAL']), "d MMM, yyyy", { locale: es })) : 'N/A'}</p></div>
                 </div>
                  <div className="flex items-start gap-3">
                     <Edit className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
@@ -275,3 +276,5 @@ export default function ActivityCalendar({
     </>
   );
 }
+
+    

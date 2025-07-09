@@ -85,7 +85,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const totalVisits = filteredData.length;
         const uniqueAgents = new Set(filteredData.map(v => v['ASESOR COMERCIAL'])).size;
         const uniqueChains = new Set(filteredData.map(v => v['CADENA'])).size;
-        const workedDays = new Set(filteredData.map(v => v['FECHA'].toDateString())).size;
+        const workedDays = new Set(filteredData.map(v => new Date(v['FECHA']).toDateString())).size;
         const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
         
         const impulseData = filteredData.filter(v => v['ACTIVIDAD'] === 'Impulso');
@@ -159,10 +159,10 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             'HORARIO': visit['HORARIO'],
             'CIUDAD': visit['CIUDAD'],
             'ZONA': visit['ZONA'],
-            'FECHA': visit['FECHA'].toLocaleDateString('es-CO'),
+            'FECHA': visit['FECHA'] ? new Date(visit['FECHA']).toLocaleDateString('es-CO') : '',
             'PRESUPUESTO': visit['PRESUPUESTO'],
             'AFLUENCIA ESPERADA': visit['AFLUENCIA ESPERADA'],
-            'FECHA DE ENTREGA DE MATERIAL': visit['FECHA DE ENTREGA DE MATERIAL'] ? visit['FECHA DE ENTREGA DE MATERIAL'].toLocaleDateString('es-CO') : '',
+            'FECHA DE ENTREGA DE MATERIAL': visit['FECHA DE ENTREGA DE MATERIAL'] ? new Date(visit['FECHA DE ENTREGA DE MATERIAL']).toLocaleDateString('es-CO') : '',
             'OBJETIVO DE LA ACTIVIDAD': visit['OBJETIVO DE LA ACTIVIDAD'],
             'CANTIDAD DE MUESTRAS': visit['CANTIDAD DE MUESTRAS'],
             'MATERIAL POP': visit['MATERIAL POP'],
@@ -265,7 +265,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                 />
             </div>
             
-            {(filters.activity === 'Impulso' || filters.activity === 'all') && kpis.definedObjectives > 0 && (
+            {(filters.activity === 'Impulso' || (filters.activity === 'all' && kpis.definedObjectives > 0)) && (
                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <KpiCard 
                         title="Personas Esperadas (Impulso)" 
@@ -376,12 +376,12 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                             <TableBody>
                                 {filteredData.length > 0 ? filteredData.map(visit => (
                                     <TableRow key={visit.id}>
-                                        <TableCell>{visit['FECHA'].toLocaleDateString('es-CO')}</TableCell>
+                                        <TableCell>{visit['FECHA'] ? new Date(visit['FECHA']).toLocaleDateString('es-CO') : 'N/A'}</TableCell>
                                         <TableCell>{visit['EJECUTIVA DE TRADE']}</TableCell>
                                         <TableCell className="font-medium">{visit['ASESOR COMERCIAL']}</TableCell>
                                         <TableCell>{visit['CADENA']}</TableCell>
                                         <TableCell>{visit['ACTIVIDAD']}</TableCell>
-                                        <TableCell className="text-right font-mono">{visit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })}</TableCell>
+                                        <TableCell className="text-right font-mono">{visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }) : '$0'}</TableCell>
                                         <TableCell>
                                             <Button variant="ghost" size="icon" onClick={() => onEditVisit(visit)}>
                                                 <Pencil className="h-4 w-4" />
@@ -403,5 +403,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         </div>
     );
 }
+
+    
 
     

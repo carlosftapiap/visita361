@@ -74,10 +74,11 @@ const buildSupabaseError = (error: any, context: string): Error => {
                   `-- FIN SCRIPT SQL --\n\n` +
                   `**NOTA:** Esta política da acceso total a usuarios autenticados. Para producción, debes crear reglas más restrictivas.`;
     } else {
+        const errorMessage = error?.message || JSON.stringify(error, null, 2);
         message = `Ocurrió un error en la operación de ${context} con Supabase.\n\n` +
                   `**Detalles Técnicos:**\n` +
                   `Código: ${error?.code || 'N/A'}\n` +
-                  `Mensaje: ${error?.message || 'No hay un mensaje de error específico.'}`;
+                  `Mensaje: ${errorMessage}`;
     }
 
     return new Error(message);

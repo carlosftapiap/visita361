@@ -26,7 +26,17 @@ const spanishHeaders = [
     'CIUDAD', 
     'ZONA', 
     'FECHA',
-    'UNIDADES'
+    'UNIDADES',
+    'CÓDIGO DE CLIENTE',
+    'CLIENTE',
+    'DIRECCIÓN',
+    'CÓDIGO DEL VENDEDOR',
+    'VENDEDOR',
+    'COORDINADOR',
+    'MATERIAL POP',
+    'OBJETIVO DE LA VISITA',
+    'GESTIÓN REALIZADA',
+    'OBSERVACIONES'
 ];
 
 export default function FileUploader({ onFileProcessed, disabled = false, loadedMonths = [] }: FileUploaderProps) {
@@ -95,6 +105,16 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
                 zone: getString(row['ZONA']),
                 date: visitDate,
                 budget: budget,
+                customer_code: getString(row['CÓDIGO DE CLIENTE']),
+                customer_name: getString(row['CLIENTE']),
+                address: getString(row['DIRECCIÓN']),
+                seller_code: getString(row['CÓDIGO DEL VENDEDOR']),
+                seller_name: getString(row['VENDEDOR']),
+                coordinator: getString(row['COORDINADOR']),
+                material_pop: getString(row['MATERIAL POP']),
+                visit_objective: getString(row['OBJETIVO DE LA VISITA']),
+                management_done: getString(row['GESTIÓN REALIZADA']),
+                observations: getString(row['OBSERVACIONES']),
             };
         });
 
@@ -161,21 +181,9 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
 
   const handleDownloadTemplate = () => {
     const headers = [spanishHeaders];
-    const exampleRow = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 500]];
+    const exampleRow = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 500, 'C001', 'Cliente Ejemplo', 'Calle Falsa 123', 'V001', 'Vendedor Ejemplo', 'Coordinador Ejemplo', 'Afiches', 'Revisar exhibición', 'Se ajustó el material', 'Todo en orden']];
     const ws = XLSX.utils.aoa_to_sheet([...headers, ...exampleRow]);
-    ws['!cols'] = [
-        { wch: 25 }, 
-        { wch: 20 }, 
-        { wch: 15 }, 
-        { wch: 20 }, 
-        { wch: 25 }, 
-        { wch: 15 }, 
-        { wch: 10 }, 
-        { wch: 15 }, 
-        { wch: 15 }, 
-        { wch: 15 }, 
-        { wch: 15 }, 
-    ];
+    ws['!cols'] = spanishHeaders.map(() => ({ wch: 25 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Datos de Visitas');
     XLSX.writeFile(wb, 'Visita360_Template.xlsx');

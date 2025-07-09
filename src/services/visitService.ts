@@ -18,9 +18,9 @@ const buildSupabaseError = (error: any, context: string): Error => {
     // It's common for the table to not exist, especially during setup.
     // The error code is '42P01' and the message contains 'relation "..." does not exist'.
     if (error?.code === '42P01' || (error?.message && (error.message.includes('does not exist') || error.message.includes('no existe la relación')))) {
-        message = `La tabla 'visits' no se encontró en Supabase.\n\n` +
+        message = `La tabla 'visits' no se encontró en Supabase o le faltan columnas.\n\n` +
                   `**SOLUCIÓN:**\n` +
-                  `Ve al editor de SQL en tu dashboard de Supabase (Database -> SQL Editor) y ejecuta el siguiente comando para crear la tabla:\n\n` +
+                  `Ve al editor de SQL en tu dashboard de Supabase (Database -> SQL Editor) y ejecuta el siguiente comando para crear o actualizar la tabla:\n\n` +
                   `-- INICIA SCRIPT SQL --\n` +
                   `CREATE TABLE public.visits (\n` +
                   `  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,\n` +
@@ -34,7 +34,17 @@ const buildSupabaseError = (error: any, context: string): Error => {
                   `  city TEXT,\n` +
                   `  zone TEXT,\n` +
                   `  date TIMESTAMPTZ,\n` +
-                  `  budget NUMERIC\n` +
+                  `  budget NUMERIC,\n` +
+                  `  customer_code TEXT,\n` +
+                  `  customer_name TEXT,\n` +
+                  `  address TEXT,\n` +
+                  `  seller_code TEXT,\n` +
+                  `  seller_name TEXT,\n` +
+                  `  coordinator TEXT,\n` +
+                  `  material_pop TEXT,\n` +
+                  `  visit_objective TEXT,\n` +
+                  `  management_done TEXT,\n` +
+                  `  observations TEXT\n` +
                   `);\n` +
                   `-- FIN SCRIPT SQL --`;
     } else if (error?.code === '42501') { // permission denied

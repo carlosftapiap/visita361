@@ -11,4 +11,15 @@ export interface Visit {
   zone: string;
   date: Date;
   budget: number;
+  // New fields
+  customer_code?: string;
+  customer_name?: string;
+  address?: string;
+  seller_code?: string;
+  seller_name?: string;
+  coordinator?: string;
+  material_pop?: string;
+  visit_objective?: string;
+  management_done?: string;
+  observations?: string;
 }

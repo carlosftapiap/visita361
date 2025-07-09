@@ -87,10 +87,10 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const uniqueChains = new Set(filteredData.map(v => v['CADENA'])).size;
         const workedDays = new Set(filteredData.map(v => new Date(v['FECHA']).toDateString())).size;
         const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
-        
+        const expectedAttendance = filteredData.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
+        const totalSamples = filteredData.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
+
         const impulseData = filteredData.filter(v => v['ACTIVIDAD'] === 'IMPULSACIÓN');
-        const expectedAttendance = impulseData.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
-        const totalSamples = impulseData.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
         const definedObjectives = impulseData.filter(v => v['OBJETIVO DE LA ACTIVIDAD'] && v['OBJETIVO DE LA ACTIVIDAD'].trim() !== '').length;
 
         return { totalVisits, uniqueAgents, uniqueChains, workedDays, totalBudget, expectedAttendance, totalSamples, definedObjectives };
@@ -252,41 +252,38 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                 />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <KpiCard title="Total de Actividades" value={kpis.totalVisits} icon={Activity} description="Total de registros en el periodo" />
                 <KpiCard title="Asesores Activos" value={kpis.uniqueAgents} icon={Users} description="Asesores con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
                 <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="Días con al menos un registro" />
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <KpiCard 
                     title="Presupuesto Total" 
                     value={kpis.totalBudget.toLocaleString('es-CO')}
                     icon={DollarSign} 
                     description="Suma de presupuestos en el periodo" 
                 />
+                <KpiCard 
+                    title="Afluencia de Personas" 
+                    value={kpis.expectedAttendance.toLocaleString('es-CO')}
+                    icon={Users2} 
+                    description="Suma total de afluencia esperada" 
+                />
+                 <KpiCard 
+                    title="Cantidad de Muestras" 
+                    value={kpis.totalSamples.toLocaleString('es-CO')}
+                    icon={PackageCheck} 
+                    description="Suma total de muestras a entregar" 
+                />
+                 <KpiCard 
+                    title="Objetivos Definidos (Impulso)" 
+                    value={kpis.definedObjectives}
+                    icon={Target} 
+                    description="Impulsos con un objetivo claro" 
+                />
             </div>
-            
-            {(filters.activity === 'IMPULSACIÓN' || (filters.activity === 'all' && kpis.definedObjectives > 0)) && (
-                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <KpiCard 
-                        title="Personas Esperadas (Impulso)" 
-                        value={kpis.expectedAttendance.toLocaleString('es-CO')}
-                        icon={Users2} 
-                        description="Suma de afluencia esperada en impulsos" 
-                    />
-                     <KpiCard 
-                        title="Muestras Entregadas (Impulso)" 
-                        value={kpis.totalSamples.toLocaleString('es-CO')}
-                        icon={PackageCheck} 
-                        description="Suma de muestras a entregar en impulsos" 
-                    />
-                     <KpiCard 
-                        title="Objetivos Definidos (Impulso)" 
-                        value={kpis.definedObjectives}
-                        icon={Target} 
-                        description="Cantidad de impulsos con un objetivo claro" 
-                    />
-                </div>
-            )}
 
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-6">

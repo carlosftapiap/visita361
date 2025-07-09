@@ -88,7 +88,6 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const workedDays = new Set(filteredData.map(v => v['FECHA'].toDateString())).size;
         const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
         
-        // KPIs for 'Impulso'
         const impulseData = filteredData.filter(v => v['ACTIVIDAD'] === 'Impulso');
         const expectedAttendance = impulseData.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
         const totalSamples = impulseData.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);

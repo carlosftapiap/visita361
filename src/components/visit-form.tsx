@@ -34,6 +34,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import type { Visit } from '@/types';
 import { Textarea } from './ui/textarea';
+import { materialsList } from '@/lib/materials';
+import { Checkbox } from './ui/checkbox';
 
 const visitSchema = z.object({
   'EJECUTIVA DE TRADE': z.string().min(1, 'La ejecutiva es requerida.'),
@@ -55,7 +57,7 @@ const visitSchema = z.object({
   'FECHA DE ENTREGA DE MATERIAL': z.date().optional().or(z.string().optional()),
   'OBJETIVO DE LA ACTIVIDAD': z.string().optional(),
   'CANTIDAD DE MUESTRAS': z.coerce.number().min(0).optional(),
-  'MATERIAL POP': z.string().optional(),
+  'MATERIAL POP': z.array(z.string()).optional(),
   'OBSERVACION': z.string().optional(),
 });
 
@@ -82,6 +84,7 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
           ...visit,
           'FECHA': visit['FECHA'] ? new Date(visit['FECHA']) : new Date(),
           'FECHA DE ENTREGA DE MATERIAL': visit['FECHA DE ENTREGA DE MATERIAL'] ? new Date(visit['FECHA DE ENTREGA DE MATERIAL']) : undefined,
+          'MATERIAL POP': visit['MATERIAL POP'] || [],
         });
       } else {
         form.reset({
@@ -100,7 +103,7 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
           'FECHA DE ENTREGA DE MATERIAL': undefined,
           'OBJETIVO DE LA ACTIVIDAD': '',
           'CANTIDAD DE MUESTRAS': undefined,
-          'MATERIAL POP': '',
+          'MATERIAL POP': [],
           'OBSERVACION': '',
         });
       }
@@ -136,37 +139,88 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4">
-            {/* Fila 1 */}
-            <FormField control={form.control} name="EJECUTIVA DE TRADE" render={({ field }) => ( <FormItem><FormLabel>Ejecutiva de Trade</FormLabel><FormControl><Input placeholder="Nombre de la ejecutiva" {...field} /></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="ASESOR COMERCIAL" render={({ field }) => ( <FormItem><FormLabel>Asesor Comercial</FormLabel><FormControl><Input placeholder="Nombre del asesor" {...field} /></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="FECHA" render={({ field }) => ( <FormItem className="flex flex-col pt-2"><FormLabel>Fecha de Visita</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)} />
-            
-            {/* Fila 2 */}
-            <FormField control={form.control} name="CANAL" render={({ field }) => ( <FormItem><FormLabel>Canal</FormLabel><FormControl><Input placeholder="Ej: Moderno" {...field} /></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="CADENA" render={({ field }) => ( <FormItem><FormLabel>Cadena</FormLabel><FormControl><Input placeholder="Ej: Éxito" {...field} /></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="DIRECCIÓN DEL PDV" render={({ field }) => ( <FormItem><FormLabel>Dirección del PDV</FormLabel><FormControl><Input placeholder="Ej: Av. Siempreviva 123" {...field} /></FormControl><FormMessage /></FormItem> )} />
-            
-            {/* Fila 3 */}
-            <FormField control={form.control} name="CIUDAD" render={({ field }) => ( <FormItem><FormLabel>Ciudad</FormLabel><FormControl><Input placeholder="Ej: Bogotá" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-            <FormField control={form.control} name="ZONA" render={({ field }) => ( <FormItem><FormLabel>Zona</FormLabel><FormControl><Input placeholder="Ej: Norte" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-            <FormField control={form.control} name="HORARIO" render={({ field }) => ( <FormItem><FormLabel>Horario</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un horario" /></SelectTrigger></FormControl><SelectContent><SelectItem value="AM">AM</SelectItem><SelectItem value="PM">PM</SelectItem><SelectItem value="Todo el día">Todo el día</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
-            
-            {/* Fila 4 */}
-            <FormField control={form.control} name="ACTIVIDAD" render={({ field }) => ( <FormItem><FormLabel>Actividad</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una actividad" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Visita">Visita</SelectItem><SelectItem value="IMPULSACIÓN">IMPULSACIÓN</SelectItem><SelectItem value="Verificación">Verificación</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
-            <FormField control={form.control} name="PRESUPUESTO" render={({ field }) => ( <FormItem><FormLabel>Presupuesto</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-            <FormField control={form.control} name="AFLUENCIA ESPERADA" render={({ field }) => ( <FormItem><FormLabel>Afluencia Esperada</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Fila 1 */}
+              <FormField control={form.control} name="EJECUTIVA DE TRADE" render={({ field }) => ( <FormItem><FormLabel>Ejecutiva de Trade</FormLabel><FormControl><Input placeholder="Nombre de la ejecutiva" {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="ASESOR COMERCIAL" render={({ field }) => ( <FormItem><FormLabel>Asesor Comercial</FormLabel><FormControl><Input placeholder="Nombre del asesor" {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="FECHA" render={({ field }) => ( <FormItem className="flex flex-col pt-2"><FormLabel>Fecha de Visita</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)} />
+              
+              {/* Fila 2 */}
+              <FormField control={form.control} name="CANAL" render={({ field }) => ( <FormItem><FormLabel>Canal</FormLabel><FormControl><Input placeholder="Ej: Moderno" {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="CADENA" render={({ field }) => ( <FormItem><FormLabel>Cadena</FormLabel><FormControl><Input placeholder="Ej: Éxito" {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="DIRECCIÓN DEL PDV" render={({ field }) => ( <FormItem><FormLabel>Dirección del PDV</FormLabel><FormControl><Input placeholder="Ej: Av. Siempreviva 123" {...field} /></FormControl><FormMessage /></FormItem> )} />
+              
+              {/* Fila 3 */}
+              <FormField control={form.control} name="CIUDAD" render={({ field }) => ( <FormItem><FormLabel>Ciudad</FormLabel><FormControl><Input placeholder="Ej: Bogotá" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+              <FormField control={form.control} name="ZONA" render={({ field }) => ( <FormItem><FormLabel>Zona</FormLabel><FormControl><Input placeholder="Ej: Norte" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+              <FormField control={form.control} name="HORARIO" render={({ field }) => ( <FormItem><FormLabel>Horario</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un horario" /></SelectTrigger></FormControl><SelectContent><SelectItem value="AM">AM</SelectItem><SelectItem value="PM">PM</SelectItem><SelectItem value="Todo el día">Todo el día</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
+              
+              {/* Fila 4 */}
+              <FormField control={form.control} name="ACTIVIDAD" render={({ field }) => ( <FormItem><FormLabel>Actividad</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una actividad" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Visita">Visita</SelectItem><SelectItem value="IMPULSACIÓN">IMPULSACIÓN</SelectItem><SelectItem value="Verificación">Verificación</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
+              <FormField control={form.control} name="PRESUPUESTO" render={({ field }) => ( <FormItem><FormLabel>Presupuesto</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+              <FormField control={form.control} name="AFLUENCIA ESPERADA" render={({ field }) => ( <FormItem><FormLabel>Afluencia Esperada</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
 
-            {/* Fila 5 */}
-            <FormField control={form.control} name="FECHA DE ENTREGA DE MATERIAL" render={({ field }) => ( <FormItem className="flex flex-col pt-2"><FormLabel>Fecha Entrega Material</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-            <FormField control={form.control} name="CANTIDAD DE MUESTRAS" render={({ field }) => ( <FormItem><FormLabel>Cantidad de Muestras</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-            <FormField control={form.control} name="MATERIAL POP" render={({ field }) => ( <FormItem><FormLabel>Material POP</FormLabel><FormControl><Input placeholder="Describa el material POP" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-            
-            {/* Fila 6 */}
-            <FormField control={form.control} name="OBJETIVO DE LA ACTIVIDAD" render={({ field }) => ( <FormItem className="md:col-span-3"><FormLabel>Objetivo de la Actividad</FormLabel><FormControl><Textarea placeholder="Describa el objetivo de la actividad" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-            <FormField control={form.control} name="OBSERVACION" render={({ field }) => ( <FormItem className="md:col-span-3"><FormLabel>Observación</FormLabel><FormControl><Textarea placeholder="Añada observaciones adicionales" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+              {/* Fila 5 */}
+              <FormField control={form.control} name="FECHA DE ENTREGA DE MATERIAL" render={({ field }) => ( <FormItem className="flex flex-col pt-2"><FormLabel>Fecha Entrega Material</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="CANTIDAD DE MUESTRAS" render={({ field }) => ( <FormItem><FormLabel>Cantidad de Muestras</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+            </div>
 
-             <DialogFooter className="md:col-span-3 pt-4">
+            {/* Fila 6 - Material POP */}
+            <FormField
+              control={form.control}
+              name="MATERIAL POP"
+              render={() => (
+                <FormItem>
+                  <div className="mb-4">
+                    <FormLabel className="text-base font-semibold">Material POP</FormLabel>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {materialsList.map((item) => (
+                    <FormField
+                      key={item}
+                      control={form.control}
+                      name="MATERIAL POP"
+                      render={({ field }) => {
+                        return (
+                          <FormItem
+                            key={item}
+                            className="flex flex-row items-start space-x-3 space-y-0"
+                          >
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(item)}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...(field.value || []), item])
+                                    : field.onChange(
+                                        field.value?.filter(
+                                          (value) => value !== item
+                                        )
+                                      )
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              {item}
+                            </FormLabel>
+                          </FormItem>
+                        )
+                      }}
+                    />
+                  ))}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Fila 7 */}
+            <div className="space-y-6">
+              <FormField control={form.control} name="OBJETIVO DE LA ACTIVIDAD" render={({ field }) => ( <FormItem><FormLabel>Objetivo de la Actividad</FormLabel><FormControl><Textarea placeholder="Describa el objetivo de la actividad" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+              <FormField control={form.control} name="OBSERVACION" render={({ field }) => ( <FormItem><FormLabel>Observación</FormLabel><FormControl><Textarea placeholder="Añada observaciones adicionales" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+            </div>
+             <DialogFooter className="pt-4">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                     Cancelar
                 </Button>
@@ -181,5 +235,3 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
     </Dialog>
   );
 }
-
-    

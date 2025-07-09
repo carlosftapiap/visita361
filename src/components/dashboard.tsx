@@ -165,7 +165,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             'FECHA DE ENTREGA DE MATERIAL': visit['FECHA DE ENTREGA DE MATERIAL'] ? new Date(visit['FECHA DE ENTREGA DE MATERIAL']).toLocaleDateString('es-CO') : '',
             'OBJETIVO DE LA ACTIVIDAD': visit['OBJETIVO DE LA ACTIVIDAD'],
             'CANTIDAD DE MUESTRAS': visit['CANTIDAD DE MUESTRAS'],
-            'MATERIAL POP': visit['MATERIAL POP'],
+            'MATERIAL POP': Array.isArray(visit['MATERIAL POP']) ? visit['MATERIAL POP'].join(', ') : '',
             'OBSERVACION': visit['OBSERVACION'],
         }));
 
@@ -268,19 +268,19 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             {(filters.activity === 'IMPULSACIÓN' || (filters.activity === 'all' && kpis.definedObjectives > 0)) && (
                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <KpiCard 
-                        title="Personas Esperadas (Impulsación)" 
+                        title="Personas Esperadas (Impulso)" 
                         value={kpis.expectedAttendance.toLocaleString('es-CO')}
                         icon={Users2} 
                         description="Suma de afluencia esperada en impulsos" 
                     />
                      <KpiCard 
-                        title="Muestras Entregadas (Impulsación)" 
+                        title="Muestras Entregadas (Impulso)" 
                         value={kpis.totalSamples.toLocaleString('es-CO')}
                         icon={PackageCheck} 
                         description="Suma de muestras a entregar en impulsos" 
                     />
                      <KpiCard 
-                        title="Objetivos Definidos (Impulsación)" 
+                        title="Objetivos Definidos (Impulso)" 
                         value={kpis.definedObjectives}
                         icon={Target} 
                         description="Cantidad de impulsos con un objetivo claro" 

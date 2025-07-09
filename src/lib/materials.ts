@@ -1,0 +1,20 @@
+
+export const materialsList: string[] = [
+  'AFICHE',
+  'CARPA',
+  'EXHIBIDOR MADERA',
+  'FUNDA',
+  'GANCHOS',
+  'HABLADORES ACRILICO',
+  'PLUMA',
+  'ROMPETRAFICO',
+  'SERVILLETA',
+  'OTROS',
+  'FLAYER',
+  'ROLL UP',
+  'LLAVERO',
+  'PORTAVASO',
+  'STAND',
+  'VIBRIN',
+  'EXHIBIDOR ACRILICO',
+];

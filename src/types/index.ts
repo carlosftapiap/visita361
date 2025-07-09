@@ -1,4 +1,5 @@
 
+
 export interface Visit {
   id: string;
   'EJECUTIVA DE TRADE': string;
@@ -16,7 +17,7 @@ export interface Visit {
   'FECHA DE ENTREGA DE MATERIAL'?: string; // ISO 8601 date string
   'OBJETIVO DE LA ACTIVIDAD'?: string;
   'CANTIDAD DE MUESTRAS'?: number;
-  'MATERIAL POP'?: string;
+  'MATERIAL POP'?: string[];
   'OBSERVACION'?: string;
 }
 

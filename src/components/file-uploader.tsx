@@ -8,12 +8,7 @@ import type { Visit } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { cn } from '@/lib/utils';
-
-interface FileUploaderProps {
-  onFileProcessed: (data: Omit<Visit, 'id'>[]) => void;
-  disabled?: boolean;
-  loadedMonths?: string[];
-}
+import { materialsList } from '@/lib/materials';
 
 const spanishHeaders = [
     'EJECUTIVA DE TRADE',
@@ -40,6 +35,12 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
   const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  interface FileUploaderProps {
+    onFileProcessed: (data: Omit<Visit, 'id'>[]) => void;
+    disabled?: boolean;
+    loadedMonths?: string[];
+  }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -94,6 +95,16 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
             
             const getString = (value: any) => value === undefined || value === null ? '' : String(value);
 
+            const getMaterialPopArray = (value: any) => {
+                if (typeof value === 'string' && value) {
+                    return value.split(',').map(item => item.trim()).filter(Boolean);
+                }
+                if (Array.isArray(value)) {
+                    return value;
+                }
+                return [];
+            }
+
             return {
                 'EJECUTIVA DE TRADE': getString(row['EJECUTIVA DE TRADE']),
                 'ASESOR COMERCIAL': getString(row['ASESOR COMERCIAL']),
@@ -110,7 +121,7 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
                 'FECHA DE ENTREGA DE MATERIAL': deliveryDate,
                 'OBJETIVO DE LA ACTIVIDAD': getString(row['OBJETIVO DE LA ACTIVIDAD']),
                 'CANTIDAD DE MUESTRAS': getNumber(row['CANTIDAD DE MUESTRAS']),
-                'MATERIAL POP': getString(row['MATERIAL POP']),
+                'MATERIAL POP': getMaterialPopArray(row['MATERIAL POP']),
                 'OBSERVACION': getString(row['OBSERVACION']),
             };
         });
@@ -177,9 +188,8 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
   };
 
   const handleDownloadTemplate = () => {
-    const headers = [spanishHeaders];
-    const exampleRow = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 1000000, 50, '2024-07-19', 'Aumentar visibilidad', 100, 'Afiches, volantes', 'Sin novedades']];
-    const ws = XLSX.utils.aoa_to_sheet([...headers, ...exampleRow]);
+    const exampleRow = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 1000000, 50, '2024-07-19', 'Aumentar visibilidad', 100, 'AFICHE, CARPA', 'Sin novedades']];
+    const ws = XLSX.utils.aoa_to_sheet([spanishHeaders, ...exampleRow]);
     ws['!cols'] = spanishHeaders.map(() => ({ wch: 25 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Datos de Visitas');

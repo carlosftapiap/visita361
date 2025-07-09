@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useMemo, useState, useRef } from "react";
-import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil } from "lucide-react";
+import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil, Users2, PackageCheck, Target } from "lucide-react";
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from "recharts";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -86,12 +87,19 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const uniqueChains = new Set(filteredData.map(v => v['CADENA'])).size;
         const workedDays = new Set(filteredData.map(v => v['FECHA'].toDateString())).size;
         const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
-        return { totalVisits, uniqueAgents, uniqueChains, workedDays, totalBudget };
+        
+        // KPIs for 'Impulso'
+        const expectedAttendance = filteredData.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
+        const totalSamples = filteredData.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
+        const definedObjectives = filteredData.filter(v => v['OBJETIVO DE LA ACTIVIDAD'] && v['OBJETIVO DE LA ACTIVIDAD'].trim() !== '').length;
+
+        return { totalVisits, uniqueAgents, uniqueChains, workedDays, totalBudget, expectedAttendance, totalSamples, definedObjectives };
     }, [filteredData]);
 
     const activityCounts = useMemo(() => {
         const counts = filteredData.reduce((acc, visit) => {
-            acc[visit['ACTIVIDAD']] = (acc[visit['ACTIVIDAD']] || 0) + 1;
+            const activityName = visit['ACTIVIDAD'] || 'No especificada';
+            acc[activityName] = (acc[activityName] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
         return Object.entries(counts).map(([name, value], index) => ({ name, value, fill: chartColors[index % chartColors.length] })).sort((a, b) => b.value - a.value);
@@ -104,7 +112,8 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
 
     const visitsPerAgent = useMemo(() => {
         const counts = filteredData.reduce((acc, visit) => {
-            acc[visit['ASESOR COMERCIAL']] = (acc[visit['ASESOR COMERCIAL']] || 0) + 1;
+            const agentName = visit['ASESOR COMERCIAL'] || 'No especificado';
+            acc[agentName] = (acc[agentName] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
         return Object.entries(counts).map(([name, visits]) => ({ name, visits })).sort((a, b) => b.visits - a.visits);
@@ -112,7 +121,8 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
     
     const visitsPerTradeExecutive = useMemo(() => {
         const counts = filteredData.reduce((acc, visit) => {
-            acc[visit['EJECUTIVA DE TRADE']] = (acc[visit['EJECUTIVA DE TRADE']] || 0) + 1;
+            const executiveName = visit['EJECUTIVA DE TRADE'] || 'No especificada';
+            acc[executiveName] = (acc[executiveName] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
         return Object.entries(counts).map(([name, value]) => ({ name, visits: value })).sort((a, b) => b.visits - a.visits);
@@ -254,6 +264,30 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                     description="Suma de presupuestos en el periodo" 
                 />
             </div>
+            
+            {filters.activity === 'Impulso' && (
+                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <KpiCard 
+                        title="Personas Esperadas" 
+                        value={kpis.expectedAttendance.toLocaleString('es-CO')}
+                        icon={Users2} 
+                        description="Suma de afluencia esperada en impulsos" 
+                    />
+                     <KpiCard 
+                        title="Muestras Entregadas" 
+                        value={kpis.totalSamples.toLocaleString('es-CO')}
+                        icon={PackageCheck} 
+                        description="Suma de muestras a entregar en impulsos" 
+                    />
+                     <KpiCard 
+                        title="Objetivos Definidos" 
+                        value={kpis.definedObjectives}
+                        icon={Target} 
+                        description="Cantidad de impulsos con un objetivo claro" 
+                    />
+                </div>
+            )}
+
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-6">
                  <Card className="shadow-lg lg:col-span-3">
@@ -369,3 +403,5 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         </div>
     );
 }
+
+    

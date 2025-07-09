@@ -381,7 +381,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                                         <TableCell className="font-medium">{visit['ASESOR COMERCIAL']}</TableCell>
                                         <TableCell>{visit['CADENA']}</TableCell>
                                         <TableCell>{visit['ACTIVIDAD']}</TableCell>
-                                        <TableCell className="text-right font-mono">{visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }) : '$0'}</TableCell>
+                                        <TableCell className="text-right font-mono">{visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO') : '0'}</TableCell>
                                         <TableCell>
                                             <Button variant="ghost" size="icon" onClick={() => onEditVisit(visit)}>
                                                 <Pencil className="h-4 w-4" />

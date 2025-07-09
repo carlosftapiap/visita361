@@ -56,10 +56,11 @@ const buildSupabaseError = (error: any, context: string): Error => {
                   `-- INICIA SCRIPT SQL --\n` +
                   `CREATE POLICY "Public full access" ON public.visits\n` +
                   `FOR ALL\n` +
+                  `TO authenticated\n` +
                   `USING (true)\n` +
                   `WITH CHECK (true);\n` +
                   `-- FIN SCRIPT SQL --\n\n` +
-                  `**NOTA:** Esta política da acceso total. Para producción, debes crear reglas más restrictivas.`;
+                  `**NOTA:** Esta política da acceso total a usuarios autenticados. Para producción, debes crear reglas más restrictivas.`;
     } else {
         message = `Ocurrió un error inesperado en la operación de ${context} con Supabase.\n\n` +
                   `Asegúrate de que tus credenciales en el archivo .env.local son correctas y de que has reiniciado el servidor de desarrollo después de cualquier cambio.\n\n` +

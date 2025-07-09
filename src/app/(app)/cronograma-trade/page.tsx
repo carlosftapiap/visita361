@@ -186,7 +186,7 @@ export default function CronogramaTradePage() {
     setLoading(true);
     setErrorMessage(null);
     try {
-        if (formState.visit) { // Editing existing visit
+        if (formState.visit && formState.visit.id) { // Editing existing visit
             await updateVisit(id, visitData);
         } else { // Creating new visit
             await addVisit(visitData);
@@ -272,6 +272,52 @@ export default function CronogramaTradePage() {
     }
   };
 
+  const renderContent = () => {
+    if (loading) {
+      return <DashboardSkeleton />;
+    }
+    if (errorMessage) {
+      return (
+        <Card className="shadow-md border-destructive bg-destructive/5">
+          <CardHeader>
+            <CardTitle className="font-headline text-xl text-destructive flex items-center gap-2">
+                <AlertTriangle /> Error de Configuración de la Base de Datos
+            </CardTitle>
+            <CardDescription className="text-destructive/90">
+                No se pudo completar la operación debido a un problema de conexión o configuración con la base de datos de Supabase.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <h3 className="font-semibold mb-2 text-card-foreground">Sigue estas instrucciones para solucionarlo:</h3>
+            <pre className="text-sm bg-background p-4 rounded-md whitespace-pre-wrap font-code border">
+                {errorMessage}
+            </pre>
+          </CardContent>
+          <CardFooter>
+            <Button onClick={refreshData} disabled={loading}>
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Reintentar Conexión
+            </Button>
+          </CardFooter>
+        </Card>
+      );
+    }
+    if (data.length > 0) {
+      return <Dashboard data={data} onEditVisit={handleEditVisit} />;
+    }
+    return (
+      <Card className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center shadow-md">
+          <CardContent className="flex flex-col items-center gap-4 p-6">
+              <div className="rounded-full border-8 border-primary/10 bg-primary/5 p-6">
+                  <CalendarClock className="h-16 w-16 text-primary" />
+              </div>
+              <h2 className="font-headline text-2xl">Aún no hay actividades</h2>
+              <p className="max-w-xs text-muted-foreground">Cargue un archivo Excel o añada una visita manualmente para comenzar a visualizar el cronograma.</p>
+          </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="p-4 md:p-6 flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
@@ -302,44 +348,7 @@ export default function CronogramaTradePage() {
         </div>
         
         <div className="flex-1">
-          {loading ? (
-            <DashboardSkeleton />
-          ) : errorMessage ? (
-            <Card className="shadow-md border-destructive bg-destructive/5">
-              <CardHeader>
-                <CardTitle className="font-headline text-xl text-destructive flex items-center gap-2">
-                    <AlertTriangle /> Error de Configuración de la Base de Datos
-                </CardTitle>
-                <CardDescription className="text-destructive/90">
-                    No se pudo completar la operación debido a un problema de conexión o configuración con la base de datos de Supabase.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <h3 className="font-semibold mb-2 text-card-foreground">Sigue estas instrucciones para solucionarlo:</h3>
-                <pre className="text-sm bg-background p-4 rounded-md whitespace-pre-wrap font-code border">
-                    {errorMessage}
-                </pre>
-              </CardContent>
-              <CardFooter>
-                <Button onClick={refreshData} disabled={loading}>
-                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                  Reintentar Conexión
-                </Button>
-              </CardFooter>
-            </Card>
-          ) : data.length > 0 ? (
-            <Dashboard data={data} onEditVisit={handleEditVisit} />
-          ) : (
-            <Card className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center shadow-md">
-                <CardContent className="flex flex-col items-center gap-4 p-6">
-                    <div className="rounded-full border-8 border-primary/10 bg-primary/5 p-6">
-                        <CalendarClock className="h-16 w-16 text-primary" />
-                    </div>
-                    <h2 className="font-headline text-2xl">Aún no hay actividades</h2>
-                    <p className="max-w-xs text-muted-foreground">Cargue un archivo Excel o añada una visita manualmente para comenzar a visualizar el cronograma.</p>
-                </CardContent>
-            </Card>
-          )}
+          {renderContent()}
         </div>
 
         <VisitForm

@@ -95,31 +95,31 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
             const getString = (value: any) => value === undefined || value === null ? '' : String(value);
 
             return {
-                trade_executive: getString(row['EJECUTIVA DE TRADE']),
-                agent: getString(row['ASESOR COMERCIAL']),
-                channel: getString(row['CANAL']),
-                chain: getString(row['CADENA']),
-                pdv_address: getString(row['DIRECCIÓN DEL PDV']),
-                activity: getString(row['ACTIVIDAD']) as Visit['activity'],
-                schedule: getString(row['HORARIO']),
-                city: getString(row['CIUDAD']),
-                zone: getString(row['ZONA']),
-                date: visitDate,
-                budget: getNumber(row['PRESUPUESTO']) || 0,
-                expected_attendance: getNumber(row['AFLUENCIA ESPERADA']),
-                material_delivery_date: deliveryDate,
-                activity_objective: getString(row['OBJETIVO DE LA ACTIVIDAD']),
-                sample_count: getNumber(row['CANTIDAD DE MUESTRAS']),
-                material_pop: getString(row['MATERIAL POP']),
-                observation: getString(row['OBSERVACION']),
+                'EJECUTIVA DE TRADE': getString(row['EJECUTIVA DE TRADE']),
+                'ASESOR COMERCIAL': getString(row['ASESOR COMERCIAL']),
+                'CANAL': getString(row['CANAL']),
+                'CADENA': getString(row['CADENA']),
+                'DIRECCIÓN DEL PDV': getString(row['DIRECCIÓN DEL PDV']),
+                'ACTIVIDAD': getString(row['ACTIVIDAD']) as Visit['ACTIVIDAD'],
+                'HORARIO': getString(row['HORARIO']),
+                'CIUDAD': getString(row['CIUDAD']),
+                'ZONA': getString(row['ZONA']),
+                'FECHA': visitDate,
+                'PRESUPUESTO': getNumber(row['PRESUPUESTO']) || 0,
+                'AFLUENCIA ESPERADA': getNumber(row['AFLUENCIA ESPERADA']),
+                'FECHA DE ENTREGA DE MATERIAL': deliveryDate,
+                'OBJETIVO DE LA ACTIVIDAD': getString(row['OBJETIVO DE LA ACTIVIDAD']),
+                'CANTIDAD DE MUESTRAS': getNumber(row['CANTIDAD DE MUESTRAS']),
+                'MATERIAL POP': getString(row['MATERIAL POP']),
+                'OBSERVACION': getString(row['OBSERVACION']),
             };
         });
 
         const parsedData = initialData.filter(visit => {
-            if (!visit.date || isNaN(visit.date.getTime())) {
+            if (!visit['FECHA'] || isNaN(visit['FECHA'].getTime())) {
                 return false;
             }
-            const year = visit.date.getFullYear();
+            const year = visit['FECHA'].getFullYear();
             return year >= 1970 && year <= 2100;
         });
 

@@ -32,7 +32,7 @@ export default function DuplicateMonthDialog({ isOpen, onOpenChange, onDuplicate
   const availableMonths = useMemo(() => {
     const monthSet = new Set<string>();
     data.forEach(visit => {
-      const monthYearKey = format(visit.date, 'yyyy-MM');
+      const monthYearKey = format(visit['FECHA'], 'yyyy-MM');
       monthSet.add(monthYearKey);
     });
     const sortedMonths = Array.from(monthSet).sort().reverse();
@@ -47,7 +47,7 @@ export default function DuplicateMonthDialog({ isOpen, onOpenChange, onDuplicate
     
     // Add all existing months from data, allowing user to add to/overwrite them
     data.forEach(visit => {
-        allMonths.add(format(visit.date, 'yyyy-MM'));
+        allMonths.add(format(visit['FECHA'], 'yyyy-MM'));
     });
     
     // Also add the next 12 months from today, to allow duplicating to the future

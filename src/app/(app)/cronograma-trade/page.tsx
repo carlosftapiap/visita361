@@ -82,15 +82,15 @@ export default function CronogramaTradePage() {
 
   const loadedMonthsFormatted = useMemo(() => {
     if (!data || data.length === 0) return [];
-    const months = [...new Set(data.map(v => format(v.date, 'yyyy-MM')))].sort().reverse();
+    const months = [...new Set(data.map(v => format(v['FECHA'], 'yyyy-MM')))].sort().reverse();
     return months.map(m => capitalize(format(new Date(m + '-02'), 'MMMM yyyy', { locale: es })));
   }, [data]);
 
   const handleFileProcessed = (processedData: Omit<Visit, 'id'>[]) => {
     if (processedData.length === 0) return;
 
-    const uploadedMonths = [...new Set(processedData.map(v => format(v.date, 'yyyy-MM')))];
-    const existingMonths = [...new Set(data.map(v => format(v.date, 'yyyy-MM')))];
+    const uploadedMonths = [...new Set(processedData.map(v => format(v['FECHA'], 'yyyy-MM')))];
+    const existingMonths = [...new Set(data.map(v => format(v['FECHA'], 'yyyy-MM')))];
     
     const overlappingMonths = uploadedMonths.filter(m => existingMonths.includes(m));
 
@@ -221,7 +221,7 @@ export default function CronogramaTradePage() {
     const [targetYear, targetMonthNum] = targetMonthStr.split('-').map(Number);
 
     const sourceVisits = data.filter(visit => {
-        const visitDate = new Date(visit.date);
+        const visitDate = new Date(visit['FECHA']);
         return visitDate.getFullYear() === sourceYear && visitDate.getMonth() + 1 === sourceMonthNum;
     });
 
@@ -237,14 +237,14 @@ export default function CronogramaTradePage() {
     const lastDayOfTargetMonth = new Date(targetYear, targetMonthNum, 0).getDate();
 
     const newVisits: Omit<Visit, 'id'>[] = sourceVisits.map((visit) => {
-        const originalDate = new Date(visit.date);
+        const originalDate = new Date(visit['FECHA']);
         const dayOfMonth = originalDate.getDate();
         const dayToSet = Math.min(dayOfMonth, lastDayOfTargetMonth);
         const targetDate = new Date(targetYear, targetMonthNum - 1, dayToSet);
         const { id, ...rest } = visit;
         return {
             ...rest,
-            date: targetDate,
+            'FECHA': targetDate,
         };
     });
     

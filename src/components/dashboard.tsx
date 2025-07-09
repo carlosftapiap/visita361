@@ -44,17 +44,17 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const getUniqueNonEmpty = (items: (string | null | undefined)[]) => 
             [...new Set(items.filter((item): item is string => !!item && item.trim() !== ''))];
 
-        const trade_executives = ['all', ...getUniqueNonEmpty(data.map(v => v.trade_executive))];
+        const trade_executives = ['all', ...getUniqueNonEmpty(data.map(v => v['EJECUTIVA DE TRADE']))];
         
         const relevantAgentsData = filters.trade_executive === 'all'
             ? data
-            : data.filter(v => v.trade_executive === filters.trade_executive);
-        const agents = ['all', ...getUniqueNonEmpty(relevantAgentsData.map(v => v.agent))];
+            : data.filter(v => v['EJECUTIVA DE TRADE'] === filters.trade_executive);
+        const agents = ['all', ...getUniqueNonEmpty(relevantAgentsData.map(v => v['ASESOR COMERCIAL']))];
 
-        const cities = ['all', ...getUniqueNonEmpty(data.map(v => v.city))];
-        const activities = ['all', ...getUniqueNonEmpty(data.map(v => v.activity))];
-        const zones = ['all', ...getUniqueNonEmpty(data.map(v => v.zone))];
-        const chains = ['all', ...getUniqueNonEmpty(data.map(v => v.chain))];
+        const cities = ['all', ...getUniqueNonEmpty(data.map(v => v['CIUDAD']))];
+        const activities = ['all', ...getUniqueNonEmpty(data.map(v => v['ACTIVIDAD']))];
+        const zones = ['all', ...getUniqueNonEmpty(data.map(v => v['ZONA']))];
+        const chains = ['all', ...getUniqueNonEmpty(data.map(v => v['CADENA']))];
         return { trade_executives, agents, cities, activities, zones, chains };
     }, [data, filters.trade_executive]);
 
@@ -70,28 +70,28 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
 
     const filteredData = useMemo(() => {
         return data.filter(visit => {
-            const tradeExecutiveMatch = filters.trade_executive === 'all' || visit.trade_executive === filters.trade_executive;
-            const agentMatch = filters.agent === 'all' || visit.agent === filters.agent;
-            const cityMatch = filters.city === 'all' || visit.city === filters.city;
-            const activityMatch = filters.activity === 'all' || visit.activity === filters.activity;
-            const zoneMatch = filters.zone === 'all' || visit.zone === filters.zone;
-            const chainMatch = filters.chain === 'all' || visit.chain === filters.chain;
+            const tradeExecutiveMatch = filters.trade_executive === 'all' || visit['EJECUTIVA DE TRADE'] === filters.trade_executive;
+            const agentMatch = filters.agent === 'all' || visit['ASESOR COMERCIAL'] === filters.agent;
+            const cityMatch = filters.city === 'all' || visit['CIUDAD'] === filters.city;
+            const activityMatch = filters.activity === 'all' || visit['ACTIVIDAD'] === filters.activity;
+            const zoneMatch = filters.zone === 'all' || visit['ZONA'] === filters.zone;
+            const chainMatch = filters.chain === 'all' || visit['CADENA'] === filters.chain;
             return tradeExecutiveMatch && agentMatch && cityMatch && activityMatch && zoneMatch && chainMatch;
         });
     }, [data, filters]);
 
     const kpis = useMemo(() => {
         const totalVisits = filteredData.length;
-        const uniqueAgents = new Set(filteredData.map(v => v.agent)).size;
-        const uniqueChains = new Set(filteredData.map(v => v.chain)).size;
-        const workedDays = new Set(filteredData.map(v => v.date.toDateString())).size;
-        const totalBudget = filteredData.reduce((sum, visit) => sum + (visit.budget || 0), 0);
+        const uniqueAgents = new Set(filteredData.map(v => v['ASESOR COMERCIAL'])).size;
+        const uniqueChains = new Set(filteredData.map(v => v['CADENA'])).size;
+        const workedDays = new Set(filteredData.map(v => v['FECHA'].toDateString())).size;
+        const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
         return { totalVisits, uniqueAgents, uniqueChains, workedDays, totalBudget };
     }, [filteredData]);
 
     const activityCounts = useMemo(() => {
         const counts = filteredData.reduce((acc, visit) => {
-            acc[visit.activity] = (acc[visit.activity] || 0) + 1;
+            acc[visit['ACTIVIDAD']] = (acc[visit['ACTIVIDAD']] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
         return Object.entries(counts).map(([name, value], index) => ({ name, value, fill: chartColors[index % chartColors.length] })).sort((a, b) => b.value - a.value);
@@ -104,15 +104,15 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
 
     const visitsPerAgent = useMemo(() => {
         const counts = filteredData.reduce((acc, visit) => {
-            acc[visit.agent] = (acc[visit.agent] || 0) + 1;
+            acc[visit['ASESOR COMERCIAL']] = (acc[visit['ASESOR COMERCIAL']] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
-        return Object.entries(counts).map(([name, value]) => ({ name, visits: value })).sort((a, b) => b.visits - a.visits);
+        return Object.entries(counts).map(([name, visits]) => ({ name, visits })).sort((a, b) => b.visits - a.visits);
     }, [filteredData]);
     
     const visitsPerTradeExecutive = useMemo(() => {
         const counts = filteredData.reduce((acc, visit) => {
-            acc[visit.trade_executive] = (acc[visit.trade_executive] || 0) + 1;
+            acc[visit['EJECUTIVA DE TRADE']] = (acc[visit['EJECUTIVA DE TRADE']] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
         return Object.entries(counts).map(([name, value]) => ({ name, visits: value })).sort((a, b) => b.visits - a.visits);
@@ -124,7 +124,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
 
     const visitsPerChannel = useMemo(() => {
         const counts = filteredData.reduce((acc, visit) => {
-            const channel = visit.channel || 'No especificado';
+            const channel = visit['CANAL'] || 'No especificado';
             acc[channel] = (acc[channel] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
@@ -140,23 +140,23 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         if (filteredData.length === 0) return;
 
         const dataToExport = filteredData.map(visit => ({
-            'EJECUTIVA DE TRADE': visit.trade_executive,
-            'ASESOR COMERCIAL': visit.agent,
-            'CANAL': visit.channel,
-            'CADENA': visit.chain,
-            'DIRECCION DEL PDV': visit.pdv_address,
-            'ACTIVIDAD': visit.activity,
-            'HORARIO': visit.schedule,
-            'CIUDAD': visit.city,
-            'ZONA': visit.zone,
-            'FECHA': visit.date.toLocaleDateString('es-CO'),
-            'PRESUPUESTO': visit.budget,
-            'AFLUENCIA ESPERADA': visit.expected_attendance,
-            'FECHA DE ENTREGA DE MATERIAL': visit.material_delivery_date ? visit.material_delivery_date.toLocaleDateString('es-CO') : '',
-            'OBJETIVO DE LA ACTIVIDAD': visit.activity_objective,
-            'CANTIDAD DE MUESTRAS': visit.sample_count,
-            'MATERIAL POP': visit.material_pop,
-            'OBSERVACION': visit.observation,
+            'EJECUTIVA DE TRADE': visit['EJECUTIVA DE TRADE'],
+            'ASESOR COMERCIAL': visit['ASESOR COMERCIAL'],
+            'CANAL': visit['CANAL'],
+            'CADENA': visit['CADENA'],
+            'DIRECCIÓN DEL PDV': visit['DIRECCIÓN DEL PDV'],
+            'ACTIVIDAD': visit['ACTIVIDAD'],
+            'HORARIO': visit['HORARIO'],
+            'CIUDAD': visit['CIUDAD'],
+            'ZONA': visit['ZONA'],
+            'FECHA': visit['FECHA'].toLocaleDateString('es-CO'),
+            'PRESUPUESTO': visit['PRESUPUESTO'],
+            'AFLUENCIA ESPERADA': visit['AFLUENCIA ESPERADA'],
+            'FECHA DE ENTREGA DE MATERIAL': visit['FECHA DE ENTREGA DE MATERIAL'] ? visit['FECHA DE ENTREGA DE MATERIAL'].toLocaleDateString('es-CO') : '',
+            'OBJETIVO DE LA ACTIVIDAD': visit['OBJETIVO DE LA ACTIVIDAD'],
+            'CANTIDAD DE MUESTRAS': visit['CANTIDAD DE MUESTRAS'],
+            'MATERIAL POP': visit['MATERIAL POP'],
+            'OBSERVACION': visit['OBSERVACION'],
         }));
 
         const ws = XLSX.utils.json_to_sheet(dataToExport);
@@ -342,12 +342,12 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                             <TableBody>
                                 {filteredData.length > 0 ? filteredData.map(visit => (
                                     <TableRow key={visit.id}>
-                                        <TableCell>{visit.date.toLocaleDateString('es-CO')}</TableCell>
-                                        <TableCell>{visit.trade_executive}</TableCell>
-                                        <TableCell className="font-medium">{visit.agent}</TableCell>
-                                        <TableCell>{visit.chain}</TableCell>
-                                        <TableCell>{visit.activity}</TableCell>
-                                        <TableCell className="text-right font-mono">{visit.budget.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })}</TableCell>
+                                        <TableCell>{visit['FECHA'].toLocaleDateString('es-CO')}</TableCell>
+                                        <TableCell>{visit['EJECUTIVA DE TRADE']}</TableCell>
+                                        <TableCell className="font-medium">{visit['ASESOR COMERCIAL']}</TableCell>
+                                        <TableCell>{visit['CADENA']}</TableCell>
+                                        <TableCell>{visit['ACTIVIDAD']}</TableCell>
+                                        <TableCell className="text-right font-mono">{visit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })}</TableCell>
                                         <TableCell>
                                             <Button variant="ghost" size="icon" onClick={() => onEditVisit(visit)}>
                                                 <Pencil className="h-4 w-4" />

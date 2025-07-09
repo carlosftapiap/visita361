@@ -5,13 +5,25 @@ import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
 // Supabase returns dates as ISO strings. This helper ensures they are Date objects.
 const visitFromSupabase = (record: any): Visit => {
     const visit: Visit = {
-        ...record,
-        id: String(record.id), // Ensure id is a string, as Supabase might return a number
-        date: new Date(record.date),
+        id: String(record.id),
+        'EJECUTIVA DE TRADE': record['EJECUTIVA DE TRADE'],
+        'ASESOR COMERCIAL': record['ASESOR COMERCIAL'],
+        'CANAL': record['CANAL'],
+        'CADENA': record['CADENA'],
+        'DIRECCIÓN DEL PDV': record['DIRECCIÓN DEL PDV'],
+        'ACTIVIDAD': record['ACTIVIDAD'],
+        'HORARIO': record['HORARIO'],
+        'CIUDAD': record['CIUDAD'],
+        'ZONA': record['ZONA'],
+        'FECHA': new Date(record['FECHA']),
+        'PRESUPUESTO': record['PRESUPUESTO'],
+        'AFLUENCIA ESPERADA': record['AFLUENCIA ESPERADA'],
+        'FECHA DE ENTREGA DE MATERIAL': record['FECHA DE ENTREGA DE MATERIAL'] ? new Date(record['FECHA DE ENTREGA DE MATERIAL']) : undefined,
+        'OBJETIVO DE LA ACTIVIDAD': record['OBJETIVO DE LA ACTIVIDAD'],
+        'CANTIDAD DE MUESTRAS': record['CANTIDAD DE MUESTRAS'],
+        'MATERIAL POP': record['MATERIAL POP'],
+        'OBSERVACION': record['OBSERVACION'],
     };
-    if (record.material_delivery_date) {
-        visit.material_delivery_date = new Date(record.material_delivery_date);
-    }
     return visit;
 };
 
@@ -26,25 +38,26 @@ const buildSupabaseError = (error: any, context: string): Error => {
                   `**SOLUCIÓN:**\n` +
                   `Ve al editor de SQL en tu dashboard de Supabase (Database -> SQL Editor) y ejecuta el siguiente comando para crear o actualizar la tabla:\n\n` +
                   `-- INICIA SCRIPT SQL --\n` +
+                  `DROP TABLE IF EXISTS public.visits;\n\n`+
                   `CREATE TABLE public.visits (\n` +
                   `  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,\n` +
-                  `  trade_executive TEXT,\n` +
-                  `  agent TEXT,\n` +
-                  `  channel TEXT,\n` +
-                  `  chain TEXT,\n` +
-                  `  pdv_address TEXT,\n` +
-                  `  activity TEXT,\n` +
-                  `  schedule TEXT,\n` +
-                  `  city TEXT,\n` +
-                  `  zone TEXT,\n` +
-                  `  date TIMESTAMPTZ,\n` +
-                  `  budget NUMERIC,\n` +
-                  `  expected_attendance INT,\n` +
-                  `  material_delivery_date DATE,\n` +
-                  `  activity_objective TEXT,\n` +
-                  `  sample_count INT,\n` +
-                  `  material_pop TEXT,\n` +
-                  `  observation TEXT\n` +
+                  `  "EJECUTIVA DE TRADE" TEXT,\n` +
+                  `  "ASESOR COMERCIAL" TEXT,\n` +
+                  `  "CANAL" TEXT,\n` +
+                  `  "CADENA" TEXT,\n` +
+                  `  "DIRECCIÓN DEL PDV" TEXT,\n` +
+                  `  "ACTIVIDAD" TEXT,\n` +
+                  `  "HORARIO" TEXT,\n` +
+                  `  "CIUDAD" TEXT,\n` +
+                  `  "ZONA" TEXT,\n` +
+                  `  "FECHA" TIMESTAMPTZ,\n` +
+                  `  "PRESUPUESTO" NUMERIC,\n` +
+                  `  "AFLUENCIA ESPERADA" INTEGER,\n` +
+                  `  "FECHA DE ENTREGA DE MATERIAL" TIMESTAMPTZ,\n` +
+                  `  "OBJETIVO DE LA ACTIVIDAD" TEXT,\n` +
+                  `  "CANTIDAD DE MUESTRAS" INTEGER,\n` +
+                  `  "MATERIAL POP" TEXT,\n` +
+                  `  "OBSERVACION" TEXT\n` +
                   `);\n` +
                   `-- FIN SCRIPT SQL --`;
     } else if (error?.code === '42501') { // permission denied
@@ -80,8 +93,8 @@ export const getVisits = async (): Promise<Visit[]> => {
     const { data, error } = await supabase
         .from('visits')
         .select('*')
-        .gte('date', threeMonthsAgo.toISOString())
-        .order('date', { ascending: false });
+        .gte('"FECHA"', threeMonthsAgo.toISOString())
+        .order('"FECHA"', { ascending: false });
 
     if (error) {
         throw buildSupabaseError(error, 'lectura (getVisits)');
@@ -137,7 +150,7 @@ export const deleteVisitsInMonths = async (months: string[]) => {
         const dateInMonth = new Date(monthStr + '-02T12:00:00Z');
         const startDate = startOfMonth(dateInMonth).toISOString();
         const endDate = endOfMonth(dateInMonth).toISOString();
-        return `and(date.gte.${startDate},date.lte.${endDate})`;
+        return `and("FECHA".gte.${startDate},"FECHA".lte.${endDate})`;
     }).join(',');
 
     const { error } = await supabase

@@ -412,7 +412,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                         <CardTitle className="font-headline text-xl">Detalle de Visitas</CardTitle>
                         <CardDescription>Tabla con todos los registros de visitas filtrados.</CardDescription>
                     </div>
-                     <Button variant="outline" size="icon" onClick={handleDownloadExcel} disabled={filteredData.length === 0}>
+                     <Button variant="outline" size="icon" onClick={handleDownloadExcel} disabled={filteredData.length === 0} title="Descargar Excel">
                         <Download className="h-4 w-4" />
                         <span className="sr-only">Descargar Excel</span>
                     </Button>

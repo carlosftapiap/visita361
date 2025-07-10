@@ -176,7 +176,6 @@ export default function GrillaEjecucionMaterialesPage() {
                                         <TableHead>Actividad</TableHead>
                                         <TableHead>Cadena / PDV</TableHead>
                                         <TableHead>Materiales Requeridos</TableHead>
-                                        <TableHead className="text-right">Costo Total de Material</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -191,12 +190,11 @@ export default function GrillaEjecucionMaterialesPage() {
                                                     <div className="text-xs text-muted-foreground">{visit['DIRECCIÓN DEL PDV']}</div>
                                                 </TableCell>
                                                 <TableCell className="text-xs">{formatMaterialPopForTable(visit['MATERIAL POP'])}</TableCell>
-                                                <TableCell className="text-right font-mono">{visit.total_cost?.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) || '$0'}</TableCell>
                                             </TableRow>
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="h-24 text-center">
+                                            <TableCell colSpan={5} className="h-24 text-center">
                                                 No hay actividades de "IMPULSACIÓN" para mostrar.
                                             </TableCell>
                                         </TableRow>

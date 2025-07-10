@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Truck, Users2, PackageCheck, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
+import { Truck, Users2, PackageCheck, AlertTriangle, Loader2, RefreshCw, ClipboardList } from 'lucide-react';
 import type { Visit } from '@/types';
 import { getVisits } from '@/services/visitService';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { useToast } from '@/hooks/use-toast';
 import KpiCard from '@/components/kpi-card';
 import DashboardSkeleton from '@/components/dashboard-skeleton';
+import { materialsList } from '@/lib/materials';
 
 export default function GrillaEjecucionMaterialesPage() {
     const [visits, setVisits] = useState<Visit[]>([]);
@@ -39,13 +40,29 @@ export default function GrillaEjecucionMaterialesPage() {
         fetchData();
     }, [fetchData]);
 
-    const kpis = useMemo(() => {
+    const { kpis, materialTotals } = useMemo(() => {
         const totalExpectedAttendance = visits.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
         const totalSamples = visits.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
 
+        const totals: Record<string, number> = {};
+        materialsList.forEach(m => totals[m] = 0);
+
+        for (const visit of visits) {
+            if (visit['MATERIAL POP']) {
+                for (const [material, quantity] of Object.entries(visit['MATERIAL POP'])) {
+                    if (totals[material] !== undefined) {
+                        totals[material] += quantity;
+                    }
+                }
+            }
+        }
+
         return {
-            totalExpectedAttendance,
-            totalSamples
+            kpis: {
+                totalExpectedAttendance,
+                totalSamples
+            },
+            materialTotals: totals,
         };
     }, [visits]);
 
@@ -95,6 +112,27 @@ export default function GrillaEjecucionMaterialesPage() {
                         description="Suma total de muestras a entregar"
                     />
                 </div>
+                 <Card className="shadow-lg">
+                    <CardHeader>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <ClipboardList className="h-6 w-6 text-primary"/>
+                                <CardTitle>Resumen de Materiales POP</CardTitle>
+                            </div>
+                        </div>
+                        <CardDescription>Suma total de cada tipo de material utilizado en todas las actividades.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                            {materialsList.map(material => (
+                                <div key={material} className="flex justify-between border-b border-dashed py-1">
+                                    <span className="text-muted-foreground">{material}</span>
+                                    <span className="font-semibold text-primary">{materialTotals[material].toLocaleString('es-CO')}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
                 <Card className="shadow-lg">
                     <CardHeader>
                         <CardTitle>Planificación y Ejecución</CardTitle>

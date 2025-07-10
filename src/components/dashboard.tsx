@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltipContent } from "@/components/ui/chart";
 import KpiCard from "./kpi-card";
 import ActivityCalendar from "./activity-calendar";
+import { materialsList } from "@/lib/materials";
 
 interface DashboardProps {
     data: Visit[];
@@ -188,31 +189,39 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
     const handleDownloadExcel = () => {
         if (filteredData.length === 0) return;
 
-        const dataToExport = filteredData.map(visit => ({
-            'EJECUTIVA DE TRADE': visit['EJECUTIVA DE TRADE'],
-            'ASESOR COMERCIAL': visit['ASESOR COMERCIAL'],
-            'CANAL': visit['CANAL'],
-            'CADENA': visit['CADENA'],
-            'DIRECCIÓN DEL PDV': visit['DIRECCIÓN DEL PDV'],
-            'ACTIVIDAD': visit['ACTIVIDAD'],
-            'HORARIO': visit['HORARIO'],
-            'CIUDAD': visit['CIUDAD'],
-            'ZONA': visit['ZONA'],
-            'FECHA': visit['FECHA'] ? new Date(visit['FECHA']).toLocaleDateString('es-CO') : '',
-            'PRESUPUESTO': visit['PRESUPUESTO'],
-            'COSTO TOTAL MATERIALES': visit.total_cost || 0,
-            'AFLUENCIA ESPERADA': visit['AFLUENCIA ESPERADA'],
-            'FECHA DE ENTREGA DE MATERIAL': visit['FECHA DE ENTREGA DE MATERIAL'] ? new Date(visit['FECHA DE ENTREGA DE MATERIAL']).toLocaleDateString('es-CO') : '',
-            'OBJETIVO DE LA ACTIVIDAD': visit['OBJETIVO DE LA ACTIVIDAD'],
-            'CANTIDAD DE MUESTRAS': visit['CANTIDAD DE MUESTRAS'],
-            'MATERIAL POP': formatMaterialPopForTable(visit['MATERIAL POP']),
-            'OBSERVACION': visit['OBSERVACION'],
-        }));
+        const dataToExport = filteredData.map(visit => {
+            const baseData = {
+                'EJECUTIVA DE TRADE': visit['EJECUTIVA DE TRADE'],
+                'ASESOR COMERCIAL': visit['ASESOR COMERCIAL'],
+                'CANAL': visit['CANAL'],
+                'CADENA': visit['CADENA'],
+                'DIRECCIÓN DEL PDV': visit['DIRECCIÓN DEL PDV'],
+                'ACTIVIDAD': visit['ACTIVIDAD'],
+                'HORARIO': visit['HORARIO'],
+                'CIUDAD': visit['CIUDAD'],
+                'ZONA': visit['ZONA'],
+                'FECHA': visit['FECHA'] ? new Date(visit['FECHA']).toLocaleDateString('es-CO') : '',
+                'PRESUPUESTO': visit['PRESUPUESTO'],
+                'COSTO TOTAL MATERIALES': visit.total_cost || 0,
+                'AFLUENCIA ESPERADA': visit['AFLUENCIA ESPERADA'],
+                'FECHA DE ENTREGA DE MATERIAL': visit['FECHA DE ENTREGA DE MATERIAL'] ? new Date(visit['FECHA DE ENTREGA DE MATERIAL']).toLocaleDateString('es-CO') : '',
+                'OBJETIVO DE LA ACTIVIDAD': visit['OBJETIVO DE LA ACTIVIDAD'],
+                'CANTIDAD DE MUESTRAS': visit['CANTIDAD DE MUESTRAS'],
+                'OBSERVACION': visit['OBSERVACION'],
+            };
+
+            const materialsData: Record<string, number> = {};
+            materialsList.forEach(materialName => {
+                materialsData[`CANTIDAD ${materialName}`] = visit['MATERIAL POP']?.[materialName] || 0;
+            });
+            
+            return { ...baseData, ...materialsData };
+        });
 
         const ws = XLSX.utils.json_to_sheet(dataToExport);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Visitas");
-        XLSX.writeFile(wb, "Visita360_Reporte.xlsx");
+        XLSX.writeFile(wb, "Visita360_Reporte_Detallado.xlsx");
     };
 
     const handleDownloadPdf = () => {
@@ -240,7 +249,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             <Card className="shadow-md">
                 <CardHeader>
                     <CardTitle className="font-headline text-xl">Filtros del Panel</CardTitle>
-                    <CardDescription>Refine los datos para un análisis más detallado. Puede exportar los resultados filtrados.</CardDescription>
+                    <CardDescription>Refine los datos para un análisis más detallado.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                     <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -274,8 +283,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={handleDownloadExcel} disabled={filteredData.length === 0}><Download className="mr-2 h-4 w-4" /> Excel</Button>
-                        <Button variant="outline" onClick={handleDownloadPdf} disabled={filteredData.length === 0}><Download className="mr-2 h-4 w-4" /> PDF</Button>
+                        <Button variant="outline" onClick={handleDownloadPdf} disabled={filteredData.length === 0}><Download className="mr-2 h-4 w-4" /> Calendario PDF</Button>
                     </div>
                 </CardContent>
             </Card>
@@ -379,9 +387,15 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             </div>
 
             <Card className="shadow-lg">
-                <CardHeader>
-                    <CardTitle className="font-headline text-xl">Detalle de Visitas</CardTitle>
-                    <CardDescription>Tabla con todos los registros de visitas filtrados.</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="font-headline text-xl">Detalle de Visitas</CardTitle>
+                        <CardDescription>Tabla con todos los registros de visitas filtrados.</CardDescription>
+                    </div>
+                     <Button variant="outline" size="icon" onClick={handleDownloadExcel} disabled={filteredData.length === 0}>
+                        <Download className="h-4 w-4" />
+                        <span className="sr-only">Descargar Excel</span>
+                    </Button>
                 </CardHeader>
                 <CardContent>
                     <div className="relative max-h-96 overflow-auto rounded-md border">

@@ -49,7 +49,10 @@ export default function GrillaEjecucionMaterialesPage() {
         }
         const totalExpectedAttendance = visits.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
         const totalSamples = visits.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
-        const totalAfiches = visits.reduce((sum, visit) => sum + (visit['MATERIAL POP']?.['AFICHE'] || 0), 0);
+        const totalAfiches = visits.reduce((sum, visit) => {
+            const afiches = visit['MATERIAL POP']?.['AFICHE'] || 0;
+            return sum + afiches;
+        }, 0);
         
         return {
             totalExpectedAttendance,

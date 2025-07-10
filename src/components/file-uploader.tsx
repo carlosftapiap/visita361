@@ -30,17 +30,16 @@ const spanishHeaders = [
     ...materialsList.map(m => `CANTIDAD ${m}`)
 ];
 
-export default function FileUploader({ onFileProcessed, disabled = false, loadedMonths = [] }: FileUploaderProps) {
+interface FileUploaderProps {
+  onFileProcessed: (data: Omit<Visit, 'id'>[]) => void;
+  disabled?: boolean;
+}
+
+export default function FileUploader({ onFileProcessed, disabled = false }: FileUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-
-  interface FileUploaderProps {
-    onFileProcessed: (data: Omit<Visit, 'id'>[]) => void;
-    disabled?: boolean;
-    loadedMonths?: string[];
-  }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -203,17 +202,6 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
 
   return (
     <div className="text-center">
-      {loadedMonths && loadedMonths.length > 0 && (
-          <div className="mb-4 rounded-md border bg-muted/50 p-3 text-left text-sm">
-              <div className="flex items-center gap-2 font-semibold text-card-foreground">
-                  <CheckCircle className="h-5 w-5 flex-shrink-0 text-green-600" />
-                  <p>Meses con datos ya cargados:</p>
-              </div>
-              <p className="mt-1 text-muted-foreground pl-7">
-                  {loadedMonths.join(', ')}
-              </p>
-          </div>
-      )}
       <div
           className={cn(
               "flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed border-border p-8 transition-colors",

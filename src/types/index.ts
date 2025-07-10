@@ -1,6 +1,7 @@
 
 
 
+
 export interface Material {
   id: number;
   name: string;
@@ -33,6 +34,7 @@ export interface Visit {
   'CANTIDAD DE MUESTRAS'?: number;
   'MATERIAL POP': Record<string, number>;
   'OBSERVACION'?: string;
+  total_cost?: number; // Costo total calculado de los materiales
 }
 
 export interface VisitWithMaterials extends Visit {

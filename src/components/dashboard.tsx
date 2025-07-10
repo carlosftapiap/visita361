@@ -200,6 +200,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             'ZONA': visit['ZONA'],
             'FECHA': visit['FECHA'] ? new Date(visit['FECHA']).toLocaleDateString('es-CO') : '',
             'PRESUPUESTO': visit['PRESUPUESTO'],
+            'COSTO TOTAL MATERIALES': visit.total_cost || 0,
             'AFLUENCIA ESPERADA': visit['AFLUENCIA ESPERADA'],
             'FECHA DE ENTREGA DE MATERIAL': visit['FECHA DE ENTREGA DE MATERIAL'] ? new Date(visit['FECHA DE ENTREGA DE MATERIAL']).toLocaleDateString('es-CO') : '',
             'OBJETIVO DE LA ACTIVIDAD': visit['OBJETIVO DE LA ACTIVIDAD'],
@@ -392,6 +393,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                                     <TableHead>Asesor Comercial</TableHead>
                                     <TableHead>Cadena</TableHead>
                                     <TableHead>Actividad</TableHead>
+                                    <TableHead className="text-right">Costo Materiales</TableHead>
                                     <TableHead className="text-right">Presupuesto</TableHead>
                                     <TableHead>Acciones</TableHead>
                                 </TableRow>
@@ -404,6 +406,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                                         <TableCell className="font-medium">{visit['ASESOR COMERCIAL']}</TableCell>
                                         <TableCell>{visit['CADENA']}</TableCell>
                                         <TableCell>{visit['ACTIVIDAD']}</TableCell>
+                                        <TableCell className="text-right font-mono">{visit.total_cost ? visit.total_cost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : '$0'}</TableCell>
                                         <TableCell className="text-right font-mono">{visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP'}) : 'N/A'}</TableCell>
                                         <TableCell>
                                             <Button variant="ghost" size="icon" onClick={() => onEditVisit(visit)}>
@@ -414,7 +417,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                                     </TableRow>
                                 )) : (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="h-24 text-center">No hay datos para mostrar con los filtros seleccionados.</TableCell>
+                                        <TableCell colSpan={8} className="h-24 text-center">No hay datos para mostrar con los filtros seleccionados.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

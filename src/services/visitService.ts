@@ -1,4 +1,5 @@
 
+
 import { getSupabase } from '@/lib/supabase';
 import type { Material, Visit, VisitMaterial } from '@/types';
 import { startOfMonth, endOfMonth } from 'date-fns';
@@ -133,7 +134,8 @@ export const getVisits = async (): Promise<Visit[]> => {
             visit_materials (
                 quantity,
                 materials (
-                    name
+                    name,
+                    unit_price
                 )
             )
         `)
@@ -144,13 +146,18 @@ export const getVisits = async (): Promise<Visit[]> => {
     }
     if (!visitsData) return [];
     
-    // Transform data to include MATERIAL POP object
+    // Transform data to include MATERIAL POP object and calculate total cost
     const transformedData = visitsData.map(visit => {
         const materialPop: Record<string, number> = {};
+        let totalCost = 0;
+
         if (Array.isArray(visit.visit_materials)) {
             visit.visit_materials.forEach((vm: any) => {
-                if (vm.materials?.name) { // Check if materials and name exist
-                    materialPop[vm.materials.name] = vm.quantity;
+                if (vm.materials?.name) {
+                    const quantity = vm.quantity || 0;
+                    const unit_price = vm.materials.unit_price || 0;
+                    materialPop[vm.materials.name] = quantity;
+                    totalCost += quantity * unit_price;
                 }
             });
         }
@@ -159,6 +166,7 @@ export const getVisits = async (): Promise<Visit[]> => {
         return {
             ...rest,
             'MATERIAL POP': materialPop,
+            'total_cost': totalCost
         } as Visit;
     });
 

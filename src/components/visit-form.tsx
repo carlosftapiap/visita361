@@ -118,8 +118,8 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
         const cleanMaterials: Record<string, number> = {};
         if (data['MATERIAL POP']) {
             for (const [key, value] of Object.entries(data['MATERIAL POP'])) {
-                if (value && value > 0) {
-                    cleanMaterials[key] = value;
+                if (value && Number(value) > 0) {
+                    cleanMaterials[key] = Number(value);
                 }
             }
         }
@@ -229,5 +229,3 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
     </Dialog>
   );
 }
-
-    

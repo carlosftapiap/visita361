@@ -4,7 +4,13 @@ import type { Visit } from '@/types';
 import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
 
 const buildSupabaseError = (error: any, context: string): Error => {
-    console.error(`Error with Supabase ${context}:`, error);
+    // Improved error stringification to avoid empty object logs "{}"
+    const errorMessage = typeof error === 'object' && error !== null 
+        ? JSON.stringify(error, null, 2) // Pretty print the error object
+        : String(error);
+
+    console.error(`Error with Supabase ${context}:`, errorMessage);
+
     let message;
 
     if (error?.code === '42P01' || (error?.message && (error.message.includes('does not exist') || error.message.includes('no existe la relación')))) {
@@ -30,7 +36,7 @@ const buildSupabaseError = (error: any, context: string): Error => {
                   `  "FECHA DE ENTREGA DE MATERIAL" TIMESTAMPTZ,\n` +
                   `  "OBJETIVO DE LA ACTIVIDAD" TEXT,\n` +
                   `  "CANTIDAD DE MUESTRAS" INTEGER,\n` +
-                  `  "MATERIAL POP" JSONB,\n` +
+                  `  "MATERIAL POP" JSONB, -- Columna para guardar {material: cantidad}\n` +
                   `  "OBSERVACION" TEXT\n` +
                   `);\n` +
                   `-- FIN SCRIPT SQL --`;
@@ -50,7 +56,6 @@ const buildSupabaseError = (error: any, context: string): Error => {
                   `-- FIN SCRIPT SQL --\n\n` +
                   `**NOTA:** Esta política da acceso total a usuarios autenticados. Para producción, debes crear reglas más restrictivas.`;
     } else {
-        const errorMessage = typeof error === 'object' && error !== null ? JSON.stringify(error) : String(error);
         message = `Ocurrió un error en la operación de ${context} con Supabase.\n\n` +
                   `**Detalles Técnicos:**\n` +
                   `Código: ${error?.code || 'N/A'}\n` +

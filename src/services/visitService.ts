@@ -12,11 +12,13 @@ para crear y configurar las tres tablas necesarias para la aplicación.
 --------------------------------------------------------------------------------
 
 -- ========= PASO 1: Eliminar tablas antiguas (si existen) para empezar de cero =========
+-- Esto asegura que no haya conflictos con versiones anteriores.
 DROP TABLE IF EXISTS public.visit_materials;
 DROP TABLE IF EXISTS public.materials;
 DROP TABLE IF EXISTS public.visits;
 
 -- ========= PASO 2: Crear la tabla principal de VISITAS =========
+-- Guarda la información general de cada visita.
 CREATE TABLE public.visits (
   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   "EJECUTIVA DE TRADE" TEXT,
@@ -38,6 +40,7 @@ CREATE TABLE public.visits (
 );
 
 -- ========= PASO 3: Crear el catálogo de MATERIALES con sus precios =========
+-- Aquí vivirán todos los materiales que puedes crear, editar y eliminar desde la app.
 CREATE TABLE public.materials (
     id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     name TEXT NOT NULL UNIQUE,
@@ -45,7 +48,7 @@ CREATE TABLE public.materials (
 );
 
 -- ========= PASO 4: Crear la tabla de enlace VISIT_MATERIALS =========
--- Esta tabla conecta las visitas con los materiales y almacena la cantidad usada.
+-- Esta tabla conecta las visitas con los materiales y almacena la cantidad usada en cada una.
 CREATE TABLE public.visit_materials (
     id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     visit_id BIGINT NOT NULL REFERENCES public.visits(id) ON DELETE CASCADE,
@@ -55,15 +58,19 @@ CREATE TABLE public.visit_materials (
 );
 
 -- ========= PASO 5: Configurar la Seguridad a Nivel de Fila (RLS) =========
+-- Habilitamos la seguridad en las tres tablas.
 ALTER TABLE public.visits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.visit_materials ENABLE ROW LEVEL SECURITY;
 
+-- Creamos políticas que permiten a los usuarios autenticados interactuar con las tablas.
+-- ¡La política para 'materials' ahora permite todas las acciones para que la nueva página funcione!
 CREATE POLICY "Public full access on visits" ON public.visits FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Public read access on materials" ON public.materials FOR ALL TO authenticated USING (true) WITH CHECK(true);
+CREATE POLICY "Public full access on materials" ON public.materials FOR ALL TO authenticated USING (true) WITH CHECK(true);
 CREATE POLICY "Public full access on visit_materials" ON public.visit_materials FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- ========= PASO 6: Insertar los materiales iniciales en el catálogo =========
+-- Estos son los materiales que aparecerán la primera vez. Puedes modificarlos desde la app.
 INSERT INTO public.materials (name, unit_price) VALUES
     ('AFICHE', 1.50), ('CARPA', 150.00), ('EXHIBIDOR MADERA', 80.00), ('FUNDA', 0.50),
     ('GANCHOS', 0.25), ('HABLADORES ACRILICO', 5.00), ('PLUMA', 0.75), ('ROMPETRAFICO', 2.00),
@@ -171,7 +178,7 @@ export const addVisit = async (visit: Omit<VisitWithMaterials, 'id'>) => {
     const materialMap = new Map(allMaterials.map(m => [m.name, m.id]));
 
     const visitMaterialsData = Object.entries(materials)
-        .filter(([_, details]) => details.quantity > 0 && materialMap.has(_))
+        .filter(([name, details]) => details.quantity > 0 && materialMap.has(name))
         .map(([name, details]) => ({
             visit_id: newVisit.id,
             material_id: materialMap.get(name)!,
@@ -205,7 +212,7 @@ export const updateVisit = async (id: number, visit: Partial<Omit<VisitWithMater
         const materialMap = new Map(allMaterials.map(m => [m.name, m.id]));
 
         const visitMaterialsData = Object.entries(materials)
-            .filter(([_, details]) => details.quantity > 0 && materialMap.has(_))
+            .filter(([name, details]) => details.quantity > 0 && materialMap.has(name))
             .map(([name, details]) => ({
                 visit_id: id,
                 material_id: materialMap.get(name)!,

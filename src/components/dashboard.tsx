@@ -53,19 +53,19 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
 
     const filterOptions = useMemo(() => {
         const getUniqueNonEmpty = (items: (string | null | undefined)[]) => 
-            [...new Set(items.filter((item): item is string => !!item && item.trim() !== ''))].sort();
+            ['all', ...[...new Set(items.filter((item): item is string => !!item && item.trim() !== ''))].sort()];
 
-        const trade_executives = ['all', ...getUniqueNonEmpty(data.map(v => v['EJECUTIVA DE TRADE']))];
+        const trade_executives = getUniqueNonEmpty(data.map(v => v['EJECUTIVA DE TRADE']));
         
         const relevantAgentsData = filters.trade_executive === 'all'
             ? data
             : data.filter(v => v['EJECUTIVA DE TRADE'] === filters.trade_executive);
-        const agents = ['all', ...getUniqueNonEmpty(relevantAgentsData.map(v => v['ASESOR COMERCIAL']))];
+        const agents = getUniqueNonEmpty(relevantAgentsData.map(v => v['ASESOR COMERCIAL']));
 
-        const cities = ['all', ...getUniqueNonEmpty(data.map(v => v['CIUDAD']))];
-        const activities = ['all', ...getUniqueNonEmpty(data.map(v => v['ACTIVIDAD']))];
-        const zones = ['all', ...getUniqueNonEmpty(data.map(v => v['ZONA']))];
-        const chains = ['all', ...getUniqueNonEmpty(data.map(v => v['CADENA']))];
+        const cities = getUniqueNonEmpty(data.map(v => v['CIUDAD']));
+        const activities = getUniqueNonEmpty(data.map(v => v['ACTIVIDAD']));
+        const zones = getUniqueNonEmpty(data.map(v => v['ZONA']));
+        const chains = getUniqueNonEmpty(data.map(v => v['CADENA']));
         
         return { trade_executives, agents, cities, activities, zones, chains };
     }, [data, filters.trade_executive]);
@@ -300,20 +300,20 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                 />
             </div>
 
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
                 <KpiCard title="Total de Actividades" value={kpis.totalVisits} icon={Activity} description="Total de registros en el periodo" />
                 <KpiCard title="Asesores Activos" value={kpis.uniqueAgents} icon={Users} description="Asesores con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
                 <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description={`En el mes actual (${kpis.daysInMonth} días)`} />
                 <KpiCard title="Días Libres" value={kpis.freeDays} icon={CalendarOff} description={`En el mes actual (${kpis.daysInMonth} días)`} />
-                <KpiCard 
+            </div>
+             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                 <KpiCard 
                     title="Afluencia de Personas" 
                     value={kpis.totalExpectedAttendance.toLocaleString('es-CO')}
                     icon={Users2} 
                     description="Suma total de afluencia esperada" 
                 />
-            </div>
-             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2">
                  <KpiCard 
                     title="Cantidad de Muestras" 
                     value={kpis.totalSamples.toLocaleString('es-CO')}

@@ -1,4 +1,5 @@
 
+
 import { getSupabase } from '@/lib/supabase';
 import type { Material, Visit, VisitWithMaterials } from '@/types';
 import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
@@ -122,6 +123,7 @@ export const getVisits = async (): Promise<Visit[]> => {
     const supabase = getSupabase();
     const threeMonthsAgo = subMonths(new Date(), 3);
 
+    // Explicit join to avoid relying on PostgREST's automatic relationship detection
     const { data, error } = await supabase
         .from('visits')
         .select(`
@@ -142,7 +144,7 @@ export const getVisits = async (): Promise<Visit[]> => {
             "OBJETIVO DE LA ACTIVIDAD",
             "CANTIDAD DE MUESTRAS",
             "OBSERVACION",
-            visit_materials (
+            visit_materials:visit_materials (
                 quantity,
                 materials ( id, name, unit_price )
             )
@@ -256,7 +258,7 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     const { data: newVisits, error: visitsError } = await supabase
         .from('visits')
         .insert(visitsToInsert)
-        .select('id, "ASESOR COMERCIAL", FECHA');
+        .select('id, "ASESOR COMERCIAL", "FECHA", "CADENA", "ACTIVIDAD"');
 
     if (visitsError) {
         throw buildSupabaseError(visitsError, 'creación de visitas en lote (addBatchVisits)');
@@ -266,7 +268,7 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     // Step 3: Create a map for quick lookup of new visit IDs
     const visitIdMap = new Map<string, number>();
     newVisits.forEach(v => {
-        const key = `${v['ASESOR COMERCIAL']}-${new Date(v['FECHA']).toISOString().split('T')[0]}`;
+        const key = `${v['ASESOR COMERCIAL']}-${new Date(v['FECHA']).toISOString().split('T')[0]}-${v['CADENA']}-${v['ACTIVIDAD']}`;
         visitIdMap.set(key, v.id);
     });
     
@@ -277,7 +279,7 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     // Step 5: Prepare all visit_materials records
     const allVisitMaterialsToInsert: any[] = [];
     visits.forEach(originalVisit => {
-        const key = `${originalVisit['ASESOR COMERCIAL']}-${new Date(originalVisit['FECHA']).toISOString().split('T')[0]}`;
+        const key = `${originalVisit['ASESOR COMERCIAL']}-${new Date(originalVisit['FECHA']).toISOString().split('T')[0]}-${originalVisit['CADENA']}-${originalVisit['ACTIVIDAD']}`;
         const newVisitId = visitIdMap.get(key);
 
         if (newVisitId && originalVisit['MATERIAL POP']) {

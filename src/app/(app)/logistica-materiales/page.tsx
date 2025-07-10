@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Wrench, AlertTriangle, Package, DollarSign, ListOrdered, Loader2, RefreshCw } from 'lucide-react';
-import { getVisitsWithMaterials } from '@/services/visitService';
+import { getVisits } from '@/services/visitService';
 import type { VisitWithMaterials } from '@/types';
 import KpiCard from '@/components/kpi-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -22,12 +22,13 @@ export default function LogisticaMaterialesPage() {
         setLoading(true);
         setError(null);
         try {
-            // Use the dedicated function to get only visits that have materials
-            const allVisitsWithMaterials = await getVisitsWithMaterials();
+            const allVisits = await getVisits();
             
-            // Further filter to only include 'IMPULSACIÓN' activities
-            const impulseVisits = allVisitsWithMaterials.filter(
-                visit => visit['ACTIVIDAD'] === 'IMPULSACIÓN'
+            const impulseVisits = allVisits.filter(
+                (visit): visit is VisitWithMaterials => 
+                    visit['ACTIVIDAD'] === 'IMPULSACIÓN' &&
+                    visit.visit_materials != null &&
+                    visit.visit_materials.length > 0
             );
             
             setData(impulseVisits);

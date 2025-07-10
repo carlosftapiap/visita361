@@ -4,6 +4,7 @@
 
 
 
+
 import { getSupabase } from '@/lib/supabase';
 import type { Material, Visit, VisitWithMaterials } from '@/types';
 import { startOfMonth, endOfMonth } from 'date-fns';
@@ -322,37 +323,6 @@ export const deleteVisitsInMonths = async (months: string[]) => {
        throw buildSupabaseError(error, 'borrado por meses (deleteVisitsInMonths)');
     }
 };
-
-export const getVisitsWithMaterials = async (): Promise<VisitWithMaterials[]> => {
-    const supabase = getSupabase();
-    const { data, error } = await supabase
-        .from('visits')
-        .select(`
-            id, "EJECUTIVA DE TRADE", "ASESOR COMERCIAL", "ACTIVIDAD", "CADENA", "DIRECCIÓN DEL PDV", "FECHA",
-            visit_materials (
-                quantity,
-                materials ( id, name, unit_price )
-            )
-        `)
-        .not('visit_materials', 'is', null)
-        .order('"FECHA"', { ascending: false });
-
-    if (error) {
-        throw buildSupabaseError(error, 'lectura de visitas con materiales (getVisitsWithMaterials)');
-    }
-    
-    return (data || []).map(visit => {
-        const total_cost = visit.visit_materials.reduce((sum: number, item: any) => {
-            return sum + (item.quantity * (item.materials?.unit_price || 0));
-        }, 0);
-
-        return {
-            ...visit,
-            total_cost
-        } as VisitWithMaterials;
-    });
-};
-
 
 // --- Material Management Functions ---
 

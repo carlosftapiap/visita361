@@ -7,6 +7,8 @@ export default function AnalisisRoiPage() {
             icon={Target}
             title="Análisis de ROI"
             description="Mida el retorno de la inversión de sus actividades de trade marketing."
+            onFileProcessed={(data) => console.log(data)}
+            onDownloadTemplate={() => console.log("Descargar plantilla ROI")}
         />
     );
 }

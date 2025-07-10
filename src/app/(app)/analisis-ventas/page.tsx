@@ -7,6 +7,8 @@ export default function AnalisisVentasPage() {
             icon={LineChart}
             title="Análisis de Ventas"
             description="Suba sus archivos de ventas para generar reportes y visualizaciones."
+            onFileProcessed={(data) => console.log(data)}
+            onDownloadTemplate={() => console.log("Descargar plantilla Ventas")}
         />
     );
 }

@@ -85,6 +85,10 @@ export default function GrillaEjecucionMaterialesPage() {
         };
     }, [visits, materials]);
 
+    const impulsacionVisits = useMemo(() => {
+        return visits.filter(visit => visit['ACTIVIDAD'] === 'IMPULSACIÓN');
+    }, [visits]);
+
     const renderContent = () => {
         if (loading) {
             return <DashboardSkeleton />;
@@ -149,6 +153,43 @@ export default function GrillaEjecucionMaterialesPage() {
                         ) : (
                             <p className="text-muted-foreground text-center py-4">No hay datos de materiales para mostrar.</p>
                         )}
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-lg">
+                    <CardHeader>
+                        <CardTitle className="font-headline text-xl">Planificación y Ejecución de Impulsaciones</CardTitle>
+                        <CardDescription>Detalle de todas las actividades de impulsación y sus requerimientos.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="relative max-h-96 overflow-auto rounded-md border">
+                            <Table>
+                                <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
+                                    <TableRow>
+                                        <TableHead>Fecha</TableHead>
+                                        <TableHead>Ejecutiva de Trade</TableHead>
+                                        <TableHead>Cadena/PDV</TableHead>
+                                        <TableHead>Materiales Requeridos</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {impulsacionVisits.length > 0 ? (
+                                        impulsacionVisits.map(visit => (
+                                            <TableRow key={visit.id}>
+                                                <TableCell>{visit['FECHA'] ? new Date(visit['FECHA']).toLocaleDateString('es-CO') : 'N/A'}</TableCell>
+                                                <TableCell>{visit['EJECUTIVA DE TRADE']}</TableCell>
+                                                <TableCell>{visit['CADENA']}</TableCell>
+                                                <TableCell>{formatMaterialPopForTable(visit['MATERIAL POP'])}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="h-24 text-center">No hay actividades de "IMPULSACIÓN" para mostrar.</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </CardContent>
                 </Card>
             </div>

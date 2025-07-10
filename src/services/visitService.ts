@@ -161,7 +161,14 @@ const buildSupabaseError = (error: any, context: string): Error => {
     console.error(`Error with Supabase ${context}:`, errorMessage);
 
     let message;
-    if (error?.message && (error.message.includes('does not exist') || error.message.includes('no existe la relación'))) {
+    if (error?.message && error.message.includes('Could not find the function')) {
+        message = `La función de base de datos 'get_visits_with_materials_and_cost' no existe.\n\n` +
+                  `**SOLUCIÓN:**\n` +
+                  `1. Copia el script SQL completo que está en los comentarios de 'src/services/visitService.ts'.\n` +
+                  `2. Ve al 'SQL Editor' en tu dashboard de Supabase.\n` +
+                  `3. Pega el script y haz clic en 'RUN'.\n\n` +
+                  `Esto creará la función que la aplicación necesita para funcionar.`;
+    } else if (error?.message && (error.message.includes('does not exist') || error.message.includes('no existe la relación'))) {
         message = `Una o más tablas ('visits', 'materials', 'visit_materials') no se encontraron en Supabase o les faltan columnas.\n\n` +
                   `**SOLUCIÓN:**\n` +
                   `Ve al editor de SQL en tu dashboard de Supabase y ejecuta el script de configuración que se encuentra en los comentarios del archivo 'src/services/visitService.ts'.`;
@@ -170,10 +177,6 @@ const buildSupabaseError = (error: any, context: string): Error => {
                   `Una política de seguridad está bloqueando la operación de '${context}'.\n\n` +
                   `**SOLUCIÓN:**\n` +
                   `Asegúrate de que RLS esté habilitado y que existan políticas que permitan el acceso a usuarios autenticados. Puedes usar el script de configuración en 'src/services/visitService.ts' para aplicar las políticas de desarrollo recomendadas.`;
-    } else if (error?.message?.includes('function get_visits_with_materials_and_cost() does not exist')) {
-        message = `La función de base de datos 'get_visits_with_materials_and_cost' no existe.\n\n` +
-                  `**SOLUCIÓN:**\n` +
-                  `Ve al editor de SQL en tu dashboard de Supabase y ejecuta el PASO 7 del script de configuración que se encuentra en los comentarios del archivo 'src/services/visitService.ts'.`;
     } else {
         message = `Ocurrió un error en la operación de ${context} con Supabase.\n\n` +
                   `**Detalles Técnicos:**\n` +

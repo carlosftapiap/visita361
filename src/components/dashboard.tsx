@@ -2,7 +2,7 @@
 "use client"
 
 import { useMemo, useState, useRef } from "react";
-import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil, CalendarOff, Package } from "lucide-react";
+import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil, CalendarOff, Package, PackageCheck } from "lucide-react";
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, LabelList } from "recharts";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -125,6 +125,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
 
         const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
         const totalMaterialCost = filteredData.reduce((sum, visit) => sum + (visit.total_cost || 0), 0);
+        const totalSamples = filteredData.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
 
         return { 
             totalVisits, 
@@ -134,7 +135,8 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             freeDays: freeDaysInCurrentMonth,
             daysInMonth: daysInCurrentMonth,
             totalBudget,
-            totalMaterialCost
+            totalMaterialCost,
+            totalSamples
         };
     }, [filteredData]);
 
@@ -311,10 +313,10 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             </div>
              <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline text-xl flex items-center gap-2"><DollarSign className="text-accent"/>Resumen Financiero</CardTitle>
+                    <CardTitle className="font-headline text-xl flex items-center gap-2"><DollarSign className="text-accent"/>Resumen Financiero y de Unidades</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <KpiCard 
                             title="Presupuesto Total" 
                             value={kpis.totalBudget.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
@@ -326,6 +328,12 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                             value={kpis.totalMaterialCost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
                             icon={Package} 
                             description="Costo total de materiales en el periodo" 
+                        />
+                        <KpiCard
+                            title="Total de Muestras"
+                            value={kpis.totalSamples.toLocaleString('es-CO')}
+                            icon={PackageCheck}
+                            description="Suma total de muestras entregadas"
                         />
                     </div>
                 </CardContent>

@@ -3,7 +3,7 @@
 
 import { useMemo, useState, useRef } from "react";
 import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil, CalendarOff } from "lucide-react";
-import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from "recharts";
+import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, LabelList } from "recharts";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -360,8 +360,9 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                          <ChartContainer config={activityChartConfig} className="h-[300px] w-full">
                             <PieChart accessibilityLayer>
                                 <Tooltip content={<ChartTooltipContent hideLabel nameKey="name"/>} />
-                                <Pie data={activityCounts} dataKey="value" nameKey="name" cx="50%" cy="50%">
-                                  {activityCounts.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                                <Pie data={activityCounts} dataKey="value" nameKey="name" cx="50%" cy="50%" labelLine={false} label>
+                                    <LabelList dataKey="value" className="fill-background font-semibold" stroke="none" />
+                                    {activityCounts.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
                                 </Pie>
                                 <ChartLegend content={<ChartLegendContent nameKey="name" />} />
                             </PieChart>
@@ -376,8 +377,9 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                          <ChartContainer config={channelChartConfig} className="h-[300px] w-full">
                             <PieChart accessibilityLayer>
                                 <Tooltip content={<ChartTooltipContent hideLabel nameKey="name"/>} />
-                                <Pie data={visitsPerChannel} dataKey="value" nameKey="name" cx="50%" cy="50%">
-                                  {visitsPerChannel.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                                <Pie data={visitsPerChannel} dataKey="value" nameKey="name" cx="50%" cy="50%" labelLine={false} label>
+                                    <LabelList dataKey="value" className="fill-background font-semibold" stroke="none" />
+                                    {visitsPerChannel.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
                                 </Pie>
                                 <ChartLegend content={<ChartLegendContent nameKey="name" />} />
                             </PieChart>

@@ -1,6 +1,6 @@
 
 import { getSupabase } from '@/lib/supabase';
-import type { Visit, Material, VisitWithMaterials } from '@/types';
+import type { Material, VisitWithMaterials } from '@/types';
 import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
 
 /*
@@ -60,7 +60,7 @@ ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.visit_materials ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Public full access on visits" ON public.visits FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Public read access on materials" ON public.materials FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Public read access on materials" ON public.materials FOR ALL TO authenticated USING (true) WITH CHECK(true);
 CREATE POLICY "Public full access on visit_materials" ON public.visit_materials FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- ========= PASO 6: Insertar los materiales iniciales en el catálogo =========
@@ -262,6 +262,28 @@ export const deleteVisitsInMonths = async (months: string[]) => {
     }
 };
 
-    
+// --- Material Management Functions ---
 
-    
+export const addMaterial = async (material: Omit<Material, 'id'>) => {
+    const supabase = getSupabase();
+    const { error } = await supabase.from('materials').insert(material);
+    if (error) {
+        throw buildSupabaseError(error, 'creación de material (addMaterial)');
+    }
+}
+
+export const updateMaterial = async (id: number, material: Partial<Omit<Material, 'id'>>) => {
+    const supabase = getSupabase();
+    const { error } = await supabase.from('materials').update(material).eq('id', id);
+    if (error) {
+        throw buildSupabaseError(error, 'actualización de material (updateMaterial)');
+    }
+}
+
+export const deleteMaterial = async (id: number) => {
+    const supabase = getSupabase();
+    const { error } = await supabase.from('materials').delete().eq('id', id);
+    if (error) {
+        throw buildSupabaseError(error, 'eliminación de material (deleteMaterial)');
+    }
+}

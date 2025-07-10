@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -105,10 +106,10 @@ export default function AppLayout({
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={pathname.startsWith('/gestion-pedidos')} tooltip="Gestión de Pedidos">
+                        <SidebarMenuButton asChild isActive={pathname.startsWith('/gestion-pedidos')} tooltip="Gestión de Materiales">
                             <Link href="/gestion-pedidos">
                                 <Package />
-                                <span>Gestión de Pedidos</span>
+                                <span>Gestión de Materiales</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

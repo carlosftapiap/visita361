@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Wrench, AlertTriangle, Package, DollarSign, ListOrdered, Loader2, RefreshCw } from 'lucide-react';
-import { getImpulseVisitsWithMaterials } from '@/services/visitService';
+import { getVisitsWithMaterials } from '@/services/visitService';
 import type { VisitWithMaterials } from '@/types';
 import KpiCard from '@/components/kpi-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -21,8 +22,8 @@ export default function LogisticaMaterialesPage() {
         setLoading(true);
         setError(null);
         try {
-            const impulseVisits = await getImpulseVisitsWithMaterials();
-            setData(impulseVisits);
+            const visitsWithMaterials = await getVisitsWithMaterials();
+            setData(visitsWithMaterials);
         } catch (err: any) {
             setError(err.message || "Ocurrió un error desconocido.");
             toast({
@@ -88,7 +89,7 @@ export default function LogisticaMaterialesPage() {
         return (
             <div className="flex flex-col gap-6">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <KpiCard title="Actividades de Impulso" value={kpis.totalActivities} icon={Package} description="Total de actividades que requieren material." />
+                    <KpiCard title="Actividades con Material" value={kpis.totalActivities} icon={Package} description="Total de actividades que requieren material." />
                     <KpiCard title="Costo Total de Materiales" value={kpis.totalCost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })} icon={DollarSign} description="Suma del costo de todos los materiales." />
                     <KpiCard title="Total de Artículos" value={kpis.totalItems.toLocaleString('es-CO')} icon={ListOrdered} description="Suma de todas las cantidades de material." />
                 </div>
@@ -96,7 +97,7 @@ export default function LogisticaMaterialesPage() {
                     <CardHeader>
                         <CardTitle>Detalle de Requerimientos por Actividad</CardTitle>
                         <CardDescription>
-                            Listado de todas las actividades de impulso, los materiales requeridos y el costo asociado.
+                            Listado de todas las actividades que requieren materiales, con su costo asociado.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -106,6 +107,7 @@ export default function LogisticaMaterialesPage() {
                                     <TableRow>
                                         <TableHead>Fecha</TableHead>
                                         <TableHead>Ejecutiva de Trade</TableHead>
+                                        <TableHead>Actividad</TableHead>
                                         <TableHead>Cadena / PDV</TableHead>
                                         <TableHead>Materiales Requeridos</TableHead>
                                         <TableHead className="text-right">Costo Total de Material</TableHead>
@@ -117,6 +119,7 @@ export default function LogisticaMaterialesPage() {
                                             <TableRow key={visit.id}>
                                                 <TableCell>{new Date(visit.FECHA).toLocaleDateString('es-CO')}</TableCell>
                                                 <TableCell className="font-medium">{visit['EJECUTIVA DE TRADE']}</TableCell>
+                                                <TableCell>{visit['ACTIVIDAD']}</TableCell>
                                                 <TableCell>{visit['CADENA']} - {visit['DIRECCIÓN DEL PDV']}</TableCell>
                                                 <TableCell>{formatMaterialsList(visit.visit_materials)}</TableCell>
                                                 <TableCell className="text-right font-mono">
@@ -126,8 +129,8 @@ export default function LogisticaMaterialesPage() {
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="h-24 text-center">
-                                                No se encontraron actividades de impulso que requieran materiales.
+                                            <TableCell colSpan={6} className="h-24 text-center">
+                                                No se encontraron actividades que requieran materiales.
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -147,7 +150,7 @@ export default function LogisticaMaterialesPage() {
                     <h1 className="font-headline text-3xl font-bold text-primary flex items-center gap-3">
                         <Wrench /> Logística de Materiales
                     </h1>
-                    <p className="text-muted-foreground">Planifique y visualice los costos de material para actividades de impulso.</p>
+                    <p className="text-muted-foreground">Planifique y visualice los costos de material para todas las actividades.</p>
                 </div>
             </div>
             

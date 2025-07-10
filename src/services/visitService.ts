@@ -142,7 +142,7 @@ export const getVisits = async (): Promise<Visit[]> => {
             "OBJETIVO DE LA ACTIVIDAD",
             "CANTIDAD DE MUESTRAS",
             "OBSERVACION",
-            visit_materials:visit_materials (
+            visit_materials (
                 quantity,
                 materials ( id, name, unit_price )
             )
@@ -280,7 +280,7 @@ export const deleteVisitsInMonths = async (months: string[]) => {
     }
 };
 
-export const getImpulseVisitsWithMaterials = async (): Promise<VisitWithMaterials[]> => {
+export const getVisitsWithMaterials = async (): Promise<VisitWithMaterials[]> => {
     const supabase = getSupabase();
     const { data, error } = await supabase
         .from('visits')
@@ -291,11 +291,10 @@ export const getImpulseVisitsWithMaterials = async (): Promise<VisitWithMaterial
                 materials ( id, name, unit_price )
             )
         `)
-        .eq('"ACTIVIDAD"', 'IMPULSACIÓN')
         .order('"FECHA"', { ascending: false });
 
     if (error) {
-        throw buildSupabaseError(error, 'lectura de visitas con materiales (getImpulseVisitsWithMaterials)');
+        throw buildSupabaseError(error, 'lectura de visitas con materiales (getVisitsWithMaterials)');
     }
     
     return (data || []).map(visit => {

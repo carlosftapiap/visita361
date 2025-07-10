@@ -3,8 +3,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Wrench, AlertTriangle, Package, DollarSign, ListOrdered, Loader2, RefreshCw } from 'lucide-react';
-import { getVisits } from '@/services/visitService';
-import type { Visit, VisitWithMaterials } from '@/types';
+import { getVisitsWithMaterials } from '@/services/visitService';
+import type { VisitWithMaterials } from '@/types';
 import KpiCard from '@/components/kpi-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -22,14 +22,15 @@ export default function LogisticaMaterialesPage() {
         setLoading(true);
         setError(null);
         try {
-            const allVisits = await getVisits();
-            // Filter for impulse activities that have materials
-            const impulseVisitsWithMaterials = allVisits.filter(
-                (visit): visit is VisitWithMaterials => 
-                    visit['ACTIVIDAD'] === 'IMPULSACIÓN' &&
-                    visit.visit_materials && visit.visit_materials.length > 0
+            // Use the dedicated function to get only visits that have materials
+            const allVisitsWithMaterials = await getVisitsWithMaterials();
+            
+            // Further filter to only include 'IMPULSACIÓN' activities
+            const impulseVisits = allVisitsWithMaterials.filter(
+                visit => visit['ACTIVIDAD'] === 'IMPULSACIÓN'
             );
-            setData(impulseVisitsWithMaterials);
+            
+            setData(impulseVisits);
         } catch (err: any) {
             setError(err.message || "Ocurrió un error desconocido.");
             toast({
@@ -50,13 +51,13 @@ export default function LogisticaMaterialesPage() {
         const totalActivities = data.length;
         const totalCost = data.reduce((sum, visit) => sum + (visit.total_cost || 0), 0);
         const totalItems = data.reduce((sum, visit) => {
-            return sum + (visit.visit_materials || []).reduce((itemSum, mat) => itemSum + mat.quantity, 0);
+            return sum + visit.visit_materials.reduce((itemSum, mat) => itemSum + mat.quantity, 0);
         }, 0);
 
         return { totalActivities, totalCost, totalItems };
     }, [data]);
 
-    const formatMaterialsList = (materials?: VisitWithMaterials['visit_materials']) => {
+    const formatMaterialsList = (materials: VisitWithMaterials['visit_materials']) => {
         if (!materials || materials.length === 0) return 'N/A';
         return materials.map(m => `${m.quantity} x ${m.materials.name}`).join(', ');
     };

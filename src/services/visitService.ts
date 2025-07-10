@@ -2,6 +2,7 @@
 
 
 
+
 import { getSupabase } from '@/lib/supabase';
 import type { Material, Visit, VisitWithMaterials } from '@/types';
 import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
@@ -146,9 +147,10 @@ export const getVisits = async (): Promise<(Visit | VisitWithMaterials)[]> => {
     return (data || []).map(visit => {
         const materialsUsed: Record<string, number> = {};
         let total_cost = 0;
-
-        if (visit.visit_materials && Array.isArray(visit.visit_materials)) {
-            visit.visit_materials.forEach((item: any) => {
+        
+        const visitMaterials = visit.visit_materials;
+        if (visitMaterials && Array.isArray(visitMaterials)) {
+            visitMaterials.forEach((item: any) => {
                 if (item.materials) {
                     materialsUsed[item.materials.name] = item.quantity;
                     total_cost += (item.quantity || 0) * (item.materials.unit_price || 0);
@@ -159,8 +161,9 @@ export const getVisits = async (): Promise<(Visit | VisitWithMaterials)[]> => {
         return {
             ...visit,
             'MATERIAL POP': materialsUsed,
-            total_cost: total_cost
-        } as Visit | VisitWithMaterials;
+            visit_materials: visitMaterials, // Keep the original structure for detailed views
+            total_cost,
+        } as VisitWithMaterials;
     });
 };
 
@@ -325,7 +328,7 @@ export const getVisitsWithMaterials = async (): Promise<VisitWithMaterials[]> =>
     const { data, error } = await supabase
         .from('visits')
         .select(`
-            *,
+            id, "EJECUTIVA DE TRADE", "ASESOR COMERCIAL", "ACTIVIDAD", "CADENA", "DIRECCIÓN DEL PDV", "FECHA",
             visit_materials!inner(
                 quantity,
                 materials ( id, name, unit_price )
@@ -345,7 +348,7 @@ export const getVisitsWithMaterials = async (): Promise<VisitWithMaterials[]> =>
         return {
             ...visit,
             total_cost
-        };
+        } as VisitWithMaterials;
     });
 };
 

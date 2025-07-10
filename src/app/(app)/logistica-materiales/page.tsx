@@ -30,37 +30,40 @@ export default function LogisticaMaterialesPage() {
 
             const materialMap = new Map(materials.map(m => [m.id, m]));
             
-            const impulseVisits = visits.filter(v => v.ACTIVIDAD === 'IMPULSACIÓN');
+            // KPI 1: Total de actividades de impulsación
+            const totalImpulseActivities = visits.filter(v => v.ACTIVIDAD === 'IMPULSACIÓN').length;
 
-            const processedData: VisitWithMaterials[] = impulseVisits.map(visit => {
-                const materialsForVisit = visitMaterials.filter(vm => vm.visit_id === visit.id);
-                
-                const materials_list = materialsForVisit.map(vm => {
-                    const materialDetail = materialMap.get(vm.material_id);
+            const processedData: VisitWithMaterials[] = visits
+                .filter(v => v.ACTIVIDAD === 'IMPULSACIÓN')
+                .map(visit => {
+                    const materialsForVisit = visitMaterials.filter(vm => vm.visit_id === visit.id);
+                    
+                    const materials_list = materialsForVisit.map(vm => {
+                        const materialDetail = materialMap.get(vm.material_id);
+                        return {
+                            name: materialDetail?.name || 'Desconocido',
+                            quantity: vm.quantity,
+                            unit_price: materialDetail?.unit_price || 0,
+                        };
+                    });
+
+                    const total_cost = materials_list.reduce((acc, item) => acc + (item.quantity * item.unit_price), 0);
+                    
                     return {
-                        name: materialDetail?.name || 'Desconocido',
-                        quantity: vm.quantity,
-                        unit_price: materialDetail?.unit_price || 0,
+                        ...visit,
+                        materials_list,
+                        total_cost,
                     };
-                });
+                }).filter(v => v.materials_list.length > 0);
 
-                const total_cost = materials_list.reduce((acc, item) => acc + (item.quantity * item.unit_price), 0);
-                
-                return {
-                    ...visit,
-                    materials_list,
-                    total_cost,
-                };
-            }).filter(v => v.materials_list.length > 0);
-
-            const totalActivities = processedData.length;
+            // KPI 2 y 3: Costo y artículos, basados en los datos procesados (con materiales)
             const totalCost = processedData.reduce((sum, visit) => sum + visit.total_cost, 0);
             const totalItems = processedData.reduce((sum, visit) => {
                 return sum + visit.materials_list.reduce((itemSum, item) => itemSum + item.quantity, 0);
             }, 0);
 
             setLogisticsData(processedData);
-            setKpis({ totalActivities, totalCost, totalItems });
+            setKpis({ totalActivities: totalImpulseActivities, totalCost, totalItems });
 
         } catch (err: any) {
             setError(err.message || "Ocurrió un error desconocido.");

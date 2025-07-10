@@ -1,5 +1,6 @@
 
 
+
 export interface Material {
   id: number;
   name: string;
@@ -36,5 +37,5 @@ export interface Visit {
 
 export interface VisitWithMaterials extends Visit {
     total_cost: number;
-    materials_list: { name: string, quantity: number }[];
+    materials_list: { name: string, quantity: number, unit_price: number }[];
 }

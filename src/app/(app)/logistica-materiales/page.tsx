@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Truck, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
-import type { Visit, Material, VisitMaterial, VisitWithMaterials } from '@/types';
+import type { Visit, Material, VisitMaterial } from '@/types';
 import { getVisits, getMaterials, getVisitMaterials } from '@/services/visitService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,9 @@ import DashboardSkeleton from '@/components/dashboard-skeleton';
 import LogisticsDashboard from '@/components/logistics-dashboard';
 
 export default function LogisticaMaterialesPage() {
-    const [logisticsData, setLogisticsData] = useState<VisitWithMaterials[]>([]);
-    const [kpis, setKpis] = useState({ totalActivities: 0, totalCost: 0, totalItems: 0 });
+    const [visits, setVisits] = useState<Visit[]>([]);
+    const [materials, setMaterials] = useState<Material[]>([]);
+    const [visitMaterials, setVisitMaterials] = useState<VisitMaterial[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { toast } = useToast();
@@ -22,48 +23,15 @@ export default function LogisticaMaterialesPage() {
         setLoading(true);
         setError(null);
         try {
-            const [visits, materials, visitMaterials] = await Promise.all([
+            const [visitsData, materialsData, visitMaterialsData] = await Promise.all([
                 getVisits(),
                 getMaterials(),
                 getVisitMaterials()
             ]);
-
-            const materialMap = new Map(materials.map(m => [m.id, m]));
             
-            // KPI 1: Total de actividades de impulsación
-            const totalImpulseActivities = visits.filter(v => v.ACTIVIDAD === 'IMPULSACIÓN').length;
-
-            const processedData: VisitWithMaterials[] = visits
-                .filter(v => v.ACTIVIDAD === 'IMPULSACIÓN')
-                .map(visit => {
-                    const materialsForVisit = visitMaterials.filter(vm => vm.visit_id === visit.id);
-                    
-                    const materials_list = materialsForVisit.map(vm => {
-                        const materialDetail = materialMap.get(vm.material_id);
-                        return {
-                            name: materialDetail?.name || 'Desconocido',
-                            quantity: vm.quantity,
-                            unit_price: materialDetail?.unit_price || 0,
-                        };
-                    });
-
-                    const total_cost = materials_list.reduce((acc, item) => acc + (item.quantity * item.unit_price), 0);
-                    
-                    return {
-                        ...visit,
-                        materials_list,
-                        total_cost,
-                    };
-                }).filter(v => v.materials_list.length > 0);
-
-            // KPI 2 y 3: Costo y artículos, basados en los datos procesados (con materiales)
-            const totalCost = processedData.reduce((sum, visit) => sum + visit.total_cost, 0);
-            const totalItems = processedData.reduce((sum, visit) => {
-                return sum + visit.materials_list.reduce((itemSum, item) => itemSum + item.quantity, 0);
-            }, 0);
-
-            setLogisticsData(processedData);
-            setKpis({ totalActivities: totalImpulseActivities, totalCost, totalItems });
+            setVisits(visitsData);
+            setMaterials(materialsData);
+            setVisitMaterials(visitMaterialsData);
 
         } catch (err: any) {
             setError(err.message || "Ocurrió un error desconocido.");
@@ -112,7 +80,7 @@ export default function LogisticaMaterialesPage() {
             );
         }
 
-        return <LogisticsDashboard logisticsData={logisticsData} kpis={kpis} />;
+        return <LogisticsDashboard visits={visits} materials={materials} visitMaterials={visitMaterials} />;
     };
 
     return (

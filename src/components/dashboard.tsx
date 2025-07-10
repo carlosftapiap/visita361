@@ -232,15 +232,20 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const calendarElement = calendarRef.current;
         if (!calendarElement || filteredData.length === 0) return;
 
+        const width = calendarElement.offsetWidth;
+        const height = calendarElement.offsetHeight;
+
         html2canvas(calendarElement, {
-            scale: 3, // Increased scale for better quality
+            scale: 2,
             useCORS: true,
+            width: width,
+            height: height,
         }).then((canvas) => {
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({
-                orientation: 'landscape',
+                orientation: width > height ? 'landscape' : 'portrait',
                 unit: 'px',
-                format: [canvas.width, canvas.height]
+                format: [width, height]
             });
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
@@ -442,7 +447,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                                         <TableCell>{visit['CADENA']}</TableCell>
                                         <TableCell>{visit['ACTIVIDAD']}</TableCell>
                                         <TableCell className="text-right font-mono">{visit.total_cost ? visit.total_cost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : '$0'}</TableCell>
-                                        <TableCell className="text-right font-mono">{visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP'}) : 'N/A'}</TableCell>
+                                        <TableCell className="text-right font-mono">{visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO') : 'N/A'}</TableCell>
                                         <TableCell>
                                             <Button variant="ghost" size="icon" onClick={() => onEditVisit(visit)}>
                                                 <Pencil className="h-4 w-4" />

@@ -2,11 +2,12 @@
 "use client"
 
 import { useMemo, useState, useRef } from "react";
-import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil, Users2, PackageCheck, Target } from "lucide-react";
+import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil, Users2, PackageCheck, Target, CalendarOff } from "lucide-react";
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from "recharts";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { getDaysInMonth } from 'date-fns';
 
 import type { Visit } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,7 +95,16 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const totalVisits = filteredData.length;
         const uniqueAgents = new Set(filteredData.map(v => v['ASESOR COMERCIAL'])).size;
         const uniqueChains = new Set(filteredData.map(v => v['CADENA'])).size;
-        const workedDays = new Set(filteredData.map(v => new Date(v['FECHA']).toDateString())).size;
+
+        const today = new Date();
+        const daysInCurrentMonth = getDaysInMonth(today);
+        const workedDaysInCurrentMonth = new Set(
+            filteredData
+                .filter(v => new Date(v['FECHA']).getMonth() === today.getMonth() && new Date(v['FECHA']).getFullYear() === today.getFullYear())
+                .map(v => new Date(v['FECHA']).getDate())
+        ).size;
+        const freeDaysInCurrentMonth = daysInCurrentMonth - workedDaysInCurrentMonth;
+
         const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
         
         const impulseData = filteredData.filter(v => v['ACTIVIDAD'] === 'IMPULSACIÓN');
@@ -109,7 +119,9 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             totalVisits, 
             uniqueAgents, 
             uniqueChains, 
-            workedDays, 
+            workedDays: workedDaysInCurrentMonth,
+            freeDays: freeDaysInCurrentMonth,
+            daysInMonth: daysInCurrentMonth,
             totalBudget, 
             impulseExpectedAttendance, 
             impulseTotalSamples, 
@@ -279,27 +291,21 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                 <KpiCard title="Total de Actividades" value={kpis.totalVisits} icon={Activity} description="Total de registros en el periodo" />
                 <KpiCard title="Asesores Activos" value={kpis.uniqueAgents} icon={Users} description="Asesores con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
-                <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="Días con al menos un registro" />
-                 <KpiCard 
+                <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description={`En el mes actual (${kpis.daysInMonth} días)`} />
+                <KpiCard title="Días Libres" value={kpis.freeDays} icon={CalendarOff} description={`En el mes actual (${kpis.daysInMonth} días)`} />
+                <KpiCard 
                     title="Afluencia de Personas" 
                     value={kpis.totalExpectedAttendance.toLocaleString('es-CO')}
                     icon={Users2} 
                     description="Suma total de afluencia esperada" 
                 />
+            </div>
+             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2">
                  <KpiCard 
                     title="Cantidad de Muestras" 
                     value={kpis.totalSamples.toLocaleString('es-CO')}
                     icon={PackageCheck} 
                     description="Suma total de muestras a entregar" 
-                />
-            </div>
-
-             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2">
-                <KpiCard 
-                    title="Presupuesto Total" 
-                    value={kpis.totalBudget.toLocaleString('es-CO')}
-                    icon={DollarSign} 
-                    description="Suma de presupuestos en el periodo" 
                 />
                  <KpiCard 
                     title="Objetivos Definidos (Impulso)" 
@@ -308,7 +314,19 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                     description="Impulsos con un objetivo claro" 
                 />
             </div>
-
+             <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline text-xl flex items-center gap-2"><DollarSign className="text-accent"/>Resumen Financiero</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                     <KpiCard 
+                        title="Presupuesto Total" 
+                        value={kpis.totalBudget.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                        icon={DollarSign} 
+                        description="Suma de presupuestos en el periodo" 
+                    />
+                </CardContent>
+             </Card>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-6">
                  <Card className="shadow-lg lg:col-span-3">
@@ -424,3 +442,5 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         </div>
     );
 }
+
+    

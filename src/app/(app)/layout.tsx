@@ -16,7 +16,7 @@ import {
   SidebarFooter,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { CalendarCheck, LineChart, Target, Package, LogOut, Database } from 'lucide-react';
+import { CalendarCheck, LineChart, Target, Package, LogOut, Database, Truck } from 'lucide-react';
 import { getSupabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import DashboardSkeleton from "@/components/dashboard-skeleton";
@@ -86,6 +86,14 @@ export default function AppLayout({
                             <Link href="/cronograma-trade">
                                 <CalendarCheck />
                                 <span>Cronograma Trade</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname.startsWith('/logistica-materiales')} tooltip="Logística de Materiales">
+                            <Link href="/logistica-materiales">
+                                <Truck />
+                                <span>Logística de Materiales</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

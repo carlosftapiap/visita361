@@ -3,9 +3,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Package, DollarSign, List, Truck, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
-import { format } from 'date-fns';
-import { getVisits, getMaterials } from '@/services/visitService';
 import type { Visit, Material, VisitWithMaterials } from '@/types';
+import { getVisits, getMaterials } from '@/services/visitService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -179,7 +178,7 @@ export default function LogisticaMaterialesPage() {
                                     {logisticsData.length > 0 ? (
                                         logisticsData.map(visit => (
                                             <TableRow key={visit.id}>
-                                                <TableCell>{format(new Date(visit.FECHA), 'P')}</TableCell>
+                                                <TableCell>{new Date(visit.FECHA).toLocaleDateString()}</TableCell>
                                                 <TableCell>{visit['EJECUTIVA DE TRADE']}</TableCell>
                                                 <TableCell>{visit.ACTIVIDAD}</TableCell>
                                                 <TableCell>{`${visit.CADENA} / ${visit['DIRECCIÓN DEL PDV']}`}</TableCell>

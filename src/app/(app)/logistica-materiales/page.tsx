@@ -21,6 +21,83 @@ const formatMaterialPopForTable = (visit?: VisitWithMaterials): string => {
         .join(', ');
 };
 
+function LogisticsDashboard({ logisticsData, kpis }: { logisticsData: VisitWithMaterials[], kpis: any }) {
+    return (
+        <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <KpiCard
+                    title="Actividades de Impulsación"
+                    value={kpis.totalActivities}
+                    icon={Package}
+                    description="Total de actividades de impulsación con material."
+                />
+                <KpiCard
+                    title="Costo Total de Materiales"
+                    value={kpis.totalCost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                    icon={DollarSign}
+                    description="Suma del costo de todos los materiales."
+                />
+                <KpiCard
+                    title="Total de Artículos"
+                    value={kpis.totalItems}
+                    icon={List}
+                    description="Suma de todas las cantidades de material."
+                />
+            </div>
+
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle>Detalle de Requerimientos por Actividad</CardTitle>
+                    <CardDescription>
+                        Listado de todas las actividades de impulsación que requieren materiales, con su costo asociado.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="relative max-h-[60vh] overflow-auto rounded-md border">
+                        <Table>
+                            <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
+                                <TableRow>
+                                    <TableHead>Fecha</TableHead>
+                                    <TableHead>Ejecutiva de Trade</TableHead>
+                                    <TableHead>Actividad</TableHead>
+                                    <TableHead>Cadena / PDV</TableHead>
+                                    <TableHead>Materiales Requeridos</TableHead>
+                                    <TableHead className="text-right">Costo Total de Material</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {logisticsData.length > 0 ? (
+                                    logisticsData.map(visit => (
+                                        <TableRow key={visit.id}>
+                                            <TableCell>{new Date(visit.FECHA).toLocaleDateString()}</TableCell>
+                                            <TableCell>{visit['EJECUTIVA DE TRADE']}</TableCell>
+                                            <TableCell>{visit.ACTIVIDAD}</TableCell>
+                                            <TableCell>{`${visit.CADENA} / ${visit['DIRECCIÓN DEL PDV']}`}</TableCell>
+                                            <TableCell className="max-w-xs truncate">
+                                                {formatMaterialPopForTable(visit)}
+                                            </TableCell>
+                                            <TableCell className="text-right font-mono">
+                                                {(visit.total_cost || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="h-24 text-center">
+                                            No se encontraron actividades de impulsación que requieran materiales.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+        </>
+    )
+}
+
+
 export default function LogisticaMaterialesPage() {
     const [visits, setVisits] = useState<Visit[]>([]);
     const [materials, setMaterials] = useState<Material[]>([]);
@@ -63,9 +140,9 @@ export default function LogisticaMaterialesPage() {
         const materialPriceMap = new Map(materials.map(m => [m.id, m.unit_price]));
         const materialNameMap = new Map(materials.map(m => [m.id, m.name]));
 
-        const impulseVisitsWithMaterials = (visits as VisitWithMaterials[]).filter(visit => 
-            visit.ACTIVIDAD === 'IMPULSACIÓN' && 
-            visit.visit_materials && 
+        const impulseVisitsWithMaterials = (visits as VisitWithMaterials[]).filter(visit =>
+            visit.ACTIVIDAD === 'IMPULSACIÓN' &&
+            visit.visit_materials &&
             visit.visit_materials.length > 0
         );
         
@@ -131,79 +208,7 @@ export default function LogisticaMaterialesPage() {
             );
         }
 
-        return (
-            <>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <KpiCard
-                        title="Actividades de Impulsación"
-                        value={kpis.totalActivities}
-                        icon={Package}
-                        description="Total de actividades de impulsación con material."
-                    />
-                    <KpiCard
-                        title="Costo Total de Materiales"
-                        value={kpis.totalCost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
-                        icon={DollarSign}
-                        description="Suma del costo de todos los materiales."
-                    />
-                    <KpiCard
-                        title="Total de Artículos"
-                        value={kpis.totalItems}
-                        icon={List}
-                        description="Suma de todas las cantidades de material."
-                    />
-                </div>
-
-                <Card className="shadow-lg">
-                    <CardHeader>
-                        <CardTitle>Detalle de Requerimientos por Actividad</CardTitle>
-                        <CardDescription>
-                            Listado de todas las actividades de impulsación que requieren materiales, con su costo asociado.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="relative max-h-[60vh] overflow-auto rounded-md border">
-                            <Table>
-                                <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
-                                    <TableRow>
-                                        <TableHead>Fecha</TableHead>
-                                        <TableHead>Ejecutiva de Trade</TableHead>
-                                        <TableHead>Actividad</TableHead>
-                                        <TableHead>Cadena / PDV</TableHead>
-                                        <TableHead>Materiales Requeridos</TableHead>
-                                        <TableHead className="text-right">Costo Total de Material</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {logisticsData.length > 0 ? (
-                                        logisticsData.map(visit => (
-                                            <TableRow key={visit.id}>
-                                                <TableCell>{new Date(visit.FECHA).toLocaleDateString()}</TableCell>
-                                                <TableCell>{visit['EJECUTIVA DE TRADE']}</TableCell>
-                                                <TableCell>{visit.ACTIVIDAD}</TableCell>
-                                                <TableCell>{`${visit.CADENA} / ${visit['DIRECCIÓN DEL PDV']}`}</TableCell>
-                                                <TableCell className="max-w-xs truncate">
-                                                    {formatMaterialPopForTable(visit)}
-                                                </TableCell>
-                                                <TableCell className="text-right font-mono">
-                                                    {(visit.total_cost || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={6} className="h-24 text-center">
-                                                No se encontraron actividades de impulsación que requieran materiales.
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
-            </>
-        );
+        return <LogisticsDashboard logisticsData={logisticsData} kpis={kpis} />;
     };
 
     return (

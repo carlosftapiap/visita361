@@ -52,49 +52,55 @@ export default function GrillaEjecucionMaterialesPage() {
         fetchData();
     }, [fetchData]);
 
-    const kpis = useMemo(() => {
+    const { kpis, impulsacionVisits } = useMemo(() => {
         if (!visits || visits.length === 0) {
             return {
-                totalExpectedAttendance: 0,
-                totalSamples: 0,
-                materialTotals: []
+                kpis: {
+                    totalExpectedAttendance: 0,
+                    totalSamples: 0,
+                    materialTotals: []
+                },
+                impulsacionVisits: []
             };
         }
         const totalExpectedAttendance = visits.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
         const totalSamples = visits.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
         
-        const materialTotals = materials.reduce((acc, material) => {
-            acc[material.name] = 0;
-            return acc;
-        }, {} as Record<string, number>);
+        const materialTotalsMap: Record<string, number> = {};
+        materials.forEach(material => {
+            materialTotalsMap[material.name] = 0;
+        });
 
-        for (const visit of visits) {
+        visits.forEach(visit => {
             if (visit['MATERIAL POP']) {
                 for (const [materialName, quantity] of Object.entries(visit['MATERIAL POP'])) {
-                    if (materialTotals.hasOwnProperty(materialName)) {
-                        materialTotals[materialName] += quantity || 0;
+                    if (materialTotalsMap.hasOwnProperty(materialName)) {
+                        materialTotalsMap[materialName] += quantity || 0;
                     }
                 }
             }
-        }
+        });
         
+        const materialTotals = Object.entries(materialTotalsMap).sort(([aName], [bName]) => aName.localeCompare(bName));
+        const filteredImpulsacionVisits = visits.filter(visit => visit['ACTIVIDAD'] === 'IMPULSACIÓN');
+
         return {
-            totalExpectedAttendance,
-            totalSamples,
-            materialTotals: Object.entries(materialTotals).sort(([aName], [bName]) => aName.localeCompare(bName))
+            kpis: {
+                totalExpectedAttendance,
+                totalSamples,
+                materialTotals
+            },
+            impulsacionVisits: filteredImpulsacionVisits
         };
     }, [visits, materials]);
 
-    const impulsacionVisits = useMemo(() => {
-        return visits.filter(visit => visit['ACTIVIDAD'] === 'IMPULSACIÓN');
-    }, [visits]);
+    if (loading) {
+        return <div className="p-4 md:p-6"><DashboardSkeleton /></div>;
+    }
 
-    const renderContent = () => {
-        if (loading) {
-            return <DashboardSkeleton />;
-        }
-        if (error) {
-            return (
+    if (error) {
+        return (
+            <div className="p-4 md:p-6">
                 <Card className="shadow-md border-destructive bg-destructive/5 mt-6">
                     <CardHeader>
                         <CardTitle className="font-headline text-xl text-destructive flex items-center gap-2">
@@ -116,89 +122,10 @@ export default function GrillaEjecucionMaterialesPage() {
                         </Button>
                     </CardFooter>
                 </Card>
-            );
-        }
-
-        return (
-            <div className="flex flex-col gap-6">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <KpiCard
-                        title="Afluencia de Personas"
-                        value={kpis.totalExpectedAttendance.toLocaleString('es-CO')}
-                        icon={Users2}
-                        description="Suma total de afluencia esperada en todas las actividades"
-                    />
-                    <KpiCard
-                        title="Cantidad de Muestras"
-                        value={kpis.totalSamples.toLocaleString('es-CO')}
-                        icon={PackageCheck}
-                        description="Suma total de muestras a entregar"
-                    />
-                </div>
-                <Card className="shadow-lg">
-                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Package className="text-primary"/> Resumen de Materiales POP</CardTitle>
-                        <CardDescription>Suma total de cada tipo de material utilizado en todas las actividades.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {kpis.materialTotals.length > 0 ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                {kpis.materialTotals.map(([name, total]) => (
-                                    <div key={name} className="flex flex-col items-center justify-center p-3 rounded-lg bg-muted/50 border">
-                                        <p className="text-sm font-medium text-muted-foreground text-center">{name}</p>
-                                        <p className="font-bold text-2xl text-primary">{total.toLocaleString('es-CO')}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-muted-foreground text-center py-4">No hay datos de materiales para mostrar.</p>
-                        )}
-                    </CardContent>
-                </Card>
-                <Card className="shadow-lg">
-                    <CardHeader>
-                        <CardTitle className="font-headline text-xl">Planificación y Ejecución de Impulsaciones</CardTitle>
-                        <CardDescription>Detalle de todas las actividades de impulsación y sus requerimientos.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="relative max-h-96 overflow-auto rounded-md border">
-                            <Table>
-                                <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
-                                    <TableRow>
-                                        <TableHead>Fecha</TableHead>
-                                        <TableHead>Ejecutiva de Trade</TableHead>
-                                        <TableHead>Asesor Comercial</TableHead>
-                                        <TableHead>Cadena/PDV</TableHead>
-                                        <TableHead>Materiales Requeridos</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {impulsacionVisits.length > 0 ? (
-                                        impulsacionVisits.map(visit => (
-                                            <TableRow key={visit.id}>
-                                                <TableCell>{visit['FECHA'] ? format(new Date(visit['FECHA']), 'dd/MM/yyyy') : 'N/A'}</TableCell>
-                                                <TableCell>{visit['EJECUTIVA DE TRADE']}</TableCell>
-                                                <TableCell>{visit['ASESOR COMERCIAL']}</TableCell>
-                                                <TableCell>{visit['CADENA']}</TableCell>
-                                                <TableCell>{formatMaterialPopForTable(visit['MATERIAL POP'])}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="h-24 text-center">
-                                                No hay actividades de impulsación registradas.
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
             </div>
         );
-    };
-
+    }
+    
     return (
         <div className="p-4 md:p-6 flex flex-col gap-6">
             <Card className="shadow-md">
@@ -212,7 +139,81 @@ export default function GrillaEjecucionMaterialesPage() {
                     </div>
                 </CardHeader>
             </Card>
-            {renderContent()}
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <KpiCard
+                    title="Afluencia de Personas"
+                    value={kpis.totalExpectedAttendance.toLocaleString('es-CO')}
+                    icon={Users2}
+                    description="Suma total de afluencia esperada en todas las actividades"
+                />
+                <KpiCard
+                    title="Cantidad de Muestras"
+                    value={kpis.totalSamples.toLocaleString('es-CO')}
+                    icon={PackageCheck}
+                    description="Suma total de muestras a entregar"
+                />
+            </div>
+            <Card className="shadow-lg">
+                    <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Package className="text-primary"/> Resumen de Materiales POP</CardTitle>
+                    <CardDescription>Suma total de cada tipo de material utilizado en todas las actividades.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {kpis.materialTotals.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                            {kpis.materialTotals.map(([name, total]) => (
+                                <div key={name} className="flex flex-col items-center justify-center p-3 rounded-lg bg-muted/50 border">
+                                    <p className="text-sm font-medium text-muted-foreground text-center">{name}</p>
+                                    <p className="font-bold text-2xl text-primary">{total.toLocaleString('es-CO')}</p>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-muted-foreground text-center py-4">No hay datos de materiales para mostrar.</p>
+                    )}
+                </CardContent>
+            </Card>
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle className="font-headline text-xl">Planificación y Ejecución de Impulsaciones</CardTitle>
+                    <CardDescription>Detalle de todas las actividades de impulsación y sus requerimientos.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="relative max-h-96 overflow-auto rounded-md border">
+                        <Table>
+                            <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
+                                <TableRow>
+                                    <TableHead>Fecha</TableHead>
+                                    <TableHead>Ejecutiva de Trade</TableHead>
+                                    <TableHead>Asesor Comercial</TableHead>
+                                    <TableHead>Cadena/PDV</TableHead>
+                                    <TableHead>Materiales Requeridos</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {impulsacionVisits.length > 0 ? (
+                                    impulsacionVisits.map(visit => (
+                                        <TableRow key={visit.id}>
+                                            <TableCell>{visit['FECHA'] ? format(new Date(visit['FECHA']), 'dd/MM/yyyy') : 'N/A'}</TableCell>
+                                            <TableCell>{visit['EJECUTIVA DE TRADE']}</TableCell>
+                                            <TableCell>{visit['ASESOR COMERCIAL']}</TableCell>
+                                            <TableCell>{visit['CADENA']}</TableCell>
+                                            <TableCell>{formatMaterialPopForTable(visit['MATERIAL POP'])}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="h-24 text-center">
+                                            No hay actividades de impulsación registradas.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }

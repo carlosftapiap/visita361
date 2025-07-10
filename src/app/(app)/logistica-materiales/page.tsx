@@ -34,7 +34,8 @@ export default function LogisticaMaterialesPage() {
             setVisitMaterials(visitMaterialsData);
 
         } catch (err: any) {
-            setError(err.message || "Ocurrió un error desconocido.");
+            const errorMessage = err.message || "Ocurrió un error desconocido.";
+            setError(errorMessage);
             toast({
                 variant: "destructive",
                 title: "Error al Cargar Datos",

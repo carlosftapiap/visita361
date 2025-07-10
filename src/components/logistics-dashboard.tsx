@@ -32,6 +32,7 @@ export default function LogisticsDashboard({ visits, materials, visitMaterials }
         const totalImpulseActivities = visits.filter(v => v.ACTIVIDAD === 'IMPULSACIÓN').length;
 
         const logisticsData: VisitWithMaterials[] = visits
+            .filter(v => v.ACTIVIDAD === 'IMPULSACIÓN') // Start with all impulse activities
             .map(visit => {
                 const materialsForVisit = visitMaterials.filter(vm => vm.visit_id === visit.id);
                 
@@ -52,7 +53,8 @@ export default function LogisticsDashboard({ visits, materials, visitMaterials }
                     total_cost,
                 };
             })
-            .filter(v => v.ACTIVIDAD === 'IMPULSACIÓN' && v.materials_list.length > 0);
+            // Now, for the table, filter to only those that ended up having materials
+            .filter(v => v.materials_list.length > 0);
 
         // KPI 2 y 3: Costo y artículos, basados en los datos procesados (solo impulsos CON materiales)
         const totalCost = logisticsData.reduce((sum, visit) => sum + visit.total_cost, 0);

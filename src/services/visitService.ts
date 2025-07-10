@@ -236,66 +236,46 @@ export const updateVisit = async (id: number, visit: Partial<Omit<Visit, 'id'>>)
 export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     const supabase = getSupabase();
     
-    // Step 1: Prepare and insert only the visit data
-    const visitsToInsert = visits.map(v => {
-        const {'MATERIAL POP': _, ...visitData} = v;
-        return visitData;
-    });
-
-    const { data: newVisits, error: visitsError } = await supabase
-        .from('visits')
-        .insert(visitsToInsert)
-        .select('id, "FECHA", "ASESOR COMERCIAL", "CADENA", "ACTIVIDAD"');
-
-    if (visitsError) {
-        throw buildSupabaseError(visitsError, 'creación de visitas en lote (addBatchVisits)');
-    }
-    if (!newVisits || newVisits.length === 0) return;
-
-    // Step 2: Create a map to link original Excel rows to new visit IDs
-    const visitIdMap = new Map<string, number>();
-    newVisits.forEach((v, index) => {
-        // Use a more robust key, matching the original data from the 'visits' array
-        const originalVisit = visits[index];
-        const key = `${originalVisit['ASESOR COMERCIAL']}-${new Date(originalVisit['FECHA']).toISOString().split('T')[0]}-${originalVisit['CADENA']}-${originalVisit['ACTIVIDAD']}`;
-        
-        // Handle potential duplicates in the key by appending the index
-        const uniqueKey = `${key}-${index}`;
-        visitIdMap.set(uniqueKey, v.id);
-    });
-    
-    // Step 3: Fetch all available materials to map names to IDs
+    // Get all materials once to avoid fetching them in a loop
     const allMaterials = await getMaterials();
     const materialIdMap = new Map(allMaterials.map(m => [m.name, m.id]));
 
-    // Step 4: Prepare the `visit_materials` data for batch insertion
-    const allVisitMaterialsToInsert: { visit_id: number; material_id: number; quantity: number }[] = [];
-    visits.forEach((originalVisit, index) => {
-        const key = `${originalVisit['ASESOR COMERCIAL']}-${new Date(originalVisit['FECHA']).toISOString().split('T')[0]}-${originalVisit['CADENA']}-${originalVisit['ACTIVIDAD']}`;
-        const uniqueKey = `${key}-${index}`;
-        const newVisitId = visitIdMap.get(uniqueKey);
+    for (const visit of visits) {
+        const { 'MATERIAL POP': materials, ...visitData } = visit;
 
-        if (newVisitId && originalVisit['MATERIAL POP']) {
-            const materialsForVisit = Object.entries(originalVisit['MATERIAL POP'])
+        // Step 1: Insert the visit and get its ID
+        const { data: newVisit, error: visitError } = await supabase
+            .from('visits')
+            .insert(visitData as Partial<Visit>)
+            .select('id')
+            .single();
+
+        if (visitError) {
+            throw buildSupabaseError(visitError, `creación de visita en lote para ${visitData['ASESOR COMERCIAL']}`);
+        }
+        
+        if (!newVisit) continue; // Skip if visit insertion failed for some reason
+
+        // Step 2: Prepare and insert materials for this specific visit
+        if (materials && Object.keys(materials).length > 0) {
+            const visitMaterialsToInsert = Object.entries(materials)
                 .filter(([name, quantity]) => quantity > 0 && materialIdMap.has(name))
                 .map(([name, quantity]) => ({
-                    visit_id: newVisitId,
+                    visit_id: newVisit.id,
                     material_id: materialIdMap.get(name)!,
                     quantity,
                 }));
-            
-            allVisitMaterialsToInsert.push(...materialsForVisit);
-        }
-    });
 
-    // Step 5: Batch insert all `visit_materials` records
-    if (allVisitMaterialsToInsert.length > 0) {
-        const { error: materialsError } = await supabase
-            .from('visit_materials')
-            .insert(allVisitMaterialsToInsert);
+            if (visitMaterialsToInsert.length > 0) {
+                const { error: materialsError } = await supabase
+                    .from('visit_materials')
+                    .insert(visitMaterialsToInsert);
 
-        if (materialsError) {
-             throw buildSupabaseError(materialsError, 'asignación de materiales en lote (addBatchVisits)');
+                if (materialsError) {
+                    // Log the error but don't stop the whole batch
+                    console.error(`Error adding materials for visit ID ${newVisit.id}:`, materialsError);
+                }
+            }
         }
     }
 };
@@ -354,5 +334,3 @@ export const deleteMaterial = async (id: number) => {
         throw buildSupabaseError(error, 'eliminación de material (deleteMaterial)');
     }
 }
-
-    

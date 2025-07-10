@@ -37,13 +37,25 @@ interface FileUploaderProps {
 
 export default function FileUploader({ onFileProcessed, disabled = false }: FileUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
+  const resetState = () => {
+    setIsUploading(false);
+    setIsSuccess(false);
+    setFileName(null);
+     if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+     }
+  }
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    resetState();
 
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
       toast({
@@ -154,6 +166,10 @@ export default function FileUploader({ onFileProcessed, disabled = false }: File
           description: description,
         });
 
+        setIsUploading(false);
+        setIsSuccess(true);
+        setTimeout(() => resetState(), 3000); // Reset after 3 seconds
+
       } catch (error: any) {
         console.error('Error processing file:', error);
         toast({
@@ -161,12 +177,7 @@ export default function FileUploader({ onFileProcessed, disabled = false }: File
           title: 'Error al procesar el archivo',
           description: error.message || 'Asegúrese de que el formato del archivo sea correcto.',
         });
-      } finally {
-        setIsUploading(false);
-        setFileName(null);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
+        resetState();
       }
     };
     
@@ -177,8 +188,7 @@ export default function FileUploader({ onFileProcessed, disabled = false }: File
             title: "Error de lectura",
             description: "No se pudo leer el archivo.",
         });
-        setIsUploading(false);
-        setFileName(null);
+        resetState();
     };
 
     reader.readAsArrayBuffer(file);
@@ -201,6 +211,42 @@ export default function FileUploader({ onFileProcessed, disabled = false }: File
     XLSX.writeFile(wb, 'Visita360_Template.xlsx');
   };
 
+  const renderContent = () => {
+    if (isUploading) {
+        return (
+            <div className="flex flex-col items-center gap-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="text-muted-foreground">Procesando {fileName}...</p>
+            </div>
+        )
+    }
+    if (isSuccess) {
+        return (
+             <div className="flex flex-col items-center gap-4">
+                <CheckCircle className="h-12 w-12 text-green-500" />
+                <p className="text-muted-foreground">¡Archivo cargado con éxito!</p>
+            </div>
+        )
+    }
+    return (
+        <div className="flex flex-col items-center gap-2">
+            <UploadCloud className="h-12 w-12 text-accent" />
+            <p className="mb-1 text-muted-foreground">Arrastre y suelte o haga clic para cargar.</p>
+            <Button size="sm" disabled={isUploading || disabled}>
+                Seleccionar Archivo
+            </Button>
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept=".xlsx, .xls"
+                disabled={isUploading || disabled}
+            />
+        </div>
+    )
+  }
+
   return (
     <div className="text-center">
       <div
@@ -220,28 +266,7 @@ export default function FileUploader({ onFileProcessed, disabled = false }: File
           }}
           onDragOver={(e) => e.preventDefault()}
       >
-        {isUploading ? (
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-muted-foreground">Procesando {fileName}...</p>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2">
-            <UploadCloud className="h-12 w-12 text-accent" />
-            <p className="mb-1 text-muted-foreground">Arrastre y suelte o haga clic para cargar.</p>
-            <Button size="sm" disabled={isUploading || disabled}>
-              Seleccionar Archivo
-            </Button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden"
-              accept=".xlsx, .xls"
-              disabled={isUploading || disabled}
-            />
-          </div>
-        )}
+        {renderContent()}
       </div>
       <p className="mt-4 text-xs text-muted-foreground">
         Soportamos archivos .xlsx y .xls.

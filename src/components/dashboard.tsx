@@ -53,7 +53,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
 
     const filterOptions = useMemo(() => {
         const getUniqueNonEmpty = (items: (string | null | undefined)[]) => 
-            [...new Set(items.filter((item): item is string => !!item && item.trim() !== ''))];
+            [...new Set(items.filter((item): item is string => !!item && item.trim() !== ''))].sort();
 
         const trade_executives = ['all', ...getUniqueNonEmpty(data.map(v => v['EJECUTIVA DE TRADE']))];
         
@@ -66,6 +66,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const activities = ['all', ...getUniqueNonEmpty(data.map(v => v['ACTIVIDAD']))];
         const zones = ['all', ...getUniqueNonEmpty(data.map(v => v['ZONA']))];
         const chains = ['all', ...getUniqueNonEmpty(data.map(v => v['CADENA']))];
+        
         return { trade_executives, agents, cities, activities, zones, chains };
     }, [data, filters.trade_executive]);
 
@@ -80,6 +81,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
     };
 
     const filteredData = useMemo(() => {
+        if (!data) return [];
         return data.filter(visit => {
             const tradeExecutiveMatch = filters.trade_executive === 'all' || visit['EJECUTIVA DE TRADE'] === filters.trade_executive;
             const agentMatch = filters.agent === 'all' || visit['ASESOR COMERCIAL'] === filters.agent;
@@ -93,27 +95,27 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
 
     const kpis = useMemo(() => {
         const totalVisits = filteredData.length;
-        const uniqueAgents = new Set(filteredData.map(v => v['ASESOR COMERCIAL'])).size;
-        const uniqueChains = new Set(filteredData.map(v => v['CADENA'])).size;
+        const uniqueAgents = new Set(filteredData.map(v => v['ASESOR COMERCIAL']).filter(Boolean)).size;
+        const uniqueChains = new Set(filteredData.map(v => v['CADENA']).filter(Boolean)).size;
 
         const today = new Date();
         const daysInCurrentMonth = getDaysInMonth(today);
         
-        const dataInCurrentMonth = filteredData.filter(v => 
-            new Date(v['FECHA']).getMonth() === today.getMonth() && 
-            new Date(v['FECHA']).getFullYear() === today.getFullYear()
-        );
+        const dataInCurrentMonth = filteredData.filter(v => {
+            const visitDate = new Date(v['FECHA']);
+            return visitDate.getMonth() === today.getMonth() && 
+                   visitDate.getFullYear() === today.getFullYear();
+        });
 
-        const workedDaysSet = new Set<number>();
-        const freeDaysSet = new Set<number>();
+        const workedDaysSet = new Set<string>();
+        const freeDaysSet = new Set<string>();
 
         dataInCurrentMonth.forEach(v => {
-            const dayOfMonth = new Date(v['FECHA']).getDate();
-            // @ts-ignore
+            const dayKey = new Date(v['FECHA']).toISOString().split('T')[0];
             if (v['ACTIVIDAD']?.toUpperCase() === 'LIBRE') {
-                freeDaysSet.add(dayOfMonth);
+                freeDaysSet.add(dayKey);
             } else {
-                workedDaysSet.add(dayOfMonth);
+                workedDaysSet.add(dayKey);
             }
         });
         
@@ -123,8 +125,6 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
         
         const impulseData = filteredData.filter(v => v['ACTIVIDAD'] === 'IMPULSACIÓN');
-        const impulseExpectedAttendance = impulseData.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
-        const impulseTotalSamples = impulseData.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
         const impulseDefinedObjectives = impulseData.filter(v => v['OBJETIVO DE LA ACTIVIDAD'] && v['OBJETIVO DE LA ACTIVIDAD'].trim() !== '').length;
 
         const totalExpectedAttendance = filteredData.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
@@ -138,8 +138,6 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             freeDays: freeDaysInCurrentMonth,
             daysInMonth: daysInCurrentMonth,
             totalBudget, 
-            impulseExpectedAttendance, 
-            impulseTotalSamples, 
             impulseDefinedObjectives,
             totalExpectedAttendance,
             totalSamples
@@ -155,10 +153,10 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         return Object.entries(counts).map(([name, value], index) => ({ name, value, fill: chartColors[index % chartColors.length] })).sort((a, b) => b.value - a.value);
     }, [filteredData]);
     
-    const activityChartConfig = {
+    const activityChartConfig: ChartConfig = {
       value: { label: 'Actividades' },
       ...activityCounts.reduce((acc, cur) => ({...acc, [cur.name]: {label: cur.name, color: cur.fill}}), {})
-    } satisfies ChartConfig
+    };
 
     const visitsPerAgent = useMemo(() => {
         const counts = filteredData.reduce((acc, visit) => {
@@ -178,9 +176,9 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         return Object.entries(counts).map(([name, value]) => ({ name, visits: value })).sort((a, b) => b.visits - a.visits);
     }, [filteredData]);
 
-    const visitsChartConfig = {
+    const visitsChartConfig: ChartConfig = {
         visits: { label: "Visitas", color: "hsl(var(--primary))" },
-    } satisfies ChartConfig;
+    };
 
     const visitsPerChannel = useMemo(() => {
         const counts = filteredData.reduce((acc, visit) => {
@@ -191,10 +189,10 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         return Object.entries(counts).map(([name, value], index) => ({ name, value, fill: chartColors[index % chartColors.length] })).sort((a, b) => b.value - a.value);
     }, [filteredData]);
 
-    const channelChartConfig = {
+    const channelChartConfig: ChartConfig = {
         value: { label: 'Canales' },
         ...visitsPerChannel.reduce((acc, cur) => ({...acc, [cur.name]: {label: cur.name, color: cur.fill}}), {})
-    } satisfies ChartConfig;
+    };
 
     const handleDownloadExcel = () => {
         if (filteredData.length === 0) return;
@@ -435,7 +433,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                                         <TableCell className="font-medium">{visit['ASESOR COMERCIAL']}</TableCell>
                                         <TableCell>{visit['CADENA']}</TableCell>
                                         <TableCell>{visit['ACTIVIDAD']}</TableCell>
-                                        <TableCell className="text-right font-mono">{visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO') : '0'}</TableCell>
+                                        <TableCell className="text-right font-mono">{visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP'}) : 'N/A'}</TableCell>
                                         <TableCell>
                                             <Button variant="ghost" size="icon" onClick={() => onEditVisit(visit)}>
                                                 <Pencil className="h-4 w-4" />
@@ -457,7 +455,3 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         </div>
     );
 }
-
-    
-
-    

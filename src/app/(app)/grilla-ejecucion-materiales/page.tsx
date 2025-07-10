@@ -42,11 +42,12 @@ export default function GrillaEjecucionMaterialesPage() {
     const kpis = useMemo(() => {
         const totalExpectedAttendance = visits.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
         const totalSamples = visits.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
-        
         const totalAfiches = visits.reduce((sum, visit) => {
             const materials = visit['MATERIAL POP'];
-            if (!materials) return sum;
-            return sum + (materials['AFICHE'] || 0);
+            if (materials && typeof materials === 'object' && materials['AFICHE']) {
+                return sum + (Number(materials['AFICHE']) || 0);
+            }
+            return sum;
         }, 0);
         
         return {

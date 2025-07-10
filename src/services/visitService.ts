@@ -1,5 +1,6 @@
 
 
+
 import { getSupabase } from '@/lib/supabase';
 import type { Material, Visit, VisitWithMaterials } from '@/types';
 import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
@@ -119,32 +120,19 @@ export const getMaterials = async (): Promise<Material[]> => {
     return data || [];
 };
 
-export const getVisits = async (): Promise<Visit[]> => {
+export const getVisits = async (): Promise<(Visit | VisitWithMaterials)[]> => {
     const supabase = getSupabase();
     const threeMonthsAgo = subMonths(new Date(), 3);
 
-    // Explicit join to avoid relying on PostgREST's automatic relationship detection
     const { data, error } = await supabase
         .from('visits')
         .select(`
             id,
-            "EJECUTIVA DE TRADE",
-            "ASESOR COMERCIAL",
-            "CANAL",
-            "CADENA",
-            "DIRECCIÓN DEL PDV",
-            "ACTIVIDAD",
-            "HORARIO",
-            "CIUDAD",
-            "ZONA",
-            "FECHA",
-            "PRESUPUESTO",
-            "AFLUENCIA ESPERADA",
-            "FECHA DE ENTREGA DE MATERIAL",
-            "OBJETIVO DE LA ACTIVIDAD",
-            "CANTIDAD DE MUESTRAS",
-            "OBSERVACION",
-            visit_materials:visit_materials (
+            "EJECUTIVA DE TRADE", "ASESOR COMERCIAL", "CANAL", "CADENA", "DIRECCIÓN DEL PDV",
+            "ACTIVIDAD", "HORARIO", "CIUDAD", "ZONA", "FECHA", "PRESUPUESTO",
+            "AFLUENCIA ESPERADA", "FECHA DE ENTREGA DE MATERIAL", "OBJETIVO DE LA ACTIVIDAD",
+            "CANTIDAD DE MUESTRAS", "OBSERVACION",
+            visit_materials (
                 quantity,
                 materials ( id, name, unit_price )
             )
@@ -158,22 +146,25 @@ export const getVisits = async (): Promise<Visit[]> => {
 
     return (data || []).map(visit => {
         const materialsUsed: Record<string, number> = {};
+        let total_cost = 0;
+
         if (visit.visit_materials && Array.isArray(visit.visit_materials)) {
             visit.visit_materials.forEach((item: any) => {
                 if (item.materials) {
                     materialsUsed[item.materials.name] = item.quantity;
+                    total_cost += (item.quantity || 0) * (item.materials.unit_price || 0);
                 }
             });
         }
         
-        const { visit_materials, ...restOfVisit } = visit;
-
         return {
-            ...restOfVisit,
-            'MATERIAL POP': materialsUsed
-        } as Visit;
+            ...visit,
+            'MATERIAL POP': materialsUsed,
+            total_cost: total_cost
+        } as Visit | VisitWithMaterials;
     });
 };
+
 
 export const addVisit = async (visit: Omit<Visit, 'id'>) => {
     const supabase = getSupabase();
@@ -334,36 +325,6 @@ export const deleteVisitsInMonths = async (months: string[]) => {
     if (error) {
        throw buildSupabaseError(error, 'borrado por meses (deleteVisitsInMonths)');
     }
-};
-
-export const getImpulseVisitsWithMaterials = async (): Promise<VisitWithMaterials[]> => {
-    const supabase = getSupabase();
-    const { data, error } = await supabase
-        .from('visits')
-        .select(`
-            *,
-            visit_materials!inner(
-                quantity,
-                materials ( id, name, unit_price )
-            )
-        `)
-        .eq('"ACTIVIDAD"', 'IMPULSACIÓN')
-        .order('"FECHA"', { ascending: false });
-
-    if (error) {
-        throw buildSupabaseError(error, 'lectura de visitas con materiales (getImpulseVisitsWithMaterials)');
-    }
-    
-    return (data || []).map(visit => {
-        const total_cost = visit.visit_materials.reduce((sum, item) => {
-            return sum + (item.quantity * (item.materials?.unit_price || 0));
-        }, 0);
-
-        return {
-            ...visit,
-            total_cost
-        };
-    });
 };
 
 export const getVisitsWithMaterials = async (): Promise<VisitWithMaterials[]> => {

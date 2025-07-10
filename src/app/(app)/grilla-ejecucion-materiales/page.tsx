@@ -42,9 +42,16 @@ export default function GrillaEjecucionMaterialesPage() {
     const kpis = useMemo(() => {
         const totalExpectedAttendance = visits.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
         const totalSamples = visits.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
+        
         const totalAfiches = visits.reduce((sum, visit) => {
-            const aficheCount = visit['MATERIAL POP']?.['AFICHE'] || 0;
-            return sum + aficheCount;
+            const materials = visit['MATERIAL POP'];
+            if (!materials) return sum;
+
+            // Find afiche key case-insensitively
+            const aficheKey = Object.keys(materials).find(key => key.toUpperCase() === 'AFICHE');
+            const aficheCount = aficheKey ? materials[aficheKey] : 0;
+            
+            return sum + (aficheCount || 0);
         }, 0);
         
         return {

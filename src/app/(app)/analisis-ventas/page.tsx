@@ -1,3 +1,5 @@
+"use client";
+
 import { LineChart } from 'lucide-react';
 import ModulePlaceholder from '@/components/module-placeholder';
 

@@ -126,7 +126,7 @@ export const getVisits = async (): Promise<Visit[]> => {
         .from('visits')
         .select(`
             *,
-            visit_materials!inner(
+            visit_materials (
                 quantity,
                 materials ( id, name, unit_price )
             )
@@ -275,11 +275,10 @@ export const getImpulseVisitsWithMaterials = async (): Promise<VisitWithMaterial
                 materials ( id, name, unit_price )
             )
         `)
-        .eq('ACTIVIDAD', 'IMPULSACIÓN')
         .order('"FECHA"', { ascending: false });
 
     if (error) {
-        throw buildSupabaseError(error, 'lectura de visitas de impulso (getImpulseVisitsWithMaterials)');
+        throw buildSupabaseError(error, 'lectura de visitas con materiales (getImpulseVisitsWithMaterials)');
     }
     
     return (data || []).map(visit => {

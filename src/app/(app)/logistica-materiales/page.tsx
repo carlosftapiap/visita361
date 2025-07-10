@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Package, DollarSign, List, Truck, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { getVisits } from '@/services/visitService';
@@ -30,13 +30,17 @@ export default function LogisticaMaterialesPage() {
         setLoading(true);
         setError(null);
         try {
+            // getVisits now returns all necessary data pre-calculated from Supabase RPC
             const data = await getVisits();
+            
+            // Filter for impulse activities that actually have materials
             const impulseVisitsWithMaterials = data.filter(
-                (visit): visit is VisitWithMaterials =>
+                (visit) =>
                     visit.ACTIVIDAD === 'IMPULSACIÓN' &&
-                    Array.isArray(visit.visit_materials) &&
+                    visit.visit_materials &&
                     visit.visit_materials.length > 0
             );
+            
             setVisits(impulseVisitsWithMaterials);
         } catch (err: any) {
             setError(err.message || "Ocurrió un error desconocido.");

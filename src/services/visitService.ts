@@ -8,7 +8,7 @@ import { startOfMonth, endOfMonth } from 'date-fns';
 SCRIPT SQL PARA CONFIGURAR LA BASE DE DATOS EN SUPABASE
 ================================================================================
 Copia y pega este script completo en el SQL Editor de tu proyecto de Supabase
-para crear y configurar las tres tablas necesarias para la aplicación.
+para crear y configurar las tablas y funciones necesarias para la aplicación.
 --------------------------------------------------------------------------------
 
 -- ========= PASO 1: Eliminar tablas antiguas (si existen) para empezar de cero =========
@@ -78,6 +78,78 @@ INSERT INTO public.materials (name, unit_price) VALUES
     ('EXHIBIDOR ACRILICO', 60.00)
 ON CONFLICT (name) DO NOTHING;
 
+-- ========= PASO 7: Crear la función RPC para obtener los datos consolidados =========
+-- Esta función une las tres tablas y pre-calcula los costos. Es la forma más robusta y eficiente
+-- de obtener los datos para la aplicación.
+CREATE OR REPLACE FUNCTION get_visits_with_materials_and_cost()
+RETURNS TABLE(
+    id BIGINT,
+    "EJECUTIVA DE TRADE" TEXT,
+    "ASESOR COMERCIAL" TEXT,
+    "CANAL" TEXT,
+    "CADENA" TEXT,
+    "DIRECCIÓN DEL PDV" TEXT,
+    "ACTIVIDAD" TEXT,
+    "HORARIO" TEXT,
+    "CIUDAD" TEXT,
+    "ZONA" TEXT,
+    "FECHA" TIMESTAMPTZ,
+    "PRESUPUESTO" NUMERIC,
+    "AFLUENCIA ESPERADA" INTEGER,
+    "FECHA DE ENTREGA DE MATERIAL" TIMESTAMPTZ,
+    "OBJETIVO DE LA ACTIVIDAD" TEXT,
+    "CANTIDAD DE MUESTRAS" INTEGER,
+    "OBSERVACION" TEXT,
+    visit_materials JSONB,
+    total_cost NUMERIC
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        v.id,
+        v."EJECUTIVA DE TRADE",
+        v."ASESOR COMERCIAL",
+        v."CANAL",
+        v."CADENA",
+        v."DIRECCIÓN DEL PDV",
+        v."ACTIVIDAD",
+        v."HORARIO",
+        v."CIUDAD",
+        v."ZONA",
+        v."FECHA",
+        v."PRESUPUESTO",
+        v."AFLUENCIA ESPERADA",
+        v."FECHA DE ENTREGA DE MATERIAL",
+        v."OBJETIVO DE LA ACTIVIDAD",
+        v."CANTIDAD DE MUESTRAS",
+        v."OBSERVACION",
+        COALESCE(
+            jsonb_agg(
+                jsonb_build_object(
+                    'quantity', vm.quantity,
+                    'materials', jsonb_build_object(
+                        'id', m.id,
+                        'name', m.name,
+                        'unit_price', m.unit_price
+                    )
+                )
+            ) FILTER (WHERE vm.id IS NOT NULL),
+            '[]'::jsonb
+        ) AS visit_materials,
+        COALESCE(SUM(vm.quantity * m.unit_price), 0) AS total_cost
+    FROM
+        public.visits v
+    LEFT JOIN
+        public.visit_materials vm ON v.id = vm.visit_id
+    LEFT JOIN
+        public.materials m ON vm.material_id = m.id
+    GROUP BY
+        v.id
+    ORDER BY
+        v."FECHA" DESC;
+END;
+$$ LANGUAGE plpgsql;
+
 */
 
 
@@ -98,6 +170,10 @@ const buildSupabaseError = (error: any, context: string): Error => {
                   `Una política de seguridad está bloqueando la operación de '${context}'.\n\n` +
                   `**SOLUCIÓN:**\n` +
                   `Asegúrate de que RLS esté habilitado y que existan políticas que permitan el acceso a usuarios autenticados. Puedes usar el script de configuración en 'src/services/visitService.ts' para aplicar las políticas de desarrollo recomendadas.`;
+    } else if (error?.message?.includes('function get_visits_with_materials_and_cost() does not exist')) {
+        message = `La función de base de datos 'get_visits_with_materials_and_cost' no existe.\n\n` +
+                  `**SOLUCIÓN:**\n` +
+                  `Ve al editor de SQL en tu dashboard de Supabase y ejecuta el PASO 7 del script de configuración que se encuentra en los comentarios del archivo 'src/services/visitService.ts'.`;
     } else {
         message = `Ocurrió un error en la operación de ${context} con Supabase.\n\n` +
                   `**Detalles Técnicos:**\n` +
@@ -120,48 +196,26 @@ export const getMaterials = async (): Promise<Material[]> => {
 export const getVisits = async (): Promise<VisitWithMaterials[]> => {
     const supabase = getSupabase();
     
-    const { data, error } = await supabase
-        .from('visits')
-        .select(`
-            *,
-            visit_materials (
-                quantity,
-                materials ( id, name, unit_price )
-            )
-        `)
-        .order('FECHA', { ascending: false });
+    // Call the RPC function
+    const { data, error } = await supabase.rpc('get_visits_with_materials_and_cost');
 
     if (error) {
-        throw buildSupabaseError(error, 'lectura de visitas (getVisits)');
+        throw buildSupabaseError(error, 'lectura de visitas (getVisits RPC)');
     }
-
     if (!data) {
         return [];
     }
-
-    return data.map((visit: any) => {
-        const visitMaterialsTyped = (visit.visit_materials || []) as { quantity: number; materials: { name: string; unit_price: number } }[];
-        
-        const materialsUsed: Record<string, number> = {};
-        visitMaterialsTyped.forEach(item => {
+    
+    // The data is already in the desired format from the RPC function
+    return data.map((visit: any) => ({
+        ...visit,
+        'MATERIAL POP': (visit.visit_materials || []).reduce((acc: Record<string, number>, item: any) => {
             if (item.materials?.name) {
-                materialsUsed[item.materials.name] = item.quantity;
+                acc[item.materials.name] = item.quantity;
             }
-        });
-        
-        const total_cost = visitMaterialsTyped.reduce((sum, item) => {
-            const price = item.materials?.unit_price || 0;
-            const quantity = item.quantity || 0;
-            return sum + (price * quantity);
-        }, 0);
-        
-        return {
-            ...visit,
-            'MATERIAL POP': materialsUsed,
-            visit_materials: visit.visit_materials || [],
-            total_cost,
-        } as VisitWithMaterials;
-    });
+            return acc;
+        }, {})
+    }));
 };
 
 export const addVisit = async (visit: Omit<Visit, 'id'>) => {

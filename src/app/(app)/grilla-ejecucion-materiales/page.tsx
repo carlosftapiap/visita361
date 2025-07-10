@@ -11,15 +11,6 @@ import { useToast } from '@/hooks/use-toast';
 import KpiCard from '@/components/kpi-card';
 import DashboardSkeleton from '@/components/dashboard-skeleton';
 
-const formatMaterialPopForTable = (materials?: Record<string, number>): string => {
-    if (!materials || Object.keys(materials).length === 0) {
-        return 'N/A';
-    }
-    return Object.entries(materials)
-        .map(([key, value]) => `${key} (${value})`)
-        .join(', ');
-};
-
 export default function GrillaEjecucionMaterialesPage() {
     const [visits, setVisits] = useState<Visit[]>([]);
     const [materials, setMaterials] = useState<Material[]>([]);
@@ -158,6 +149,7 @@ export default function GrillaEjecucionMaterialesPage() {
                     description="Suma total del costo de los materiales"
                 />
             </div>
+            
             <Card className="shadow-lg">
                     <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Package className="text-primary"/> Resumen de Materiales POP</CardTitle>

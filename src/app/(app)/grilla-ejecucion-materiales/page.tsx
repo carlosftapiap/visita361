@@ -2,17 +2,19 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Truck, Users2, PackageCheck, AlertTriangle, Loader2, RefreshCw, FileText } from 'lucide-react';
-import type { Visit } from '@/types';
-import { getVisits } from '@/services/visitService';
+import { Truck, Users2, PackageCheck, AlertTriangle, Loader2, RefreshCw, FileText, Package } from 'lucide-react';
+import type { Visit, Material } from '@/types';
+import { getVisits, getMaterials } from '@/services/visitService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import KpiCard from '@/components/kpi-card';
 import DashboardSkeleton from '@/components/dashboard-skeleton';
+import { Badge } from '@/components/ui/badge';
 
 export default function GrillaEjecucionMaterialesPage() {
     const [visits, setVisits] = useState<Visit[]>([]);
+    const [materials, setMaterials] = useState<Material[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { toast } = useToast();
@@ -21,8 +23,9 @@ export default function GrillaEjecucionMaterialesPage() {
         setLoading(true);
         setError(null);
         try {
-            const visitsData = await getVisits();
+            const [visitsData, materialsData] = await Promise.all([getVisits(), getMaterials()]);
             setVisits(visitsData);
+            setMaterials(materialsData);
         } catch (err: any) {
             setError(err.message || "Ocurrió un error desconocido.");
             toast({
@@ -45,21 +48,34 @@ export default function GrillaEjecucionMaterialesPage() {
                 totalExpectedAttendance: 0,
                 totalSamples: 0,
                 totalAfiches: 0,
+                materialTotals: {}
             };
         }
         const totalExpectedAttendance = visits.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
         const totalSamples = visits.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
-        const totalAfiches = visits.reduce((sum, visit) => {
-            const aficheQuantity = visit['MATERIAL POP']?.['AFICHE'] || 0;
-            return sum + aficheQuantity;
-        }, 0);
+        
+        const materialTotals = materials.reduce((acc, material) => {
+            acc[material.name] = 0;
+            return acc;
+        }, {} as Record<string, number>);
+
+        for (const visit of visits) {
+            if (visit['MATERIAL POP']) {
+                for (const [materialName, quantity] of Object.entries(visit['MATERIAL POP'])) {
+                    if (materialTotals.hasOwnProperty(materialName)) {
+                        materialTotals[materialName] += quantity || 0;
+                    }
+                }
+            }
+        }
         
         return {
             totalExpectedAttendance,
             totalSamples,
-            totalAfiches
+            totalAfiches: materialTotals['AFICHE'] || 0,
+            materialTotals: Object.entries(materialTotals).sort(([aName], [bName]) => aName.localeCompare(bName))
         };
-    }, [visits]);
+    }, [visits, materials]);
 
     const renderContent = () => {
         if (loading) {
@@ -114,6 +130,26 @@ export default function GrillaEjecucionMaterialesPage() {
                     />
                 </div>
                 <Card className="shadow-lg">
+                     <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Package className="text-primary"/> Resumen de Materiales POP</CardTitle>
+                        <CardDescription>Suma total de cada tipo de material utilizado en todas las actividades.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {kpis.materialTotals.length > 0 ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                {kpis.materialTotals.map(([name, total]) => (
+                                    <div key={name} className="flex flex-col items-center justify-center p-3 rounded-lg bg-muted/50 border">
+                                        <p className="text-sm font-medium text-muted-foreground text-center">{name}</p>
+                                        <p className="font-bold text-2xl text-primary">{total.toLocaleString('es-CO')}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-muted-foreground text-center py-4">No hay datos de materiales para mostrar.</p>
+                        )}
+                    </CardContent>
+                </Card>
+                 <Card className="shadow-lg mt-6">
                     <CardHeader>
                         <CardTitle>Planificación y Ejecución</CardTitle>
                         <CardDescription>

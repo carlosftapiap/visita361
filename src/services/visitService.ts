@@ -149,7 +149,7 @@ export const getVisits = async (): Promise<Visit[]> => {
         const materialPop: Record<string, number> = {};
         if (Array.isArray(visit.visit_materials)) {
             visit.visit_materials.forEach((vm: any) => {
-                if (vm.materials) {
+                if (vm.materials?.name) { // Check if materials and name exist
                     materialPop[vm.materials.name] = vm.quantity;
                 }
             });

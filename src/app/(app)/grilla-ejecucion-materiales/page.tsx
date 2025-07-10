@@ -46,12 +46,7 @@ export default function GrillaEjecucionMaterialesPage() {
         const totalAfiches = visits.reduce((sum, visit) => {
             const materials = visit['MATERIAL POP'];
             if (!materials) return sum;
-
-            // Find afiche key case-insensitively
-            const aficheKey = Object.keys(materials).find(key => key.toUpperCase() === 'AFICHE');
-            const aficheCount = aficheKey ? materials[aficheKey] : 0;
-            
-            return sum + (aficheCount || 0);
+            return sum + (materials['AFICHE'] || 0);
         }, 0);
         
         return {

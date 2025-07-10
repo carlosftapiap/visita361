@@ -109,9 +109,11 @@ export default function FileUploader({ onFileProcessed, disabled = false }: File
             const getMaterialPopObject = (row: any) => {
                 const materials: Record<string, number> = {};
                 materialsList.forEach(material => {
+                    // Look for "CANTIDAD [MATERIAL_NAME]" in the row
                     const colName = `CANTIDAD ${material}`;
                     const quantity = getNumber(row[colName]);
                     if (quantity !== undefined && quantity > 0) {
+                        // Store it with the simple name, e.g., "AFICHE"
                         materials[material] = quantity;
                     }
                 });
@@ -201,7 +203,7 @@ export default function FileUploader({ onFileProcessed, disabled = false }: File
 
   const handleDownloadTemplate = () => {
     const exampleRow: any[] = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 1000000, 50, '2024-07-19', 'Aumentar visibilidad', 100, 'Sin novedades']];
-    const materialQuantities = [10, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // Example quantities
+    const materialQuantities = materialsList.map(m => (m === 'AFICHE' ? 10 : (m === 'ROMPETRAFICO' ? 2 : 0)));
     exampleRow[0].push(...materialQuantities);
 
     const ws = XLSX.utils.aoa_to_sheet([spanishHeaders, ...exampleRow]);

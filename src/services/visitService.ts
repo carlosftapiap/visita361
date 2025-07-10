@@ -125,8 +125,24 @@ export const getVisits = async (): Promise<Visit[]> => {
     const { data, error } = await supabase
         .from('visits')
         .select(`
-            *,
-            visit_materials (
+            id,
+            "EJECUTIVA DE TRADE",
+            "ASESOR COMERCIAL",
+            "CANAL",
+            "CADENA",
+            "DIRECCIÓN DEL PDV",
+            "ACTIVIDAD",
+            "HORARIO",
+            "CIUDAD",
+            "ZONA",
+            "FECHA",
+            "PRESUPUESTO",
+            "AFLUENCIA ESPERADA",
+            "FECHA DE ENTREGA DE MATERIAL",
+            "OBJETIVO DE LA ACTIVIDAD",
+            "CANTIDAD DE MUESTRAS",
+            "OBSERVACION",
+            visit_materials:visit_materials (
                 quantity,
                 materials ( id, name, unit_price )
             )
@@ -275,6 +291,7 @@ export const getImpulseVisitsWithMaterials = async (): Promise<VisitWithMaterial
                 materials ( id, name, unit_price )
             )
         `)
+        .eq('"ACTIVIDAD"', 'IMPULSACIÓN')
         .order('"FECHA"', { ascending: false });
 
     if (error) {
@@ -283,7 +300,7 @@ export const getImpulseVisitsWithMaterials = async (): Promise<VisitWithMaterial
     
     return (data || []).map(visit => {
         const total_cost = visit.visit_materials.reduce((sum, item) => {
-            return sum + (item.quantity * item.materials.unit_price);
+            return sum + (item.quantity * (item.materials?.unit_price || 0));
         }, 0);
 
         return {

@@ -114,14 +114,6 @@ export default function AppLayout({
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={pathname.startsWith('/grilla-ejecucion-materiales')} tooltip="Grilla de Ejecución">
-                            <Link href="/grilla-ejecucion-materiales">
-                                <Truck />
-                                <span>Grilla de Ejecución</span>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={pathname.startsWith('/gestion-datos')} tooltip="Gestión de Datos">
                             <Link href="/gestion-datos">
                                 <Database />

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Truck, Users2, PackageCheck, AlertTriangle, Loader2, RefreshCw, Package } from 'lucide-react';
+import { Truck, Users2, PackageCheck, AlertTriangle, Loader2, RefreshCw, Package, DollarSign } from 'lucide-react';
 import type { Visit, Material } from '@/types';
 import { getVisits, getMaterials } from '@/services/visitService';
 import { Button } from '@/components/ui/button';
@@ -56,12 +56,14 @@ export default function GrillaEjecucionMaterialesPage() {
                 kpis: {
                     totalExpectedAttendance: 0,
                     totalSamples: 0,
-                    materialTotals: []
+                    materialTotals: [],
+                    totalMaterialCost: 0
                 }
             };
         }
         const totalExpectedAttendance = visits.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
         const totalSamples = visits.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
+        const totalMaterialCost = visits.reduce((sum, visit) => sum + (visit.total_cost || 0), 0);
         
         const materialTotalsMap: Record<string, number> = {};
         materials.forEach(material => {
@@ -84,7 +86,8 @@ export default function GrillaEjecucionMaterialesPage() {
             kpis: {
                 totalExpectedAttendance,
                 totalSamples,
-                materialTotals
+                materialTotals,
+                totalMaterialCost
             }
         };
     }, [visits, materials]);
@@ -135,7 +138,7 @@ export default function GrillaEjecucionMaterialesPage() {
                 </CardHeader>
             </Card>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <KpiCard
                     title="Afluencia de Personas"
                     value={kpis.totalExpectedAttendance.toLocaleString('es-CO')}
@@ -147,6 +150,12 @@ export default function GrillaEjecucionMaterialesPage() {
                     value={kpis.totalSamples.toLocaleString('es-CO')}
                     icon={PackageCheck}
                     description="Suma total de muestras a entregar"
+                />
+                <KpiCard
+                    title="Costo Total de Materiales"
+                    value={kpis.totalMaterialCost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                    icon={DollarSign}
+                    description="Suma total del costo de los materiales"
                 />
             </div>
             <Card className="shadow-lg">

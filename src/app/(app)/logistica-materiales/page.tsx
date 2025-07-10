@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Package, DollarSign, List, Truck, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
-import { getVisits } from '@/services/visitService';
+import { getLogisticsData } from '@/services/visitService';
 import type { VisitWithMaterials } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -30,10 +30,9 @@ export default function LogisticaMaterialesPage() {
         setLoading(true);
         setError(null);
         try {
-            // getVisits now returns all necessary data pre-calculated from Supabase RPC
-            const data = await getVisits();
+            const data = await getLogisticsData();
             
-            // Filter for impulse activities that actually have materials
+            // The RPC function already provides pre-calculated and filtered data for impulse activities
             const impulseVisitsWithMaterials = data.filter(
                 (visit) =>
                     visit.ACTIVIDAD === 'IMPULSACIÓN' &&

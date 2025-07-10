@@ -79,6 +79,7 @@ INSERT INTO public.materials (name, unit_price) VALUES
 ON CONFLICT (name) DO NOTHING;
 
 -- ========= PASO 7: Crear la función RPC para obtener los datos consolidados =========
+-- !!IMPORTANTE!!: ESTA FUNCIÓN ES NECESARIA PARA LA PÁGINA DE "LOGÍSTICA DE MATERIALES".
 -- Esta función une las tres tablas y pre-calcula los costos. Es la forma más robusta y eficiente
 -- de obtener los datos para la aplicación.
 CREATE OR REPLACE FUNCTION get_visits_with_materials_and_cost()
@@ -196,20 +197,43 @@ export const getMaterials = async (): Promise<Material[]> => {
     return data || [];
 };
 
-export const getVisits = async (): Promise<VisitWithMaterials[]> => {
+export const getVisits = async (): Promise<Visit[]> => {
     const supabase = getSupabase();
-    
-    // Call the RPC function
+    const { data, error } = await supabase
+        .from('visits')
+        .select(`
+            *,
+            visit_materials ( quantity, materials ( name, unit_price ) )
+        `)
+        .order('FECHA', { ascending: false });
+
+    if (error) {
+        throw buildSupabaseError(error, 'lectura de visitas (getVisits)');
+    }
+    if (!data) return [];
+
+    return data.map((visit: any) => ({
+        ...visit,
+        'MATERIAL POP': (visit.visit_materials || []).reduce((acc: Record<string, number>, item: any) => {
+            if (item.materials?.name) {
+                acc[item.materials.name] = item.quantity;
+            }
+            return acc;
+        }, {}),
+    }));
+};
+
+export const getLogisticsData = async (): Promise<VisitWithMaterials[]> => {
+    const supabase = getSupabase();
     const { data, error } = await supabase.rpc('get_visits_with_materials_and_cost');
 
     if (error) {
-        throw buildSupabaseError(error, 'lectura de visitas (getVisits RPC)');
+        throw buildSupabaseError(error, 'lectura de datos de logística (getLogisticsData RPC)');
     }
     if (!data) {
         return [];
     }
-    
-    // The data is already in the desired format from the RPC function
+
     return data.map((visit: any) => ({
         ...visit,
         'MATERIAL POP': (visit.visit_materials || []).reduce((acc: Record<string, number>, item: any) => {

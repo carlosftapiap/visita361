@@ -233,7 +233,8 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         if (!calendarElement || filteredData.length === 0) return;
 
         html2canvas(calendarElement, {
-            scale: 2, // For better quality
+            scale: 3, // Increased scale for better quality
+            useCORS: true,
         }).then((canvas) => {
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({
@@ -243,7 +244,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             });
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
             pdf.save("Visita360_Calendario.pdf");
         });
     };

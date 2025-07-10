@@ -2,7 +2,7 @@
 "use client"
 
 import { useMemo, useState, useRef } from "react";
-import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil, CalendarOff } from "lucide-react";
+import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil, CalendarOff, Package } from "lucide-react";
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, LabelList } from "recharts";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -124,6 +124,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const freeDaysInCurrentMonth = freeDaysSet.size;
 
         const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
+        const totalMaterialCost = filteredData.reduce((sum, visit) => sum + (visit.total_cost || 0), 0);
 
         return { 
             totalVisits, 
@@ -132,7 +133,8 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             workedDays: workedDaysInCurrentMonth,
             freeDays: freeDaysInCurrentMonth,
             daysInMonth: daysInCurrentMonth,
-            totalBudget
+            totalBudget,
+            totalMaterialCost
         };
     }, [filteredData]);
 
@@ -312,12 +314,20 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                     <CardTitle className="font-headline text-xl flex items-center gap-2"><DollarSign className="text-accent"/>Resumen Financiero</CardTitle>
                 </CardHeader>
                 <CardContent>
-                     <KpiCard 
-                        title="Presupuesto Total" 
-                        value={kpis.totalBudget.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
-                        icon={DollarSign} 
-                        description="Suma de presupuestos en el periodo" 
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <KpiCard 
+                            title="Presupuesto Total" 
+                            value={kpis.totalBudget.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                            icon={DollarSign} 
+                            description="Suma de presupuestos en el periodo" 
+                        />
+                         <KpiCard 
+                            title="Costo Total de Materiales" 
+                            value={kpis.totalMaterialCost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                            icon={Package} 
+                            description="Costo total de materiales en el periodo" 
+                        />
+                    </div>
                 </CardContent>
              </Card>
 

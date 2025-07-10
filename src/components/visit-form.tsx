@@ -44,7 +44,7 @@ const visitSchema = z.object({
   'CANAL': z.string().min(1, 'El canal es requerido.'),
   'CADENA': z.string().min(1, 'La cadena es requerida.'),
   'DIRECCIÓN DEL PDV': z.string().min(1, 'La dirección del PDV es requerida.'),
-  'ACTIVIDAD': z.enum(['Visita', 'IMPULSACIÓN', 'Verificación'], {
+  'ACTIVIDAD': z.enum(['Visita', 'IMPULSACIÓN', 'Verificación', 'Libre'], {
     required_error: 'Debe seleccionar una actividad.',
   }),
   'HORARIO': z.string().min(1, 'El horario es requerido.'),
@@ -170,7 +170,7 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
               <FormField control={form.control} name="HORARIO" render={({ field }) => ( <FormItem><FormLabel>Horario</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un horario" /></SelectTrigger></FormControl><SelectContent><SelectItem value="AM">AM</SelectItem><SelectItem value="PM">PM</SelectItem><SelectItem value="Todo el día">Todo el día</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
               
               {/* Fila 4 */}
-              <FormField control={form.control} name="ACTIVIDAD" render={({ field }) => ( <FormItem><FormLabel>Actividad</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una actividad" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Visita">Visita</SelectItem><SelectItem value="IMPULSACIÓN">IMPULSACIÓN</SelectItem><SelectItem value="Verificación">Verificación</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
+              <FormField control={form.control} name="ACTIVIDAD" render={({ field }) => ( <FormItem><FormLabel>Actividad</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una actividad" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Visita">Visita</SelectItem><SelectItem value="IMPULSACIÓN">IMPULSACIÓN</SelectItem><SelectItem value="Verificación">Verificación</SelectItem><SelectItem value="Libre">Libre</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
               <FormField control={form.control} name="PRESUPUESTO" render={({ field }) => ( <FormItem><FormLabel>Presupuesto</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
               <FormField control={form.control} name="AFLUENCIA ESPERADA" render={({ field }) => ( <FormItem><FormLabel>Afluencia Esperada</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
 
@@ -229,3 +229,5 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
     </Dialog>
   );
 }
+
+    

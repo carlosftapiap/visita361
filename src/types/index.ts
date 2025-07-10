@@ -13,7 +13,7 @@ export interface Visit {
   'CANAL': string;
   'CADENA': string;
   'DIRECCIÓN DEL PDV': string;
-  'ACTIVIDAD': 'Visita' | 'IMPULSACIÓN' | 'Verificación';
+  'ACTIVIDAD': 'Visita' | 'IMPULSACIÓN' | 'Verificación' | 'Libre';
   'HORARIO': string;
   'CIUDAD': string;
   'ZONA': string;
@@ -38,3 +38,5 @@ export interface VisitWithMaterials extends Omit<Visit, 'MATERIAL POP'> {
     }[];
     total_cost?: number;
 }
+
+    

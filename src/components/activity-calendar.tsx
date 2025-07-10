@@ -95,6 +95,7 @@ export default function ActivityCalendar({
     'Visita': 'hsl(var(--primary))',
     'IMPULSACIÓN': 'hsl(var(--accent))',
     'Verificación': 'hsl(var(--chart-3))',
+    'Libre': 'hsl(var(--secondary))',
   };
   
   const weekStart = weekDays[0];
@@ -285,3 +286,5 @@ export default function ActivityCalendar({
     </>
   );
 }
+
+    

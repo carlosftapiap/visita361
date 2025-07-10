@@ -98,12 +98,27 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
 
         const today = new Date();
         const daysInCurrentMonth = getDaysInMonth(today);
-        const workedDaysInCurrentMonth = new Set(
-            filteredData
-                .filter(v => new Date(v['FECHA']).getMonth() === today.getMonth() && new Date(v['FECHA']).getFullYear() === today.getFullYear())
-                .map(v => new Date(v['FECHA']).getDate())
-        ).size;
-        const freeDaysInCurrentMonth = daysInCurrentMonth - workedDaysInCurrentMonth;
+        
+        const dataInCurrentMonth = filteredData.filter(v => 
+            new Date(v['FECHA']).getMonth() === today.getMonth() && 
+            new Date(v['FECHA']).getFullYear() === today.getFullYear()
+        );
+
+        const workedDaysSet = new Set<number>();
+        const freeDaysSet = new Set<number>();
+
+        dataInCurrentMonth.forEach(v => {
+            const dayOfMonth = new Date(v['FECHA']).getDate();
+            // @ts-ignore
+            if (v['ACTIVIDAD']?.toUpperCase() === 'LIBRE') {
+                freeDaysSet.add(dayOfMonth);
+            } else {
+                workedDaysSet.add(dayOfMonth);
+            }
+        });
+        
+        const workedDaysInCurrentMonth = workedDaysSet.size;
+        const freeDaysInCurrentMonth = freeDaysSet.size;
 
         const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
         
@@ -442,5 +457,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         </div>
     );
 }
+
+    
 
     

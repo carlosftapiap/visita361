@@ -116,10 +116,10 @@ export default function FileUploader({ onFileProcessed, disabled = false }: File
                 'HORARIO': getString(row['HORARIO']),
                 'CIUDAD': getString(row['CIUDAD']),
                 'ZONA': getString(row['ZONA']),
-                'FECHA': visitDate,
+                'FECHA': visitDate.toISOString(),
                 'PRESUPUESTO': getNumber(row['PRESUPUESTO']) || 0,
                 'AFLUENCIA ESPERADA': getNumber(row['AFLUENCIA ESPERADA']),
-                'FECHA DE ENTREGA DE MATERIAL': deliveryDate,
+                'FECHA DE ENTREGA DE MATERIAL': deliveryDate?.toISOString(),
                 'OBJETIVO DE LA ACTIVIDAD': getString(row['OBJETIVO DE LA ACTIVIDAD']),
                 'CANTIDAD DE MUESTRAS': getNumber(row['CANTIDAD DE MUESTRAS']),
                 'MATERIAL POP': getMaterialPopObject(row),
@@ -128,10 +128,11 @@ export default function FileUploader({ onFileProcessed, disabled = false }: File
         });
 
         const parsedData = initialData.filter(visit => {
-            if (!visit['FECHA'] || isNaN(visit['FECHA'].getTime())) {
-                return false;
-            }
-            const year = visit['FECHA'].getFullYear();
+            if (!visit['FECHA']) return false;
+            const visitDate = new Date(visit['FECHA']);
+            if (isNaN(visitDate.getTime())) return false;
+            
+            const year = visitDate.getFullYear();
             return year >= 1970 && year <= 2100;
         });
 

@@ -46,26 +46,6 @@ import { Separator } from '@/components/ui/separator';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-const spanishHeaders = [
-    'EJECUTIVA DE TRADE',
-    'ASESOR COMERCIAL',
-    'CANAL',
-    'CADENA',
-    'DIRECCIÓN DEL PDV',
-    'ACTIVIDAD',
-    'HORARIO',
-    'CIUDAD',
-    'ZONA',
-    'FECHA',
-    'PRESUPUESTO',
-    'AFLUENCIA ESPERADA',
-    'FECHA DE ENTREGA DE MATERIAL',
-    'OBJETIVO DE LA ACTIVIDAD',
-    'CANTIDAD DE MUESTRAS',
-    'OBSERVACION',
-    ...materialsList.map(m => `CANTIDAD ${m}`)
-];
-
 export default function CronogramaTradePage() {
   const [data, setData] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -293,20 +273,6 @@ export default function CronogramaTradePage() {
     }
   };
 
-  const handleDownloadTemplate = () => {
-    const exampleRow: any[] = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 1000000, 50, '2024-07-19', 'Aumentar visibilidad', 100, 'Sin novedades']];
-    const materialQuantities = materialsList.map(() => 0); // Start with 0 for all
-    materialQuantities[0] = 10; // Example quantities
-    materialQuantities[1] = 2;
-    exampleRow[0].push(...materialQuantities);
-
-    const ws = XLSX.utils.aoa_to_sheet([spanishHeaders, ...exampleRow]);
-    ws['!cols'] = spanishHeaders.map(() => ({ wch: 25 }));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Datos de Visitas');
-    XLSX.writeFile(wb, 'Visita360_Template.xlsx');
-  };
-
   const renderContent = () => {
     if (loading) {
       return <DashboardSkeleton />;
@@ -406,8 +372,7 @@ export default function CronogramaTradePage() {
                             handleFileProcessed(processedData);
                             setIsUploadDialogOpen(false);
                         }} 
-                        disabled={loading} 
-                        loadedMonths={loadedMonthsFormatted}
+                        disabled={loading}
                     />
                 </div>
                 {!loading && data.length > 0 && (

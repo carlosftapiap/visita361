@@ -246,8 +246,62 @@ export const updateVisit = async (id: number, visit: Partial<Omit<Visit, 'id'>>)
 export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     const supabase = getSupabase();
     
-    for (const visit of visits) {
-        await addVisit(visit);
+    // Step 1: Prepare visit data and material data separately
+    const visitsToInsert = visits.map(v => {
+        const {'MATERIAL POP': _, ...visitData} = v;
+        return visitData;
+    });
+
+    // Step 2: Insert all visits in a single batch
+    const { data: newVisits, error: visitsError } = await supabase
+        .from('visits')
+        .insert(visitsToInsert)
+        .select('id, ASESOR COMERCIAL, FECHA');
+
+    if (visitsError) {
+        throw buildSupabaseError(visitsError, 'creación de visitas en lote (addBatchVisits)');
+    }
+    if (!newVisits || newVisits.length === 0) return;
+
+    // Step 3: Create a map for quick lookup of new visit IDs
+    const visitIdMap = new Map<string, number>();
+    newVisits.forEach(v => {
+        const key = `${v['ASESOR COMERCIAL']}-${new Date(v['FECHA']).toISOString().split('T')[0]}`;
+        visitIdMap.set(key, v.id);
+    });
+    
+    // Step 4: Get all materials from DB to map names to IDs
+    const allMaterials = await getMaterials();
+    const materialIdMap = new Map(allMaterials.map(m => [m.name, m.id]));
+
+    // Step 5: Prepare all visit_materials records
+    const allVisitMaterialsToInsert: any[] = [];
+    visits.forEach(originalVisit => {
+        const key = `${originalVisit['ASESOR COMERCIAL']}-${new Date(originalVisit['FECHA']).toISOString().split('T')[0]}`;
+        const newVisitId = visitIdMap.get(key);
+
+        if (newVisitId && originalVisit['MATERIAL POP']) {
+            const materialsForVisit = Object.entries(originalVisit['MATERIAL POP'])
+                .filter(([name, quantity]) => quantity > 0 && materialIdMap.has(name))
+                .map(([name, quantity]) => ({
+                    visit_id: newVisitId,
+                    material_id: materialIdMap.get(name)!,
+                    quantity,
+                }));
+            
+            allVisitMaterialsToInsert.push(...materialsForVisit);
+        }
+    });
+
+    // Step 6: Insert all visit_materials in a single batch
+    if (allVisitMaterialsToInsert.length > 0) {
+        const { error: materialsError } = await supabase
+            .from('visit_materials')
+            .insert(allVisitMaterialsToInsert);
+
+        if (materialsError) {
+             throw buildSupabaseError(materialsError, 'asignación de materiales en lote (addBatchVisits)');
+        }
     }
 };
 
@@ -270,7 +324,7 @@ export const deleteVisitsInMonths = async (months: string[]) => {
         return `and("FECHA".gte.${startDate},"FECHA".lte.${endDate})`;
     }).join(',');
 
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('visits')
         .delete()
         .or(filters);
@@ -278,6 +332,36 @@ export const deleteVisitsInMonths = async (months: string[]) => {
     if (error) {
        throw buildSupabaseError(error, 'borrado por meses (deleteVisitsInMonths)');
     }
+};
+
+export const getImpulseVisitsWithMaterials = async (): Promise<VisitWithMaterials[]> => {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+        .from('visits')
+        .select(`
+            *,
+            visit_materials!inner(
+                quantity,
+                materials ( id, name, unit_price )
+            )
+        `)
+        .eq('"ACTIVIDAD"', 'IMPULSACIÓN')
+        .order('"FECHA"', { ascending: false });
+
+    if (error) {
+        throw buildSupabaseError(error, 'lectura de visitas con materiales (getImpulseVisitsWithMaterials)');
+    }
+    
+    return (data || []).map(visit => {
+        const total_cost = visit.visit_materials.reduce((sum, item) => {
+            return sum + (item.quantity * (item.materials?.unit_price || 0));
+        }, 0);
+
+        return {
+            ...visit,
+            total_cost
+        };
+    });
 };
 
 export const getVisitsWithMaterials = async (): Promise<VisitWithMaterials[]> => {
@@ -308,7 +392,6 @@ export const getVisitsWithMaterials = async (): Promise<VisitWithMaterials[]> =>
         };
     });
 };
-
 
 // --- Material Management Functions ---
 

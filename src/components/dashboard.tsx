@@ -320,7 +320,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <KpiCard 
                             title="Presupuesto Total" 
-                            value={kpis.totalBudget.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                            value={kpis.totalBudget.toLocaleString('es-CO')}
                             icon={DollarSign} 
                             description="Suma de presupuestos en el periodo" 
                         />

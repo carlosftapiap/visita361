@@ -126,15 +126,43 @@ export const getMaterials = async (): Promise<Material[]> => {
 
 export const getVisits = async (): Promise<Visit[]> => {
     const supabase = getSupabase();
-    const { data, error } = await supabase
+    const { data: visitsData, error } = await supabase
         .from('visits')
-        .select(`*`)
+        .select(`
+            *,
+            visit_materials (
+                quantity,
+                materials (
+                    name
+                )
+            )
+        `)
         .order('FECHA', { ascending: false });
 
     if (error) {
         throw buildSupabaseError(error, 'lectura de visitas (getVisits)');
     }
-    return (data as Visit[]) || [];
+    if (!visitsData) return [];
+    
+    // Transform data to include MATERIAL POP object
+    const transformedData = visitsData.map(visit => {
+        const materialPop: Record<string, number> = {};
+        if (Array.isArray(visit.visit_materials)) {
+            visit.visit_materials.forEach((vm: any) => {
+                if (vm.materials) {
+                    materialPop[vm.materials.name] = vm.quantity;
+                }
+            });
+        }
+
+        const { visit_materials, ...rest } = visit;
+        return {
+            ...rest,
+            'MATERIAL POP': materialPop,
+        } as Visit;
+    });
+
+    return transformedData;
 };
 
 export const getVisitMaterials = async (): Promise<VisitMaterial[]> => {

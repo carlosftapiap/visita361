@@ -23,7 +23,7 @@ const formatMaterialPopForTable = (visit?: VisitWithMaterials): string => {
 };
 
 export default function LogisticaMaterialesPage() {
-    const [visits, setVisits] = useState<VisitWithMaterials[]>([]);
+    const [visits, setVisits] = useState<Visit[]>([]);
     const [materials, setMaterials] = useState<Material[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -33,7 +33,6 @@ export default function LogisticaMaterialesPage() {
         setLoading(true);
         setError(null);
         try {
-            // Fetch both visits (with materials embedded) and the separate materials list
             const [visitsData, materialsData] = await Promise.all([
                 getVisits(),
                 getMaterials()
@@ -63,8 +62,9 @@ export default function LogisticaMaterialesPage() {
         }
 
         const materialPriceMap = new Map(materials.map(m => [m.id, m.unit_price]));
+        const materialNameMap = new Map(materials.map(m => [m.id, m.name]));
 
-        const impulseVisitsWithMaterials = visits.filter(visit => 
+        const impulseVisitsWithMaterials = (visits as VisitWithMaterials[]).filter(visit => 
             visit.ACTIVIDAD === 'IMPULSACIÓN' && 
             visit.visit_materials && 
             visit.visit_materials.length > 0
@@ -72,10 +72,21 @@ export default function LogisticaMaterialesPage() {
         
         const calculatedLogisticsData = impulseVisitsWithMaterials.map(visit => {
             const cost = visit.visit_materials.reduce((acc, item) => {
-                const price = materialPriceMap.get(item.materials.id) ?? item.materials.unit_price ?? 0;
+                const materialId = item.material_id;
+                const price = materialPriceMap.get(materialId) || 0;
                 return acc + (price * item.quantity);
             }, 0);
-            return { ...visit, total_cost: cost };
+
+            const populatedMaterials = visit.visit_materials.map(item => ({
+                ...item,
+                materials: {
+                    id: item.material_id,
+                    name: materialNameMap.get(item.material_id) || 'Desconocido',
+                    unit_price: materialPriceMap.get(item.material_id) || 0
+                }
+            }));
+
+            return { ...visit, total_cost: cost, visit_materials: populatedMaterials };
         });
 
         const totalActivities = calculatedLogisticsData.length;
@@ -125,10 +136,10 @@ export default function LogisticaMaterialesPage() {
             <>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <KpiCard
-                        title="Actividades de Impulso"
+                        title="Actividades de Impulsación"
                         value={kpis.totalActivities}
                         icon={Package}
-                        description="Total de actividades de impulso con material."
+                        description="Total de actividades de impulsación con material."
                     />
                     <KpiCard
                         title="Costo Total de Materiales"
@@ -148,7 +159,7 @@ export default function LogisticaMaterialesPage() {
                     <CardHeader>
                         <CardTitle>Detalle de Requerimientos por Actividad</CardTitle>
                         <CardDescription>
-                            Listado de todas las actividades de impulso que requieren materiales, con su costo asociado.
+                            Listado de todas las actividades de impulsación que requieren materiales, con su costo asociado.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -183,7 +194,7 @@ export default function LogisticaMaterialesPage() {
                                     ) : (
                                         <TableRow>
                                             <TableCell colSpan={6} className="h-24 text-center">
-                                                No se encontraron actividades de impulso que requieran materiales.
+                                                No se encontraron actividades de impulsación que requieran materiales.
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -203,7 +214,7 @@ export default function LogisticaMaterialesPage() {
                     <h1 className="font-headline text-3xl font-bold text-primary flex items-center gap-3">
                         <Truck /> Logística de Materiales
                     </h1>
-                    <p className="text-muted-foreground">Planifique y visualice los costos de material para actividades de impulso.</p>
+                    <p className="text-muted-foreground">Planifique y visualice los costos de material para actividades de impulsación.</p>
                 </div>
             </div>
             {renderContent()}

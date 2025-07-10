@@ -132,7 +132,9 @@ export const getVisits = async (): Promise<Visit[]> => {
             *,
             visit_materials (
                 quantity,
+                material_id,
                 materials (
+                    id,
                     name,
                     unit_price
                 )
@@ -199,12 +201,13 @@ export const updateVisit = async (id: number, visit: Partial<Omit<Visit, 'id'>>)
        throw buildSupabaseError(visitError, 'actualización de visita (updateVisit)');
     }
 
-    if (materials) {
-        const { error: deleteError } = await supabase.from('visit_materials').delete().eq('visit_id', id);
-        if (deleteError) {
-            throw buildSupabaseError(deleteError, 'borrado de materiales antiguos (updateVisit)');
-        }
+    // Always delete existing materials for the visit to handle updates and removals cleanly
+    const { error: deleteError } = await supabase.from('visit_materials').delete().eq('visit_id', id);
+    if (deleteError) {
+        throw buildSupabaseError(deleteError, 'borrado de materiales antiguos (updateVisit)');
+    }
 
+    if (materials && Object.keys(materials).length > 0) {
         const allMaterials = await getMaterials();
         const materialMap = new Map(allMaterials.map(m => [m.name, m.id]));
 
@@ -235,7 +238,6 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     for (const visit of visits) {
         const { 'MATERIAL POP': materials, ...visitData } = visit;
 
-        // 1. Insert the main visit record and get its new ID
         const { data: newVisit, error: visitError } = await supabase
             .from('visits')
             .insert(visitData as Partial<Visit>)
@@ -244,31 +246,26 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
         
         if (visitError) {
             console.error(`Error adding visit for ${visitData['ASESOR COMERCIAL']}:`, visitError.message);
-            // Skip to the next visit if this one fails
             continue; 
         }
         
         if (!newVisit) continue;
 
-        // 2. If there are materials, prepare them for insertion using the new visit ID
         if (materials && Object.keys(materials).length > 0) {
             const visitMaterialsToInsert = Object.entries(materials)
-                // Filter for materials that exist in our catalog and have a quantity > 0
                 .filter(([name, quantity]) => quantity > 0 && materialIdMap.has(name))
                 .map(([name, quantity]) => ({
-                    visit_id: newVisit.id, // Use the ID from the just-created visit
+                    visit_id: newVisit.id,
                     material_id: materialIdMap.get(name)!,
                     quantity,
                 }));
 
-            // 3. Insert the prepared materials into the join table
             if (visitMaterialsToInsert.length > 0) {
                 const { error: materialsError } = await supabase
                     .from('visit_materials')
                     .insert(visitMaterialsToInsert);
 
                 if (materialsError) {
-                    // Log the error but don't stop the whole batch
                     console.error(`Error adding materials for visit ID ${newVisit.id}:`, materialsError);
                 }
             }
@@ -279,7 +276,6 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
 
 export const deleteAllVisits = async () => {
     const supabase = getSupabase();
-    // Deleting from 'visits' will cascade and delete from 'visit_materials'
     const { error } = await supabase.from('visits').delete().neq('id', '-1'); 
     if (error) {
        throw buildSupabaseError(error, 'borrado total de visitas (deleteAllVisits)');
@@ -311,7 +307,6 @@ export const deleteVisitsInMonths = async (months: string[]) => {
 
     const visitIds = visitsToDelete.map(v => v.id);
 
-    // Deleting from 'visits' will cascade and delete from 'visit_materials'
     const { error: deleteError } = await supabase
         .from('visits')
         .delete()
@@ -345,5 +340,3 @@ export const deleteMaterial = async (id: number) => {
         throw buildSupabaseError(error, 'eliminación de material (deleteMaterial)');
     }
 }
-
-    

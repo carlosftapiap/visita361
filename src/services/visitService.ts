@@ -256,7 +256,7 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     const { data: newVisits, error: visitsError } = await supabase
         .from('visits')
         .insert(visitsToInsert)
-        .select('id, ASESOR COMERCIAL, FECHA');
+        .select('id, "ASESOR COMERCIAL", FECHA');
 
     if (visitsError) {
         throw buildSupabaseError(visitsError, 'creación de visitas en lote (addBatchVisits)');

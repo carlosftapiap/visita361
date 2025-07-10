@@ -1,6 +1,6 @@
 
 import { getSupabase } from '@/lib/supabase';
-import type { Material, Visit, VisitWithMaterials } from '@/types';
+import type { Material, Visit } from '@/types';
 import { startOfMonth, endOfMonth } from 'date-fns';
 
 /*
@@ -90,12 +90,12 @@ const buildSupabaseError = (error: any, context: string): Error => {
 
     let message;
     if (error?.message && error.message.includes('Could not find the function')) {
-        message = `La función de base de datos 'get_visits_with_materials_and_cost' no existe.\n\n` +
+         message = `La función de base de datos que la aplicación necesita no existe.\n\n` +
                   `**SOLUCIÓN:**\n` +
                   `1. Copia el script SQL completo que está en los comentarios de 'src/services/visitService.ts'.\n` +
                   `2. Ve al 'SQL Editor' en tu dashboard de Supabase.\n` +
                   `3. Pega el script y haz clic en 'RUN'.\n\n` +
-                  `Esto creará la función que la aplicación necesita para funcionar.`;
+                  `Esto creará las tablas y funciones que la aplicación necesita para funcionar.`;
     } else if (error?.message && (error.message.includes('does not exist') || error.message.includes('no existe la relación'))) {
         message = `Una o más tablas ('visits', 'materials', 'visit_materials') no se encontraron en Supabase o les faltan columnas.\n\n` +
                   `**SOLUCIÓN:**\n` +
@@ -130,7 +130,13 @@ export const getVisits = async (): Promise<Visit[]> => {
         .from('visits')
         .select(`
             *,
-            visit_materials ( quantity, materials ( name, unit_price ) )
+            visit_materials!inner(
+                quantity,
+                materials!inner(
+                    name,
+                    unit_price
+                )
+            )
         `)
         .order('FECHA', { ascending: false });
 
@@ -237,9 +243,7 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
 
         if (visitError) {
             console.error(`Error adding visit for ${visitData['ASESOR COMERCIAL']}:`, visitError.message);
-            // Optionally, throw the error to stop the whole batch
-            // throw buildSupabaseError(visitError, `creación de visita en lote para ${visitData['ASESOR COMERCIAL']}`);
-            continue; // Or continue with the next visit
+            continue;
         }
         
         if (!newVisit) continue;
@@ -269,7 +273,6 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
 
 export const deleteAllVisits = async () => {
     const supabase = getSupabase();
-    // Delete from visit_materials first due to foreign key constraints
     const { error: materialError } = await supabase.from('visit_materials').delete().neq('id', '-1');
     if (materialError) {
        throw buildSupabaseError(materialError, 'borrado total de materiales de visita (deleteAllVisits)');
@@ -290,7 +293,6 @@ export const deleteVisitsInMonths = async (months: string[]) => {
         return `and(FECHA.gte.${startDate},FECHA.lte.${endDate})`;
     }).join(',');
 
-    // First, get the IDs of the visits to be deleted
     const { data: visitsToDelete, error: selectError } = await supabase
         .from('visits')
         .select('id')
@@ -301,12 +303,11 @@ export const deleteVisitsInMonths = async (months: string[]) => {
     }
     
     if (!visitsToDelete || visitsToDelete.length === 0) {
-        return; // No visits to delete
+        return;
     }
 
     const visitIds = visitsToDelete.map(v => v.id);
 
-    // Delete from visit_materials first
     const { error: materialError } = await supabase
         .from('visit_materials')
         .delete()
@@ -316,7 +317,6 @@ export const deleteVisitsInMonths = async (months: string[]) => {
         throw buildSupabaseError(materialError, 'borrado de materiales de visita por mes (deleteVisitsInMonths)');
     }
 
-    // Then, delete the visits themselves
     const { error: deleteError } = await supabase
         .from('visits')
         .delete()
@@ -326,8 +326,6 @@ export const deleteVisitsInMonths = async (months: string[]) => {
        throw buildSupabaseError(deleteError, 'borrado de visitas por mes (deleteVisitsInMonths)');
     }
 };
-
-// --- Material Management Functions ---
 
 export const addMaterial = async (material: Omit<Material, 'id'>) => {
     const supabase = getSupabase();

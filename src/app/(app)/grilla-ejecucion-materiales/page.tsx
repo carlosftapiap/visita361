@@ -40,6 +40,13 @@ export default function GrillaEjecucionMaterialesPage() {
     }, [fetchData]);
 
     const kpis = useMemo(() => {
+        if (!visits || visits.length === 0) {
+            return {
+                totalExpectedAttendance: 0,
+                totalSamples: 0,
+                totalAfiches: 0,
+            };
+        }
         const totalExpectedAttendance = visits.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
         const totalSamples = visits.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
         const totalAfiches = visits.reduce((sum, visit) => sum + (visit['MATERIAL POP']?.['AFICHE'] || 0), 0);

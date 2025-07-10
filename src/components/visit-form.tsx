@@ -81,11 +81,18 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
   useEffect(() => {
     if (isOpen) {
       if (visit) {
+        // Prepare materials for the form
+        const visitMaterials = visit['MATERIAL POP'] || {};
+        const materialPopForForm: Record<string, number> = {};
+        materialsList.forEach(material => {
+            materialPopForForm[material] = visitMaterials[material] || 0;
+        });
+        
         form.reset({
           ...visit,
           'FECHA': visit['FECHA'] ? new Date(visit['FECHA']) : new Date(),
           'FECHA DE ENTREGA DE MATERIAL': visit['FECHA DE ENTREGA DE MATERIAL'] ? new Date(visit['FECHA DE ENTREGA DE MATERIAL']) : undefined,
-          'MATERIAL POP': visit['MATERIAL POP'] || {},
+          'MATERIAL POP': materialPopForForm,
         });
       } else {
         const initialMaterials: Record<string, number> = {};
@@ -102,10 +109,10 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
           'ZONA': '',
           'FECHA': new Date(),
           'PRESUPUESTO': 0,
-          'AFLUENCIA ESPERADA': undefined,
+          'AFLUENCIA ESPERADA': 0,
           'FECHA DE ENTREGA DE MATERIAL': undefined,
           'OBJETIVO DE LA ACTIVIDAD': '',
-          'CANTIDAD DE MUESTRAS': undefined,
+          'CANTIDAD DE MUESTRAS': 0,
           'MATERIAL POP': initialMaterials,
           'OBSERVACION': '',
         });
@@ -172,11 +179,11 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
               {/* Fila 4 */}
               <FormField control={form.control} name="ACTIVIDAD" render={({ field }) => ( <FormItem><FormLabel>Actividad</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una actividad" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Visita">Visita</SelectItem><SelectItem value="IMPULSACIÓN">IMPULSACIÓN</SelectItem><SelectItem value="Verificación">Verificación</SelectItem><SelectItem value="Libre">Libre</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
               <FormField control={form.control} name="PRESUPUESTO" render={({ field }) => ( <FormItem><FormLabel>Presupuesto</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-              <FormField control={form.control} name="AFLUENCIA ESPERADA" render={({ field }) => ( <FormItem><FormLabel>Afluencia Esperada</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+              <FormField control={form.control} name="AFLUENCIA ESPERADA" render={({ field }) => ( <FormItem><FormLabel>Afluencia Esperada</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || 0} /></FormControl><FormMessage /></FormItem> )}/>
 
               {/* Fila 5 */}
               <FormField control={form.control} name="FECHA DE ENTREGA DE MATERIAL" render={({ field }) => ( <FormItem className="flex flex-col pt-2"><FormLabel>Fecha Entrega Material</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-              <FormField control={form.control} name="CANTIDAD DE MUESTRAS" render={({ field }) => ( <FormItem><FormLabel>Cantidad de Muestras</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+              <FormField control={form.control} name="CANTIDAD DE MUESTRAS" render={({ field }) => ( <FormItem><FormLabel>Cantidad de Muestras</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || 0} /></FormControl><FormMessage /></FormItem> )}/>
             </div>
 
             {/* Fila 6 - Material POP */}

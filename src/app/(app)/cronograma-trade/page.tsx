@@ -42,6 +42,7 @@ import {
   deleteVisitsInMonths,
 } from '@/services/visitService';
 import { materialsList } from '@/lib/materials';
+import { Separator } from '@/components/ui/separator';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -77,6 +78,7 @@ export default function CronogramaTradePage() {
   const { toast } = useToast();
   const [pendingData, setPendingData] = useState<{ data: Omit<Visit, 'id'>[]; months: string[] } | null>(null);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const refreshData = useCallback(async () => {
@@ -178,6 +180,7 @@ export default function CronogramaTradePage() {
   };
 
   const handleReset = async () => {
+    setShowResetConfirm(false);
     setLoading(true);
     setErrorMessage(null);
     try {
@@ -370,12 +373,6 @@ export default function CronogramaTradePage() {
                     <Settings className="h-5 w-5" />
                     <span className="sr-only">Cargar y configurar datos</span>
                 </Button>
-                {!loading && data.length > 0 && (
-                    <Button onClick={handleReset} variant="destructive" className="flex-1 sm:flex-none">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Limpiar Datos
-                    </Button>
-                )}
             </div>
         </div>
         
@@ -413,6 +410,26 @@ export default function CronogramaTradePage() {
                         loadedMonths={loadedMonthsFormatted}
                     />
                 </div>
+                {!loading && data.length > 0 && (
+                  <div className="pt-4">
+                    <Separator className="my-4" />
+                    <h3 className="font-semibold text-lg mb-2">Acciones de Zona de Peligro</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Estas acciones son destructivas y no se pueden deshacer.
+                    </p>
+                    <Button 
+                      onClick={() => {
+                        setShowResetConfirm(true);
+                        setIsUploadDialogOpen(false);
+                      }} 
+                      variant="destructive" 
+                      className="w-full"
+                    >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Limpiar Todos los Datos
+                    </Button>
+                  </div>
+                )}
             </DialogContent>
         </Dialog>
         <AlertDialog 
@@ -439,8 +456,23 @@ export default function CronogramaTradePage() {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+        <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción es irreversible. Se eliminarán permanentemente todas las visitas y actividades de la base de datos.
+                No podrá recuperar estos datos.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleReset}>
+                Sí, eliminar todo
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 }
-
-    

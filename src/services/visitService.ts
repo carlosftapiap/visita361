@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 import { getSupabase } from '@/lib/supabase';
 import type { Material, Visit, VisitWithMaterials } from '@/types';
 import { startOfMonth, endOfMonth } from 'date-fns';
@@ -242,6 +236,7 @@ export const updateVisit = async (id: number, visit: Partial<Omit<Visit, 'id'>>)
 export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     const supabase = getSupabase();
     
+    // Step 1: Prepare and insert only the visit data
     const visitsToInsert = visits.map(v => {
         const {'MATERIAL POP': _, ...visitData} = v;
         return visitData;
@@ -250,26 +245,35 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     const { data: newVisits, error: visitsError } = await supabase
         .from('visits')
         .insert(visitsToInsert)
-        .select('id, "ASESOR COMERCIAL", "FECHA", "CADENA", "ACTIVIDAD"');
+        .select('id, "FECHA", "ASESOR COMERCIAL", "CADENA", "ACTIVIDAD"');
 
     if (visitsError) {
         throw buildSupabaseError(visitsError, 'creación de visitas en lote (addBatchVisits)');
     }
     if (!newVisits || newVisits.length === 0) return;
 
+    // Step 2: Create a map to link original Excel rows to new visit IDs
     const visitIdMap = new Map<string, number>();
-    newVisits.forEach(v => {
-        const key = `${v['ASESOR COMERCIAL']}-${new Date(v['FECHA']).toISOString().split('T')[0]}-${v['CADENA']}-${v['ACTIVIDAD']}`;
-        visitIdMap.set(key, v.id);
+    newVisits.forEach((v, index) => {
+        // Use a more robust key, matching the original data from the 'visits' array
+        const originalVisit = visits[index];
+        const key = `${originalVisit['ASESOR COMERCIAL']}-${new Date(originalVisit['FECHA']).toISOString().split('T')[0]}-${originalVisit['CADENA']}-${originalVisit['ACTIVIDAD']}`;
+        
+        // Handle potential duplicates in the key by appending the index
+        const uniqueKey = `${key}-${index}`;
+        visitIdMap.set(uniqueKey, v.id);
     });
     
+    // Step 3: Fetch all available materials to map names to IDs
     const allMaterials = await getMaterials();
     const materialIdMap = new Map(allMaterials.map(m => [m.name, m.id]));
 
-    const allVisitMaterialsToInsert: any[] = [];
-    visits.forEach(originalVisit => {
+    // Step 4: Prepare the `visit_materials` data for batch insertion
+    const allVisitMaterialsToInsert: { visit_id: number; material_id: number; quantity: number }[] = [];
+    visits.forEach((originalVisit, index) => {
         const key = `${originalVisit['ASESOR COMERCIAL']}-${new Date(originalVisit['FECHA']).toISOString().split('T')[0]}-${originalVisit['CADENA']}-${originalVisit['ACTIVIDAD']}`;
-        const newVisitId = visitIdMap.get(key);
+        const uniqueKey = `${key}-${index}`;
+        const newVisitId = visitIdMap.get(uniqueKey);
 
         if (newVisitId && originalVisit['MATERIAL POP']) {
             const materialsForVisit = Object.entries(originalVisit['MATERIAL POP'])
@@ -284,6 +288,7 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
         }
     });
 
+    // Step 5: Batch insert all `visit_materials` records
     if (allVisitMaterialsToInsert.length > 0) {
         const { error: materialsError } = await supabase
             .from('visit_materials')
@@ -349,3 +354,5 @@ export const deleteMaterial = async (id: number) => {
         throw buildSupabaseError(error, 'eliminación de material (deleteMaterial)');
     }
 }
+
+    

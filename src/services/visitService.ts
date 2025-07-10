@@ -3,9 +3,10 @@
 
 
 
+
 import { getSupabase } from '@/lib/supabase';
 import type { Material, Visit, VisitWithMaterials } from '@/types';
-import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { startOfMonth, endOfMonth } from 'date-fns';
 
 /*
 ================================================================================
@@ -68,7 +69,6 @@ ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.visit_materials ENABLE ROW LEVEL SECURITY;
 
 -- Creamos políticas que permiten a los usuarios autenticados interactuar con las tablas.
--- ¡La política para 'materials' ahora permite todas las acciones para que la nueva página funcione!
 CREATE POLICY "Public full access on visits" ON public.visits FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Public full access on materials" ON public.materials FOR ALL TO authenticated USING (true) WITH CHECK(true);
 CREATE POLICY "Public full access on visit_materials" ON public.visit_materials FOR ALL TO authenticated USING (true) WITH CHECK (true);
@@ -329,11 +329,12 @@ export const getVisitsWithMaterials = async (): Promise<VisitWithMaterials[]> =>
         .from('visits')
         .select(`
             id, "EJECUTIVA DE TRADE", "ASESOR COMERCIAL", "ACTIVIDAD", "CADENA", "DIRECCIÓN DEL PDV", "FECHA",
-            visit_materials!inner(
+            visit_materials (
                 quantity,
                 materials ( id, name, unit_price )
             )
         `)
+        .not('visit_materials', 'is', null)
         .order('"FECHA"', { ascending: false });
 
     if (error) {
@@ -341,7 +342,7 @@ export const getVisitsWithMaterials = async (): Promise<VisitWithMaterials[]> =>
     }
     
     return (data || []).map(visit => {
-        const total_cost = visit.visit_materials.reduce((sum, item) => {
+        const total_cost = visit.visit_materials.reduce((sum: number, item: any) => {
             return sum + (item.quantity * (item.materials?.unit_price || 0));
         }, 0);
 
@@ -351,6 +352,7 @@ export const getVisitsWithMaterials = async (): Promise<VisitWithMaterials[]> =>
         } as VisitWithMaterials;
     });
 };
+
 
 // --- Material Management Functions ---
 

@@ -30,7 +30,7 @@ const buildSupabaseError = (error: any, context: string): Error => {
                   `  "FECHA DE ENTREGA DE MATERIAL" TIMESTAMPTZ,\n` +
                   `  "OBJETIVO DE LA ACTIVIDAD" TEXT,\n` +
                   `  "CANTIDAD DE MUESTRAS" INTEGER,\n` +
-                  `  "MATERIAL POP" TEXT[],\n` +
+                  `  "MATERIAL POP" JSONB,\n` +
                   `  "OBSERVACION" TEXT\n` +
                   `);\n` +
                   `-- FIN SCRIPT SQL --`;

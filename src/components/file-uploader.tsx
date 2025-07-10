@@ -26,8 +26,8 @@ const spanishHeaders = [
     'FECHA DE ENTREGA DE MATERIAL',
     'OBJETIVO DE LA ACTIVIDAD',
     'CANTIDAD DE MUESTRAS',
-    'MATERIAL POP',
-    'OBSERVACION'
+    'OBSERVACION',
+    ...materialsList.map(m => `CANTIDAD ${m}`)
 ];
 
 export default function FileUploader({ onFileProcessed, disabled = false, loadedMonths = [] }: FileUploaderProps) {
@@ -95,14 +95,16 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
             
             const getString = (value: any) => value === undefined || value === null ? '' : String(value);
 
-            const getMaterialPopArray = (value: any) => {
-                if (typeof value === 'string' && value) {
-                    return value.split(',').map(item => item.trim()).filter(Boolean);
-                }
-                if (Array.isArray(value)) {
-                    return value;
-                }
-                return [];
+            const getMaterialPopObject = (row: any) => {
+                const materials: Record<string, number> = {};
+                materialsList.forEach(material => {
+                    const colName = `CANTIDAD ${material}`;
+                    const quantity = getNumber(row[colName]);
+                    if (quantity !== undefined && quantity > 0) {
+                        materials[material] = quantity;
+                    }
+                });
+                return materials;
             }
 
             return {
@@ -121,7 +123,7 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
                 'FECHA DE ENTREGA DE MATERIAL': deliveryDate,
                 'OBJETIVO DE LA ACTIVIDAD': getString(row['OBJETIVO DE LA ACTIVIDAD']),
                 'CANTIDAD DE MUESTRAS': getNumber(row['CANTIDAD DE MUESTRAS']),
-                'MATERIAL POP': getMaterialPopArray(row['MATERIAL POP']),
+                'MATERIAL POP': getMaterialPopObject(row),
                 'OBSERVACION': getString(row['OBSERVACION']),
             };
         });
@@ -188,7 +190,10 @@ export default function FileUploader({ onFileProcessed, disabled = false, loaded
   };
 
   const handleDownloadTemplate = () => {
-    const exampleRow = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 1000000, 50, '2024-07-19', 'Aumentar visibilidad', 100, 'AFICHE, CARPA', 'Sin novedades']];
+    const exampleRow: any[] = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 1000000, 50, '2024-07-19', 'Aumentar visibilidad', 100, 'Sin novedades']];
+    const materialQuantities = [10, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // Example quantities
+    exampleRow[0].push(...materialQuantities);
+
     const ws = XLSX.utils.aoa_to_sheet([spanishHeaders, ...exampleRow]);
     ws['!cols'] = spanishHeaders.map(() => ({ wch: 25 }));
     const wb = XLSX.utils.book_new();

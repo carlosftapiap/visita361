@@ -35,7 +35,8 @@ import { useToast } from '@/hooks/use-toast';
 import type { Visit } from '@/types';
 import { Textarea } from './ui/textarea';
 import { materialsList } from '@/lib/materials';
-import { Checkbox } from './ui/checkbox';
+
+const materialPopSchema = z.record(z.string(), z.coerce.number().min(0).optional());
 
 const visitSchema = z.object({
   'EJECUTIVA DE TRADE': z.string().min(1, 'La ejecutiva es requerida.'),
@@ -57,7 +58,7 @@ const visitSchema = z.object({
   'FECHA DE ENTREGA DE MATERIAL': z.date().optional().or(z.string().optional()),
   'OBJETIVO DE LA ACTIVIDAD': z.string().optional(),
   'CANTIDAD DE MUESTRAS': z.coerce.number().min(0).optional(),
-  'MATERIAL POP': z.array(z.string()).optional(),
+  'MATERIAL POP': materialPopSchema.optional(),
   'OBSERVACION': z.string().optional(),
 });
 
@@ -84,9 +85,11 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
           ...visit,
           'FECHA': visit['FECHA'] ? new Date(visit['FECHA']) : new Date(),
           'FECHA DE ENTREGA DE MATERIAL': visit['FECHA DE ENTREGA DE MATERIAL'] ? new Date(visit['FECHA DE ENTREGA DE MATERIAL']) : undefined,
-          'MATERIAL POP': visit['MATERIAL POP'] || [],
+          'MATERIAL POP': visit['MATERIAL POP'] || {},
         });
       } else {
+        const initialMaterials: Record<string, number> = {};
+        materialsList.forEach(m => initialMaterials[m] = 0);
         form.reset({
           'EJECUTIVA DE TRADE': '',
           'ASESOR COMERCIAL': '',
@@ -103,7 +106,7 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
           'FECHA DE ENTREGA DE MATERIAL': undefined,
           'OBJETIVO DE LA ACTIVIDAD': '',
           'CANTIDAD DE MUESTRAS': undefined,
-          'MATERIAL POP': [],
+          'MATERIAL POP': initialMaterials,
           'OBSERVACION': '',
         });
       }
@@ -112,11 +115,21 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
 
   const onSubmit = (data: VisitFormValues) => {
     try {
+        const cleanMaterials: Record<string, number> = {};
+        if (data['MATERIAL POP']) {
+            for (const [key, value] of Object.entries(data['MATERIAL POP'])) {
+                if (value && value > 0) {
+                    cleanMaterials[key] = value;
+                }
+            }
+        }
+
         const visitToSave: any = {
             ...data,
             id: visit?.id || `manual-${Date.now()}`,
             'FECHA': data['FECHA'] instanceof Date ? data['FECHA'].toISOString() : data['FECHA'],
             'FECHA DE ENTREGA DE MATERIAL': data['FECHA DE ENTREGA DE MATERIAL'] instanceof Date ? data['FECHA DE ENTREGA DE MATERIAL'].toISOString() : data['FECHA DE ENTREGA DE MATERIAL'],
+            'MATERIAL POP': cleanMaterials,
         };
         onSave(visitToSave);
         onOpenChange(false);
@@ -167,53 +180,34 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
             </div>
 
             {/* Fila 6 - Material POP */}
-            <FormField
-              control={form.control}
-              name="MATERIAL POP"
-              render={() => (
-                <FormItem>
-                  <div className="mb-4">
-                    <FormLabel className="text-base font-semibold">Material POP</FormLabel>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {materialsList.map((item) => (
-                    <FormField
-                      key={item}
-                      control={form.control}
-                      name="MATERIAL POP"
-                      render={({ field }) => {
-                        return (
-                          <FormItem
+            <div className="space-y-4">
+                <FormLabel className="text-base font-semibold">Material POP</FormLabel>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-4">
+                    {materialsList.map((item) => (
+                        <FormField
                             key={item}
-                            className="flex flex-row items-start space-x-3 space-y-0"
-                          >
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(item)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...(field.value || []), item])
-                                    : field.onChange(
-                                        field.value?.filter(
-                                          (value) => value !== item
-                                        )
-                                      )
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                              {item}
-                            </FormLabel>
-                          </FormItem>
-                        )
-                      }}
-                    />
-                  ))}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                            control={form.control}
+                            name={`MATERIAL POP.${item}`}
+                            render={({ field }) => (
+                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormLabel className="w-2/3 font-normal">{item}</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="number"
+                                            className="w-1/3"
+                                            placeholder="0"
+                                            {...field}
+                                            onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
+                                            value={field.value || 0}
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                    ))}
+                </div>
+            </div>
+
 
             {/* Fila 7 */}
             <div className="space-y-6">

@@ -101,6 +101,15 @@ export default function ActivityCalendar({
   const weekEnd = weekDays[6];
   const formattedDateRange = `${capitalize(format(weekStart, 'd MMM', { locale: es }))} - ${capitalize(format(weekEnd, 'd MMM yyyy', { locale: es }))}`;
 
+  const formatMaterialPop = (materials?: Record<string, number>): string => {
+    if (!materials || Object.keys(materials).length === 0) {
+        return 'N/A';
+    }
+    return Object.entries(materials)
+        .map(([key, value]) => `${key} (${value})`)
+        .join(', ');
+  };
+
   return (
     <>
       <Card className="h-full shadow-lg">
@@ -259,7 +268,7 @@ export default function ActivityCalendar({
                 </div>
                  <div className="flex items-start gap-3 md:col-span-3">
                     <Package className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1 w-full"><p className="font-medium text-muted-foreground">Material POP</p><p className="font-semibold text-card-foreground">{Array.isArray(selectedVisit['MATERIAL POP']) ? selectedVisit['MATERIAL POP'].join(', ') : 'N/A'}</p></div>
+                    <div className="space-y-1 w-full"><p className="font-medium text-muted-foreground">Material POP</p><p className="font-semibold text-card-foreground">{formatMaterialPop(selectedVisit['MATERIAL POP'])}</p></div>
                 </div>
                  <div className="flex items-start gap-3 md:col-span-3">
                     <Target className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
@@ -276,5 +285,3 @@ export default function ActivityCalendar({
     </>
   );
 }
-
-    

@@ -7,9 +7,20 @@ import type { Visit, Material } from '@/types';
 import { getVisits, getMaterials } from '@/services/visitService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import KpiCard from '@/components/kpi-card';
 import DashboardSkeleton from '@/components/dashboard-skeleton';
+import { format } from 'date-fns';
+
+const formatMaterialPopForTable = (materials?: Record<string, number>): string => {
+    if (!materials || Object.keys(materials).length === 0) {
+        return 'N/A';
+    }
+    return Object.entries(materials)
+        .map(([key, value]) => `${key} (${value})`)
+        .join(', ');
+};
 
 export default function GrillaEjecucionMaterialesPage() {
     const [visits, setVisits] = useState<Visit[]>([]);
@@ -41,12 +52,15 @@ export default function GrillaEjecucionMaterialesPage() {
         fetchData();
     }, [fetchData]);
 
-    const kpis = useMemo(() => {
+    const { kpis, impulsacionVisits } = useMemo(() => {
         if (!visits || visits.length === 0) {
             return {
-                totalExpectedAttendance: 0,
-                totalSamples: 0,
-                materialTotals: []
+                kpis: {
+                    totalExpectedAttendance: 0,
+                    totalSamples: 0,
+                    materialTotals: []
+                },
+                impulsacionVisits: []
             };
         }
         const totalExpectedAttendance = visits.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
@@ -67,10 +81,15 @@ export default function GrillaEjecucionMaterialesPage() {
             }
         }
         
+        const impulsacionVisits = visits.filter(v => v['ACTIVIDAD'] === 'IMPULSACIÓN');
+
         return {
-            totalExpectedAttendance,
-            totalSamples,
-            materialTotals: Object.entries(materialTotals).sort(([aName], [bName]) => aName.localeCompare(bName))
+            kpis: {
+                totalExpectedAttendance,
+                totalSamples,
+                materialTotals: Object.entries(materialTotals).sort(([aName], [bName]) => aName.localeCompare(bName))
+            },
+            impulsacionVisits
         };
     }, [visits, materials]);
 
@@ -142,16 +161,49 @@ export default function GrillaEjecucionMaterialesPage() {
                 </Card>
                  <Card className="shadow-lg mt-6">
                     <CardHeader>
-                        <CardTitle>Planificación y Ejecución</CardTitle>
+                        <CardTitle>Planificación y Ejecución de Impulsaciones</CardTitle>
                         <CardDescription>
-                            Esta sección contendrá la tabla o grilla de ejecución de materiales.
+                            Detalle de todas las actividades de impulsación y sus requerimientos.
                         </CardDescription>
                     </CardHeader>
-                     <CardContent className="flex flex-col items-center justify-center gap-6 text-center min-h-[40vh]">
-                         <h3 className="text-xl font-semibold text-muted-foreground">Grilla en Construcción</h3>
-                         <p className="max-w-md text-muted-foreground">
-                            La visualización detallada de la ejecución de materiales estará disponible aquí próximamente.
-                         </p>
+                     <CardContent>
+                         <div className="relative max-h-[60vh] overflow-auto rounded-md border">
+                            <Table>
+                                <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
+                                    <TableRow>
+                                        <TableHead>Fecha</TableHead>
+                                        <TableHead>Ejecutiva de Trade</TableHead>
+                                        <TableHead>Actividad</TableHead>
+                                        <TableHead>Cadena / PDV</TableHead>
+                                        <TableHead>Materiales Requeridos</TableHead>
+                                        <TableHead className="text-right">Costo Total de Material</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {impulsacionVisits.length > 0 ? (
+                                        impulsacionVisits.map(visit => (
+                                            <TableRow key={visit.id}>
+                                                <TableCell>{format(new Date(visit['FECHA']), 'dd/MM/yyyy')}</TableCell>
+                                                <TableCell>{visit['EJECUTIVA DE TRADE']}</TableCell>
+                                                <TableCell><span className="rounded-full bg-accent/20 text-accent-foreground px-2 py-1 text-xs">{visit['ACTIVIDAD']}</span></TableCell>
+                                                <TableCell>
+                                                    <div className="font-medium">{visit['CADENA']}</div>
+                                                    <div className="text-xs text-muted-foreground">{visit['DIRECCIÓN DEL PDV']}</div>
+                                                </TableCell>
+                                                <TableCell className="text-xs">{formatMaterialPopForTable(visit['MATERIAL POP'])}</TableCell>
+                                                <TableCell className="text-right font-mono">{visit.total_cost?.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) || '$0'}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="h-24 text-center">
+                                                No hay actividades de "IMPULSACIÓN" para mostrar.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                         </div>
                     </CardContent>
                 </Card>
             </div>

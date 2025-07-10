@@ -1,6 +1,5 @@
 
 
-
 export interface Material {
   id: number;
   name: string;
@@ -26,14 +25,6 @@ export interface Visit {
   'CANTIDAD DE MUESTRAS'?: number;
   'MATERIAL POP': Record<string, number>;
   'OBSERVACION'?: string;
-  visit_materials?: {
-        quantity: number;
-        materials: {
-            id: number;
-            name: string;
-            unit_price: number;
-        }
-    }[];
   total_cost?: number;
 }
 

@@ -117,51 +117,52 @@ export const getMaterials = async (): Promise<Material[]> => {
     return data || [];
 };
 
-export const getVisits = async (): Promise<(Visit | VisitWithMaterials)[]> => {
+export const getVisits = async (): Promise<VisitWithMaterials[]> => {
     const supabase = getSupabase();
     
     const { data, error } = await supabase
         .from('visits')
         .select(`
-            id,
-            "EJECUTIVA DE TRADE", "ASESOR COMERCIAL", "CANAL", "CADENA", "DIRECCIÓN DEL PDV",
-            "ACTIVIDAD", "HORARIO", "CIUDAD", "ZONA", "FECHA", "PRESUPUESTO",
-            "AFLUENCIA ESPERADA", "FECHA DE ENTREGA DE MATERIAL", "OBJETIVO DE LA ACTIVIDAD",
-            "CANTIDAD DE MUESTRAS", "OBSERVACION",
+            *,
             visit_materials (
                 quantity,
                 materials ( id, name, unit_price )
             )
         `)
-        .order('"FECHA"', { ascending: false });
+        .order('FECHA', { ascending: false });
 
     if (error) {
         throw buildSupabaseError(error, 'lectura de visitas (getVisits)');
     }
 
-    return (data || []).map(visit => {
-        const materialsUsed: Record<string, number> = {};
-        let total_cost = 0;
+    if (!data) {
+        return [];
+    }
+
+    return data.map((visit: any) => {
+        const visitMaterialsTyped = (visit.visit_materials || []) as { quantity: number; materials: { name: string; unit_price: number } }[];
         
-        const visitMaterials = visit.visit_materials;
-        if (visitMaterials && Array.isArray(visitMaterials)) {
-            visitMaterials.forEach((item: any) => {
-                if (item.materials) {
-                    materialsUsed[item.materials.name] = item.quantity;
-                    total_cost += (item.quantity || 0) * (item.materials.unit_price || 0);
-                }
-            });
-        }
+        const materialsUsed: Record<string, number> = {};
+        visitMaterialsTyped.forEach(item => {
+            if (item.materials?.name) {
+                materialsUsed[item.materials.name] = item.quantity;
+            }
+        });
+        
+        const total_cost = visitMaterialsTyped.reduce((sum, item) => {
+            const price = item.materials?.unit_price || 0;
+            const quantity = item.quantity || 0;
+            return sum + (price * quantity);
+        }, 0);
         
         return {
             ...visit,
             'MATERIAL POP': materialsUsed,
-            visit_materials: visitMaterials, // Keep the original structure for detailed views
+            visit_materials: visit.visit_materials || [],
             total_cost,
         } as VisitWithMaterials;
     });
 };
-
 
 export const addVisit = async (visit: Omit<Visit, 'id'>) => {
     const supabase = getSupabase();
@@ -236,14 +237,12 @@ export const updateVisit = async (id: number, visit: Partial<Omit<Visit, 'id'>>)
 export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     const supabase = getSupabase();
     
-    // Get all materials once to avoid fetching them in a loop
     const allMaterials = await getMaterials();
     const materialIdMap = new Map(allMaterials.map(m => [m.name, m.id]));
 
     for (const visit of visits) {
         const { 'MATERIAL POP': materials, ...visitData } = visit;
 
-        // Step 1: Insert the visit and get its ID
         const { data: newVisit, error: visitError } = await supabase
             .from('visits')
             .insert(visitData as Partial<Visit>)
@@ -251,12 +250,14 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
             .single();
 
         if (visitError) {
-            throw buildSupabaseError(visitError, `creación de visita en lote para ${visitData['ASESOR COMERCIAL']}`);
+            console.error(`Error adding visit for ${visitData['ASESOR COMERCIAL']}:`, visitError.message);
+            // Optionally, throw the error to stop the whole batch
+            // throw buildSupabaseError(visitError, `creación de visita en lote para ${visitData['ASESOR COMERCIAL']}`);
+            continue; // Or continue with the next visit
         }
         
-        if (!newVisit) continue; // Skip if visit insertion failed for some reason
+        if (!newVisit) continue;
 
-        // Step 2: Prepare and insert materials for this specific visit
         if (materials && Object.keys(materials).length > 0) {
             const visitMaterialsToInsert = Object.entries(materials)
                 .filter(([name, quantity]) => quantity > 0 && materialIdMap.has(name))
@@ -272,7 +273,6 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
                     .insert(visitMaterialsToInsert);
 
                 if (materialsError) {
-                    // Log the error but don't stop the whole batch
                     console.error(`Error adding materials for visit ID ${newVisit.id}:`, materialsError);
                 }
             }
@@ -283,9 +283,14 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
 
 export const deleteAllVisits = async () => {
     const supabase = getSupabase();
+    // Delete from visit_materials first due to foreign key constraints
+    const { error: materialError } = await supabase.from('visit_materials').delete().neq('id', '-1');
+    if (materialError) {
+       throw buildSupabaseError(materialError, 'borrado total de materiales de visita (deleteAllVisits)');
+    }
     const { error } = await supabase.from('visits').delete().neq('id', '-1');
     if (error) {
-       throw buildSupabaseError(error, 'borrado total (deleteAllVisits)');
+       throw buildSupabaseError(error, 'borrado total de visitas (deleteAllVisits)');
     }
 };
 
@@ -296,16 +301,43 @@ export const deleteVisitsInMonths = async (months: string[]) => {
         const dateInMonth = new Date(monthStr + '-02T12:00:00Z');
         const startDate = startOfMonth(dateInMonth).toISOString();
         const endDate = endOfMonth(dateInMonth).toISOString();
-        return `and("FECHA".gte.${startDate},"FECHA".lte.${endDate})`;
+        return `and(FECHA.gte.${startDate},FECHA.lte.${endDate})`;
     }).join(',');
 
-    const { data, error } = await supabase
+    // First, get the IDs of the visits to be deleted
+    const { data: visitsToDelete, error: selectError } = await supabase
         .from('visits')
-        .delete()
+        .select('id')
         .or(filters);
 
-    if (error) {
-       throw buildSupabaseError(error, 'borrado por meses (deleteVisitsInMonths)');
+    if (selectError) {
+        throw buildSupabaseError(selectError, 'selección para borrado por meses (deleteVisitsInMonths)');
+    }
+    
+    if (!visitsToDelete || visitsToDelete.length === 0) {
+        return; // No visits to delete
+    }
+
+    const visitIds = visitsToDelete.map(v => v.id);
+
+    // Delete from visit_materials first
+    const { error: materialError } = await supabase
+        .from('visit_materials')
+        .delete()
+        .in('visit_id', visitIds);
+
+    if (materialError) {
+        throw buildSupabaseError(materialError, 'borrado de materiales de visita por mes (deleteVisitsInMonths)');
+    }
+
+    // Then, delete the visits themselves
+    const { error: deleteError } = await supabase
+        .from('visits')
+        .delete()
+        .in('id', visitIds);
+
+    if (deleteError) {
+       throw buildSupabaseError(deleteError, 'borrado de visitas por mes (deleteVisitsInMonths)');
     }
 };
 

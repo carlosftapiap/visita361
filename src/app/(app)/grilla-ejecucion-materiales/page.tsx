@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Truck, Users2, PackageCheck, Target, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
+import { Truck, Users2, PackageCheck, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import type { Visit } from '@/types';
 import { getVisits } from '@/services/visitService';
 import { Button } from '@/components/ui/button';
@@ -40,14 +40,10 @@ export default function GrillaEjecucionMaterialesPage() {
     }, [fetchData]);
 
     const kpis = useMemo(() => {
-        const impulseData = visits.filter(v => v['ACTIVIDAD'] === 'IMPULSACIÓN');
-        const impulseDefinedObjectives = impulseData.filter(v => v['OBJETIVO DE LA ACTIVIDAD'] && v['OBJETIVO DE LA ACTIVIDAD'].trim() !== '').length;
-
         const totalExpectedAttendance = visits.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
         const totalSamples = visits.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
 
         return {
-            impulseDefinedObjectives,
             totalExpectedAttendance,
             totalSamples
         };
@@ -85,7 +81,7 @@ export default function GrillaEjecucionMaterialesPage() {
 
         return (
             <div className="flex flex-col gap-6">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <KpiCard
                         title="Afluencia de Personas"
                         value={kpis.totalExpectedAttendance.toLocaleString('es-CO')}
@@ -97,12 +93,6 @@ export default function GrillaEjecucionMaterialesPage() {
                         value={kpis.totalSamples.toLocaleString('es-CO')}
                         icon={PackageCheck}
                         description="Suma total de muestras a entregar"
-                    />
-                    <KpiCard
-                        title="Objetivos Definidos (Impulso)"
-                        value={kpis.impulseDefinedObjectives}
-                        icon={Target}
-                        description="Impulsos con un objetivo claro"
                     />
                 </div>
                 <Card className="shadow-lg">

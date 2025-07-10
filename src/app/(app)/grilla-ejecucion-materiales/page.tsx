@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Truck, Users2, PackageCheck, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
+import { Truck, Users2, PackageCheck, AlertTriangle, Loader2, RefreshCw, FileText } from 'lucide-react';
 import type { Visit } from '@/types';
 import { getVisits } from '@/services/visitService';
 import { Button } from '@/components/ui/button';
@@ -42,10 +42,15 @@ export default function GrillaEjecucionMaterialesPage() {
     const kpis = useMemo(() => {
         const totalExpectedAttendance = visits.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
         const totalSamples = visits.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
+        const totalAfiches = visits.reduce((sum, visit) => {
+            const aficheCount = visit['MATERIAL POP']?.['AFICHE'] || 0;
+            return sum + aficheCount;
+        }, 0);
         
         return {
             totalExpectedAttendance,
-            totalSamples
+            totalSamples,
+            totalAfiches
         };
     }, [visits]);
 
@@ -81,7 +86,7 @@ export default function GrillaEjecucionMaterialesPage() {
 
         return (
             <div className="flex flex-col gap-6">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <KpiCard
                         title="Afluencia de Personas"
                         value={kpis.totalExpectedAttendance.toLocaleString('es-CO')}
@@ -93,6 +98,12 @@ export default function GrillaEjecucionMaterialesPage() {
                         value={kpis.totalSamples.toLocaleString('es-CO')}
                         icon={PackageCheck}
                         description="Suma total de muestras a entregar"
+                    />
+                    <KpiCard
+                        title="Total de Afiches"
+                        value={kpis.totalAfiches.toLocaleString('es-CO')}
+                        icon={FileText}
+                        description="Suma total de afiches utilizados"
                     />
                 </div>
                 <Card className="shadow-lg">

@@ -344,18 +344,8 @@ export default function CronogramaTradePage() {
                   <CalendarClock className="h-16 w-16 text-primary" />
               </div>
               <h2 className="font-headline text-2xl">Aún no hay actividades</h2>
-              <p className="max-w-xs text-muted-foreground">Cargue un archivo Excel o añada una visita manualmente para comenzar a visualizar el cronograma.</p>
+              <p className="max-w-xs text-muted-foreground">Utilice el botón de <Settings className="inline-block h-4 w-4" /> o el de <Plus className="inline-block h-4 w-4" /> para añadir datos.</p>
           </CardContent>
-           <CardFooter className="flex-col gap-4">
-              <Button onClick={() => setIsUploadDialogOpen(true)} className="w-full">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Cargar Archivo Excel
-              </Button>
-              <Button onClick={handleDownloadTemplate} variant="outline" className="w-full">
-                  <Download className="mr-2 h-4 w-4" />
-                  Descargar Plantilla
-              </Button>
-          </CardFooter>
       </Card>
     );
   }
@@ -452,3 +442,5 @@ export default function CronogramaTradePage() {
     </div>
   );
 }
+
+    

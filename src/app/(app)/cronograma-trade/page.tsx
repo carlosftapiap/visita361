@@ -2,10 +2,12 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Trash2, Plus, Copy, CalendarClock, AlertTriangle, RefreshCw, Loader2, Settings } from 'lucide-react';
+import { Trash2, Plus, Copy, CalendarClock, AlertTriangle, RefreshCw, Loader2, Settings, Download } from 'lucide-react';
 import type { Visit } from '@/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import * as XLSX from 'xlsx';
+
 import FileUploader from '@/components/file-uploader';
 import Dashboard from '@/components/dashboard';
 import VisitForm from '@/components/visit-form';
@@ -39,8 +41,29 @@ import {
   deleteAllVisits,
   deleteVisitsInMonths,
 } from '@/services/visitService';
+import { materialsList } from '@/lib/materials';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+const spanishHeaders = [
+    'EJECUTIVA DE TRADE',
+    'ASESOR COMERCIAL',
+    'CANAL',
+    'CADENA',
+    'DIRECCIÓN DEL PDV',
+    'ACTIVIDAD',
+    'HORARIO',
+    'CIUDAD',
+    'ZONA',
+    'FECHA',
+    'PRESUPUESTO',
+    'AFLUENCIA ESPERADA',
+    'FECHA DE ENTREGA DE MATERIAL',
+    'OBJETIVO DE LA ACTIVIDAD',
+    'CANTIDAD DE MUESTRAS',
+    'OBSERVACION',
+    ...materialsList.map(m => `CANTIDAD ${m}`)
+];
 
 export default function CronogramaTradePage() {
   const [data, setData] = useState<Visit[]>([]);
@@ -267,6 +290,20 @@ export default function CronogramaTradePage() {
     }
   };
 
+  const handleDownloadTemplate = () => {
+    const exampleRow: any[] = [['Luisa Perez', 'Ana Gomez', 'Moderno', 'Exito', 'Exito Calle 80', 'Visita', 'AM', 'Bogotá', 'Norte', '2024-07-20', 1000000, 50, '2024-07-19', 'Aumentar visibilidad', 100, 'Sin novedades']];
+    const materialQuantities = materialsList.map(() => 0); // Start with 0 for all
+    materialQuantities[0] = 10; // Example quantities
+    materialQuantities[1] = 2;
+    exampleRow[0].push(...materialQuantities);
+
+    const ws = XLSX.utils.aoa_to_sheet([spanishHeaders, ...exampleRow]);
+    ws['!cols'] = spanishHeaders.map(() => ({ wch: 25 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Datos de Visitas');
+    XLSX.writeFile(wb, 'Visita360_Template.xlsx');
+  };
+
   const renderContent = () => {
     if (loading) {
       return <DashboardSkeleton />;
@@ -309,6 +346,16 @@ export default function CronogramaTradePage() {
               <h2 className="font-headline text-2xl">Aún no hay actividades</h2>
               <p className="max-w-xs text-muted-foreground">Cargue un archivo Excel o añada una visita manualmente para comenzar a visualizar el cronograma.</p>
           </CardContent>
+           <CardFooter className="flex-col gap-4">
+              <Button onClick={() => setIsUploadDialogOpen(true)} className="w-full">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Cargar Archivo Excel
+              </Button>
+              <Button onClick={handleDownloadTemplate} variant="outline" className="w-full">
+                  <Download className="mr-2 h-4 w-4" />
+                  Descargar Plantilla
+              </Button>
+          </CardFooter>
       </Card>
     );
   }

@@ -3,17 +3,17 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Truck, Users2, PackageCheck, AlertTriangle, Loader2, RefreshCw, ClipboardList } from 'lucide-react';
-import type { Visit } from '@/types';
-import { getVisits } from '@/services/visitService';
+import type { Visit, Material } from '@/types';
+import { getVisits, getMaterials } from '@/services/visitService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import KpiCard from '@/components/kpi-card';
 import DashboardSkeleton from '@/components/dashboard-skeleton';
-import { materialsList } from '@/lib/materials';
 
 export default function GrillaEjecucionMaterialesPage() {
     const [visits, setVisits] = useState<Visit[]>([]);
+    const [materials, setMaterials] = useState<Material[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { toast } = useToast();
@@ -22,8 +22,12 @@ export default function GrillaEjecucionMaterialesPage() {
         setLoading(true);
         setError(null);
         try {
-            const data = await getVisits();
-            setVisits(data);
+            const [visitsData, materialsData] = await Promise.all([
+                getVisits(),
+                getMaterials()
+            ]);
+            setVisits(visitsData);
+            setMaterials(materialsData);
         } catch (err: any) {
             setError(err.message || "Ocurrió un error desconocido.");
             toast({
@@ -45,26 +49,33 @@ export default function GrillaEjecucionMaterialesPage() {
         const totalSamples = visits.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
 
         const totals: Record<string, number> = {};
-        materialsList.forEach(m => totals[m] = 0);
+        
+        // Initialize totals with all possible materials from the database
+        materials.forEach(m => totals[m.name] = 0);
 
+        // Sum quantities from visits
         for (const visit of visits) {
             if (visit['MATERIAL POP']) {
-                for (const [material, quantity] of Object.entries(visit['MATERIAL POP'])) {
-                    if (totals[material] !== undefined) {
-                        totals[material] += quantity;
+                for (const [materialName, quantity] of Object.entries(visit['MATERIAL POP'])) {
+                    if (totals[materialName] !== undefined) {
+                        totals[materialName] += quantity;
                     }
                 }
             }
         }
+        
+        const sortedMaterialTotals = Object.entries(totals)
+            .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
+            .map(([name, value]) => ({ name, value }));
 
         return {
             kpis: {
                 totalExpectedAttendance,
                 totalSamples
             },
-            materialTotals: totals,
+            materialTotals: sortedMaterialTotals,
         };
-    }, [visits]);
+    }, [visits, materials]);
 
     const renderContent = () => {
         if (loading) {
@@ -124,12 +135,14 @@ export default function GrillaEjecucionMaterialesPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
-                            {materialsList.map(material => (
-                                <div key={material} className="flex justify-between border-b border-dashed py-1">
-                                    <span className="text-muted-foreground">{material}</span>
-                                    <span className="font-semibold text-primary">{materialTotals[material].toLocaleString('es-CO')}</span>
+                            {materialTotals.length > 0 ? materialTotals.map(material => (
+                                <div key={material.name} className="flex justify-between border-b border-dashed py-1">
+                                    <span className="text-muted-foreground">{material.name}</span>
+                                    <span className="font-semibold text-primary">{material.value.toLocaleString('es-CO')}</span>
                                 </div>
-                            ))}
+                            )) : (
+                                <p className="col-span-full text-center text-muted-foreground">No hay materiales para mostrar.</p>
+                            )}
                         </div>
                     </CardContent>
                 </Card>

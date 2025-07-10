@@ -1,6 +1,7 @@
 
 
 
+
 import { getSupabase } from '@/lib/supabase';
 import type { Material, Visit, VisitWithMaterials } from '@/types';
 import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
@@ -122,8 +123,7 @@ export const getMaterials = async (): Promise<Material[]> => {
 
 export const getVisits = async (): Promise<(Visit | VisitWithMaterials)[]> => {
     const supabase = getSupabase();
-    const threeMonthsAgo = subMonths(new Date(), 3);
-
+    
     const { data, error } = await supabase
         .from('visits')
         .select(`
@@ -137,7 +137,6 @@ export const getVisits = async (): Promise<(Visit | VisitWithMaterials)[]> => {
                 materials ( id, name, unit_price )
             )
         `)
-        .gte('"FECHA"', threeMonthsAgo.toISOString())
         .order('"FECHA"', { ascending: false });
 
     if (error) {
@@ -239,13 +238,11 @@ export const updateVisit = async (id: number, visit: Partial<Omit<Visit, 'id'>>)
 export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     const supabase = getSupabase();
     
-    // Step 1: Prepare visit data and material data separately
     const visitsToInsert = visits.map(v => {
         const {'MATERIAL POP': _, ...visitData} = v;
         return visitData;
     });
 
-    // Step 2: Insert all visits in a single batch
     const { data: newVisits, error: visitsError } = await supabase
         .from('visits')
         .insert(visitsToInsert)
@@ -256,18 +253,15 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     }
     if (!newVisits || newVisits.length === 0) return;
 
-    // Step 3: Create a map for quick lookup of new visit IDs
     const visitIdMap = new Map<string, number>();
     newVisits.forEach(v => {
         const key = `${v['ASESOR COMERCIAL']}-${new Date(v['FECHA']).toISOString().split('T')[0]}-${v['CADENA']}-${v['ACTIVIDAD']}`;
         visitIdMap.set(key, v.id);
     });
     
-    // Step 4: Get all materials from DB to map names to IDs
     const allMaterials = await getMaterials();
     const materialIdMap = new Map(allMaterials.map(m => [m.name, m.id]));
 
-    // Step 5: Prepare all visit_materials records
     const allVisitMaterialsToInsert: any[] = [];
     visits.forEach(originalVisit => {
         const key = `${originalVisit['ASESOR COMERCIAL']}-${new Date(originalVisit['FECHA']).toISOString().split('T')[0]}-${originalVisit['CADENA']}-${originalVisit['ACTIVIDAD']}`;
@@ -286,7 +280,6 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
         }
     });
 
-    // Step 6: Insert all visit_materials in a single batch
     if (allVisitMaterialsToInsert.length > 0) {
         const { error: materialsError } = await supabase
             .from('visit_materials')

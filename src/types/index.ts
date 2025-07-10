@@ -6,14 +6,11 @@ export interface Material {
   unit_price: number;
 }
 
-interface VisitMaterialItem {
-    quantity: number;
+export interface VisitMaterial {
+    id: number;
+    visit_id: number;
     material_id: number;
-    materials: {
-        id: number;
-        name: string;
-        unit_price: number;
-    }
+    quantity: number;
 }
 
 export interface Visit {
@@ -35,10 +32,9 @@ export interface Visit {
   'CANTIDAD DE MUESTRAS'?: number;
   'MATERIAL POP': Record<string, number>;
   'OBSERVACION'?: string;
-  total_cost?: number;
-  visit_materials: VisitMaterialItem[];
 }
 
 export interface VisitWithMaterials extends Visit {
     total_cost: number;
+    materials_list: { name: string, quantity: number }[];
 }

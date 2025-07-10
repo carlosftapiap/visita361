@@ -3,8 +3,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Package, DollarSign, List, Truck, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
-import type { Visit, Material, VisitWithMaterials } from '@/types';
-import { getVisits, getMaterials } from '@/services/visitService';
+import type { Visit, Material, VisitMaterial } from '@/types';
+import { getVisits, getMaterials, getVisitMaterials } from '@/services/visitService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -12,16 +12,25 @@ import { useToast } from '@/hooks/use-toast';
 import KpiCard from '@/components/kpi-card';
 import DashboardSkeleton from '@/components/dashboard-skeleton';
 
-const formatMaterialPopForTable = (visit?: VisitWithMaterials): string => {
-    if (!visit?.visit_materials || visit.visit_materials.length === 0) {
+const formatMaterialPopForTable = (materials?: { name: string, quantity: number }[]): string => {
+    if (!materials || materials.length === 0) {
         return 'N/A';
     }
-    return visit.visit_materials
-        .map(item => `${item.materials.name} (${item.quantity})`)
+    return materials
+        .map(item => `${item.name} (${item.quantity})`)
         .join(', ');
 };
 
-function LogisticsDashboard({ logisticsData, kpis }: { logisticsData: VisitWithMaterials[], kpis: any }) {
+interface LogisticsDashboardProps {
+    logisticsData: (Visit & { total_cost: number; materials_list: { name: string, quantity: number }[] })[];
+    kpis: {
+        totalActivities: number;
+        totalCost: number;
+        totalItems: number;
+    };
+}
+
+function LogisticsDashboard({ logisticsData, kpis }: LogisticsDashboardProps) {
     return (
         <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -74,7 +83,7 @@ function LogisticsDashboard({ logisticsData, kpis }: { logisticsData: VisitWithM
                                             <TableCell>{visit.ACTIVIDAD}</TableCell>
                                             <TableCell>{`${visit.CADENA} / ${visit['DIRECCIÓN DEL PDV']}`}</TableCell>
                                             <TableCell className="max-w-xs truncate">
-                                                {formatMaterialPopForTable(visit)}
+                                                {formatMaterialPopForTable(visit.materials_list)}
                                             </TableCell>
                                             <TableCell className="text-right font-mono">
                                                 {(visit.total_cost || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
@@ -97,10 +106,9 @@ function LogisticsDashboard({ logisticsData, kpis }: { logisticsData: VisitWithM
     )
 }
 
-
 export default function LogisticaMaterialesPage() {
-    const [visits, setVisits] = useState<Visit[]>([]);
-    const [materials, setMaterials] = useState<Material[]>([]);
+    const [logisticsData, setLogisticsData] = useState<(Visit & { total_cost: number; materials_list: { name: string, quantity: number }[] })[]>([]);
+    const [kpis, setKpis] = useState({ totalActivities: 0, totalCost: 0, totalItems: 0 });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { toast } = useToast();
@@ -109,12 +117,45 @@ export default function LogisticaMaterialesPage() {
         setLoading(true);
         setError(null);
         try {
-            const [visitsData, materialsData] = await Promise.all([
+            const [visits, materials, visitMaterials] = await Promise.all([
                 getVisits(),
-                getMaterials()
+                getMaterials(),
+                getVisitMaterials()
             ]);
-            setVisits(visitsData);
-            setMaterials(materialsData);
+
+            const materialMap = new Map(materials.map(m => [m.id, m]));
+            
+            const impulseVisits = visits.filter(v => v.ACTIVIDAD === 'IMPULSACIÓN');
+
+            const processedData = impulseVisits.map(visit => {
+                const materialsForVisit = visitMaterials.filter(vm => vm.visit_id === visit.id);
+                const materials_list = materialsForVisit.map(vm => {
+                    const materialDetail = materialMap.get(vm.material_id);
+                    return {
+                        name: materialDetail?.name || 'Desconocido',
+                        quantity: vm.quantity,
+                        unit_price: materialDetail?.unit_price || 0,
+                    }
+                });
+
+                const total_cost = materials_list.reduce((acc, item) => acc + (item.quantity * item.unit_price), 0);
+                
+                return {
+                    ...visit,
+                    materials_list,
+                    total_cost,
+                };
+            }).filter(v => v.materials_list.length > 0); // Only include visits that actually have materials
+
+            const totalActivities = processedData.length;
+            const totalCost = processedData.reduce((sum, visit) => sum + visit.total_cost, 0);
+            const totalItems = processedData.reduce((sum, visit) => {
+                return sum + visit.materials_list.reduce((itemSum, item) => itemSum + item.quantity, 0);
+            }, 0);
+
+            setLogisticsData(processedData);
+            setKpis({ totalActivities, totalCost, totalItems });
+
         } catch (err: any) {
             setError(err.message || "Ocurrió un error desconocido.");
             toast({
@@ -130,52 +171,6 @@ export default function LogisticaMaterialesPage() {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
-
-    const { logisticsData, kpis } = useMemo(() => {
-        const initialKpis = { totalActivities: 0, totalCost: 0, totalItems: 0 };
-        if (visits.length === 0 || materials.length === 0) {
-            return { logisticsData: [], kpis: initialKpis };
-        }
-
-        const materialPriceMap = new Map(materials.map(m => [m.id, m.unit_price]));
-        const materialNameMap = new Map(materials.map(m => [m.id, m.name]));
-
-        const impulseVisitsWithMaterials = (visits as VisitWithMaterials[]).filter(visit =>
-            visit.ACTIVIDAD === 'IMPULSACIÓN' &&
-            visit.visit_materials &&
-            visit.visit_materials.length > 0
-        );
-        
-        const calculatedLogisticsData = impulseVisitsWithMaterials.map(visit => {
-            const cost = visit.visit_materials.reduce((acc, item) => {
-                const materialId = item.material_id;
-                const price = materialPriceMap.get(materialId) || 0;
-                return acc + (price * item.quantity);
-            }, 0);
-
-            const populatedMaterials = visit.visit_materials.map(item => ({
-                ...item,
-                materials: {
-                    id: item.material_id,
-                    name: materialNameMap.get(item.material_id) || 'Desconocido',
-                    unit_price: materialPriceMap.get(item.material_id) || 0
-                }
-            }));
-
-            return { ...visit, total_cost: cost, visit_materials: populatedMaterials };
-        });
-
-        const totalActivities = calculatedLogisticsData.length;
-        const totalCost = calculatedLogisticsData.reduce((sum, visit) => sum + (visit.total_cost || 0), 0);
-        const totalItems = calculatedLogisticsData.reduce((sum, visit) => {
-            return sum + visit.visit_materials.reduce((itemSum, item) => itemSum + item.quantity, 0);
-        }, 0);
-
-        return {
-            logisticsData: calculatedLogisticsData,
-            kpis: { totalActivities, totalCost, totalItems }
-        };
-    }, [visits, materials]);
 
     const renderContent = () => {
         if (loading) {

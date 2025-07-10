@@ -1,6 +1,6 @@
 
 import { getSupabase } from '@/lib/supabase';
-import type { Material, Visit } from '@/types';
+import type { Material, Visit, VisitMaterial } from '@/types';
 import { startOfMonth, endOfMonth } from 'date-fns';
 
 /*
@@ -128,34 +128,25 @@ export const getVisits = async (): Promise<Visit[]> => {
     const supabase = getSupabase();
     const { data, error } = await supabase
         .from('visits')
-        .select(`
-            *,
-            visit_materials (
-                quantity,
-                material_id,
-                materials (
-                    id,
-                    name,
-                    unit_price
-                )
-            )
-        `)
+        .select(`*`)
         .order('FECHA', { ascending: false });
 
     if (error) {
         throw buildSupabaseError(error, 'lectura de visitas (getVisits)');
     }
-    if (!data) return [];
+    return (data as Visit[]) || [];
+};
 
-    return data.map((visit: any) => ({
-        ...visit,
-        'MATERIAL POP': (visit.visit_materials || []).reduce((acc: Record<string, number>, item: any) => {
-            if (item.materials?.name) {
-                acc[item.materials.name] = item.quantity;
-            }
-            return acc;
-        }, {}),
-    }));
+export const getVisitMaterials = async (): Promise<VisitMaterial[]> => {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+        .from('visit_materials')
+        .select('*');
+
+    if (error) {
+        throw buildSupabaseError(error, 'lectura de visit_materials (getVisitMaterials)');
+    }
+    return data || [];
 };
 
 export const addVisit = async (visit: Omit<Visit, 'id'>) => {
@@ -201,7 +192,6 @@ export const updateVisit = async (id: number, visit: Partial<Omit<Visit, 'id'>>)
        throw buildSupabaseError(visitError, 'actualización de visita (updateVisit)');
     }
 
-    // Always delete existing materials for the visit to handle updates and removals cleanly
     const { error: deleteError } = await supabase.from('visit_materials').delete().eq('visit_id', id);
     if (deleteError) {
         throw buildSupabaseError(deleteError, 'borrado de materiales antiguos (updateVisit)');

@@ -209,7 +209,7 @@ export default function CronogramaTradePage() {
         if (formState.visit && formState.visit.id) { // Editing existing visit
             await updateVisit(id, visitData);
         } else { // Creating new visit
-            await addVisit(visitData);
+            await addVisit(visitData as Omit<Visit, 'id'>);
         }
         await refreshData();
         setFormState({ open: false, visit: null });
@@ -452,5 +452,3 @@ export default function CronogramaTradePage() {
     </div>
   );
 }
-
-    

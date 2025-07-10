@@ -1,6 +1,6 @@
 
 import { getSupabase } from '@/lib/supabase';
-import type { Material, VisitWithMaterials } from '@/types';
+import type { Material, Visit, VisitWithMaterials } from '@/types';
 import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
 
 /*
@@ -118,7 +118,7 @@ export const getMaterials = async (): Promise<Material[]> => {
     return data || [];
 };
 
-export const getVisits = async (): Promise<VisitWithMaterials[]> => {
+export const getVisits = async (): Promise<Visit[]> => {
     const supabase = getSupabase();
     const threeMonthsAgo = subMonths(new Date(), 3);
 
@@ -126,7 +126,7 @@ export const getVisits = async (): Promise<VisitWithMaterials[]> => {
         .from('visits')
         .select(`
             *,
-            visit_materials (
+            visit_materials!visit_id (
                 quantity,
                 materials ( id, name, unit_price )
             )
@@ -139,33 +139,31 @@ export const getVisits = async (): Promise<VisitWithMaterials[]> => {
     }
 
     return (data || []).map(visit => {
-        const materialsUsed = visit.visit_materials.reduce((acc: Record<string, { quantity: number; unit_price: number }>, item: any) => {
-            if (item.materials) {
-                acc[item.materials.name] = {
-                    quantity: item.quantity,
-                    unit_price: item.materials.unit_price,
-                };
-            }
-            return acc;
-        }, {});
+        const materialsUsed: Record<string, number> = {};
+        if (visit.visit_materials && Array.isArray(visit.visit_materials)) {
+            visit.visit_materials.forEach((item: any) => {
+                if (item.materials) {
+                    materialsUsed[item.materials.name] = item.quantity;
+                }
+            });
+        }
         
-        // Remove the relational data to match the expected type
         const { visit_materials, ...restOfVisit } = visit;
 
         return {
             ...restOfVisit,
             'MATERIAL POP': materialsUsed
-        } as unknown as VisitWithMaterials;
+        } as Visit;
     });
 };
 
-export const addVisit = async (visit: Omit<VisitWithMaterials, 'id'>) => {
+export const addVisit = async (visit: Omit<Visit, 'id'>) => {
     const supabase = getSupabase();
     const { 'MATERIAL POP': materials, ...visitData } = visit;
 
     const { data: newVisit, error: visitError } = await supabase
         .from('visits')
-        .insert(visitData)
+        .insert(visitData as Partial<Visit>)
         .select('id')
         .single();
 
@@ -178,11 +176,11 @@ export const addVisit = async (visit: Omit<VisitWithMaterials, 'id'>) => {
     const materialMap = new Map(allMaterials.map(m => [m.name, m.id]));
 
     const visitMaterialsData = Object.entries(materials)
-        .filter(([name, details]) => details.quantity > 0 && materialMap.has(name))
-        .map(([name, details]) => ({
+        .filter(([name, quantity]) => quantity > 0 && materialMap.has(name))
+        .map(([name, quantity]) => ({
             visit_id: newVisit.id,
             material_id: materialMap.get(name)!,
-            quantity: details.quantity,
+            quantity: quantity,
         }));
 
     if (visitMaterialsData.length > 0) {
@@ -193,11 +191,11 @@ export const addVisit = async (visit: Omit<VisitWithMaterials, 'id'>) => {
     }
 };
 
-export const updateVisit = async (id: number, visit: Partial<Omit<VisitWithMaterials, 'id'>>) => {
+export const updateVisit = async (id: number, visit: Partial<Omit<Visit, 'id'>>) => {
     const supabase = getSupabase();
     const { 'MATERIAL POP': materials, ...visitData } = visit;
 
-    const { error: visitError } = await supabase.from('visits').update(visitData).eq('id', id);
+    const { error: visitError } = await supabase.from('visits').update(visitData as Partial<Visit>).eq('id', id);
     if (visitError) {
        throw buildSupabaseError(visitError, 'actualización de visita (updateVisit)');
     }
@@ -212,11 +210,11 @@ export const updateVisit = async (id: number, visit: Partial<Omit<VisitWithMater
         const materialMap = new Map(allMaterials.map(m => [m.name, m.id]));
 
         const visitMaterialsData = Object.entries(materials)
-            .filter(([name, details]) => details.quantity > 0 && materialMap.has(name))
-            .map(([name, details]) => ({
+            .filter(([name, quantity]) => quantity > 0 && materialMap.has(name))
+            .map(([name, quantity]) => ({
                 visit_id: id,
                 material_id: materialMap.get(name)!,
-                quantity: details.quantity,
+                quantity: quantity,
             }));
 
         if (visitMaterialsData.length > 0) {
@@ -229,11 +227,9 @@ export const updateVisit = async (id: number, visit: Partial<Omit<VisitWithMater
 };
 
 
-export const addBatchVisits = async (visits: Omit<VisitWithMaterials, 'id'>[]) => {
+export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     const supabase = getSupabase();
     
-    // We can't batch insert and get IDs back with relations easily.
-    // We'll process them one by one. This is less efficient but ensures data integrity.
     for (const visit of visits) {
         await addVisit(visit);
     }
@@ -242,7 +238,6 @@ export const addBatchVisits = async (visits: Omit<VisitWithMaterials, 'id'>[]) =
 
 export const deleteAllVisits = async () => {
     const supabase = getSupabase();
-    // Deleting from 'visits' will cascade and delete from 'visit_materials'
     const { error } = await supabase.from('visits').delete().neq('id', '-1');
     if (error) {
        throw buildSupabaseError(error, 'borrado total (deleteAllVisits)');

@@ -52,15 +52,12 @@ export default function GrillaEjecucionMaterialesPage() {
         fetchData();
     }, [fetchData]);
 
-    const { kpis, impulsacionVisits } = useMemo(() => {
+    const kpis = useMemo(() => {
         if (!visits || visits.length === 0) {
             return {
-                kpis: {
-                    totalExpectedAttendance: 0,
-                    totalSamples: 0,
-                    materialTotals: []
-                },
-                impulsacionVisits: []
+                totalExpectedAttendance: 0,
+                totalSamples: 0,
+                materialTotals: []
             };
         }
         const totalExpectedAttendance = visits.reduce((sum, visit) => sum + (visit['AFLUENCIA ESPERADA'] || 0), 0);
@@ -81,15 +78,10 @@ export default function GrillaEjecucionMaterialesPage() {
             }
         }
         
-        const impulsacionVisits = visits.filter(v => v['ACTIVIDAD'] === 'IMPULSACIÓN');
-
         return {
-            kpis: {
-                totalExpectedAttendance,
-                totalSamples,
-                materialTotals: Object.entries(materialTotals).sort(([aName], [bName]) => aName.localeCompare(bName))
-            },
-            impulsacionVisits
+            totalExpectedAttendance,
+            totalSamples,
+            materialTotals: Object.entries(materialTotals).sort(([aName], [bName]) => aName.localeCompare(bName))
         };
     }, [visits, materials]);
 
@@ -157,51 +149,6 @@ export default function GrillaEjecucionMaterialesPage() {
                         ) : (
                             <p className="text-muted-foreground text-center py-4">No hay datos de materiales para mostrar.</p>
                         )}
-                    </CardContent>
-                </Card>
-                 <Card className="shadow-lg mt-6">
-                    <CardHeader>
-                        <CardTitle>Planificación y Ejecución de Impulsaciones</CardTitle>
-                        <CardDescription>
-                            Detalle de todas las actividades de impulsación y sus requerimientos.
-                        </CardDescription>
-                    </CardHeader>
-                     <CardContent>
-                         <div className="relative max-h-[60vh] overflow-auto rounded-md border">
-                            <Table>
-                                <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
-                                    <TableRow>
-                                        <TableHead>Fecha</TableHead>
-                                        <TableHead>Ejecutiva de Trade</TableHead>
-                                        <TableHead>Actividad</TableHead>
-                                        <TableHead>Cadena / PDV</TableHead>
-                                        <TableHead>Materiales Requeridos</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {impulsacionVisits.length > 0 ? (
-                                        impulsacionVisits.map(visit => (
-                                            <TableRow key={visit.id}>
-                                                <TableCell>{format(new Date(visit['FECHA']), 'dd/MM/yyyy')}</TableCell>
-                                                <TableCell>{visit['EJECUTIVA DE TRADE']}</TableCell>
-                                                <TableCell><span className="rounded-full bg-accent/20 text-accent-foreground px-2 py-1 text-xs">{visit['ACTIVIDAD']}</span></TableCell>
-                                                <TableCell>
-                                                    <div className="font-medium">{visit['CADENA']}</div>
-                                                    <div className="text-xs text-muted-foreground">{visit['DIRECCIÓN DEL PDV']}</div>
-                                                </TableCell>
-                                                <TableCell className="text-xs">{formatMaterialPopForTable(visit['MATERIAL POP'])}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="h-24 text-center">
-                                                No hay actividades de "IMPULSACIÓN" para mostrar.
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                         </div>
                     </CardContent>
                 </Card>
             </div>

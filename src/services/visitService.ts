@@ -126,7 +126,7 @@ export const getVisits = async (): Promise<Visit[]> => {
         .from('visits')
         .select(`
             *,
-            visit_materials!visit_id (
+            visit_materials!inner(
                 quantity,
                 materials ( id, name, unit_price )
             )
@@ -263,6 +263,37 @@ export const deleteVisitsInMonths = async (months: string[]) => {
        throw buildSupabaseError(error, 'borrado por meses (deleteVisitsInMonths)');
     }
 };
+
+export const getImpulseVisitsWithMaterials = async (): Promise<VisitWithMaterials[]> => {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+        .from('visits')
+        .select(`
+            *,
+            visit_materials!inner(
+                quantity,
+                materials ( id, name, unit_price )
+            )
+        `)
+        .eq('ACTIVIDAD', 'IMPULSACIÓN')
+        .order('"FECHA"', { ascending: false });
+
+    if (error) {
+        throw buildSupabaseError(error, 'lectura de visitas de impulso (getImpulseVisitsWithMaterials)');
+    }
+    
+    return (data || []).map(visit => {
+        const total_cost = visit.visit_materials.reduce((sum, item) => {
+            return sum + (item.quantity * item.materials.unit_price);
+        }, 0);
+
+        return {
+            ...visit,
+            total_cost
+        };
+    });
+};
+
 
 // --- Material Management Functions ---
 

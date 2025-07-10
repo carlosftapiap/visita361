@@ -35,5 +35,6 @@ export interface VisitWithMaterials extends Omit<Visit, 'MATERIAL POP'> {
             name: string;
             unit_price: number;
         }
-    }[]
+    }[];
+    total_cost?: number;
 }

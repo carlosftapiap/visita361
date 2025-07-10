@@ -4,8 +4,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Package, DollarSign, List, Truck, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
-import { getLogisticsData } from '@/services/visitService';
-import type { VisitWithMaterials } from '@/types';
+import { getVisits, getMaterials } from '@/services/visitService';
+import type { Visit, Material } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -13,15 +13,16 @@ import { useToast } from '@/hooks/use-toast';
 import KpiCard from '@/components/kpi-card';
 import DashboardSkeleton from '@/components/dashboard-skeleton';
 
-const formatMaterialPopForTable = (materials?: { name: string; quantity: number }[]): string => {
-    if (!materials || materials.length === 0) {
+const formatMaterialPopForTable = (materials?: Record<string, number>): string => {
+    if (!materials || Object.keys(materials).length === 0) {
         return 'N/A';
     }
-    return materials.map(m => `${m.name} (${m.quantity})`).join(', ');
+    return Object.entries(materials).map(([name, quantity]) => `${name} (${quantity})`).join(', ');
 };
 
 export default function LogisticaMaterialesPage() {
-    const [visits, setVisits] = useState<VisitWithMaterials[]>([]);
+    const [visits, setVisits] = useState<Visit[]>([]);
+    const [materials, setMaterials] = useState<Material[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { toast } = useToast();
@@ -30,17 +31,12 @@ export default function LogisticaMaterialesPage() {
         setLoading(true);
         setError(null);
         try {
-            const data = await getLogisticsData();
-            
-            // The RPC function already provides pre-calculated and filtered data for impulse activities
-            const impulseVisitsWithMaterials = data.filter(
-                (visit) =>
-                    visit.ACTIVIDAD === 'IMPULSACIÓN' &&
-                    visit.visit_materials &&
-                    visit.visit_materials.length > 0
-            );
-            
-            setVisits(impulseVisitsWithMaterials);
+            const [visitsData, materialsData] = await Promise.all([
+                getVisits(),
+                getMaterials()
+            ]);
+            setVisits(visitsData);
+            setMaterials(materialsData);
         } catch (err: any) {
             setError(err.message || "Ocurrió un error desconocido.");
             toast({
@@ -57,15 +53,38 @@ export default function LogisticaMaterialesPage() {
         fetchData();
     }, [fetchData]);
 
-    const kpis = useMemo(() => {
-        const totalActivities = visits.length;
-        const totalCost = visits.reduce((sum, visit) => sum + (visit.total_cost || 0), 0);
-        const totalItems = visits.reduce((sum, visit) => {
-            return sum + (visit.visit_materials?.reduce((itemSum, item) => itemSum + item.quantity, 0) || 0);
+    const { logisticsData, kpis } = useMemo(() => {
+        if (visits.length === 0 || materials.length === 0) {
+            return { logisticsData: [], kpis: { totalActivities: 0, totalCost: 0, totalItems: 0 } };
+        }
+
+        const materialPriceMap = new Map(materials.map(m => [m.name, m.unit_price]));
+
+        const impulseVisits = visits.filter(visit => 
+            visit.ACTIVIDAD === 'IMPULSACIÓN' && 
+            visit['MATERIAL POP'] && 
+            Object.keys(visit['MATERIAL POP']).length > 0
+        );
+
+        const calculatedLogisticsData = impulseVisits.map(visit => {
+            const cost = Object.entries(visit['MATERIAL POP']).reduce((acc, [name, quantity]) => {
+                const price = materialPriceMap.get(name) || 0;
+                return acc + (price * quantity);
+            }, 0);
+            return { ...visit, total_cost: cost };
+        });
+
+        const totalActivities = calculatedLogisticsData.length;
+        const totalCost = calculatedLogisticsData.reduce((sum, visit) => sum + visit.total_cost, 0);
+        const totalItems = calculatedLogisticsData.reduce((sum, visit) => {
+            return sum + Object.values(visit['MATERIAL POP']).reduce((itemSum, quantity) => itemSum + quantity, 0);
         }, 0);
 
-        return { totalActivities, totalCost, totalItems };
-    }, [visits]);
+        return {
+            logisticsData: calculatedLogisticsData,
+            kpis: { totalActivities, totalCost, totalItems }
+        };
+    }, [visits, materials]);
 
     const renderContent = () => {
         if (loading) {
@@ -142,15 +161,15 @@ export default function LogisticaMaterialesPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {visits.length > 0 ? (
-                                        visits.map(visit => (
+                                    {logisticsData.length > 0 ? (
+                                        logisticsData.map(visit => (
                                             <TableRow key={visit.id}>
                                                 <TableCell>{format(new Date(visit.FECHA), 'P')}</TableCell>
                                                 <TableCell>{visit['EJECUTIVA DE TRADE']}</TableCell>
                                                 <TableCell>{visit.ACTIVIDAD}</TableCell>
                                                 <TableCell>{`${visit.CADENA} / ${visit['DIRECCIÓN DEL PDV']}`}</TableCell>
                                                 <TableCell className="max-w-xs truncate">
-                                                    {formatMaterialPopForTable(visit.visit_materials?.map(vm => ({ name: vm.materials.name, quantity: vm.quantity })))}
+                                                    {formatMaterialPopForTable(visit['MATERIAL POP'])}
                                                 </TableCell>
                                                 <TableCell className="text-right font-mono">
                                                     {(visit.total_cost || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}

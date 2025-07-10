@@ -8,7 +8,7 @@ import { startOfMonth, endOfMonth } from 'date-fns';
 SCRIPT SQL PARA CONFIGURAR LA BASE DE DATOS EN SUPABASE
 ================================================================================
 Copia y pega este script completo en el SQL Editor de tu proyecto de Supabase
-para crear y configurar las tablas y funciones necesarias para la aplicación.
+para crear y configurar las tablas necesarias para la aplicación.
 --------------------------------------------------------------------------------
 
 -- ========= PASO 1: Eliminar tablas antiguas (si existen) para empezar de cero =========
@@ -78,79 +78,6 @@ INSERT INTO public.materials (name, unit_price) VALUES
     ('EXHIBIDOR ACRILICO', 60.00)
 ON CONFLICT (name) DO NOTHING;
 
--- ========= PASO 7: Crear la función RPC para obtener los datos consolidados =========
--- !!IMPORTANTE!!: ESTA FUNCIÓN ES NECESARIA PARA LA PÁGINA DE "LOGÍSTICA DE MATERIALES".
--- Esta función une las tres tablas y pre-calcula los costos. Es la forma más robusta y eficiente
--- de obtener los datos para la aplicación.
-CREATE OR REPLACE FUNCTION get_visits_with_materials_and_cost()
-RETURNS TABLE(
-    id BIGINT,
-    "EJECUTIVA DE TRADE" TEXT,
-    "ASESOR COMERCIAL" TEXT,
-    "CANAL" TEXT,
-    "CADENA" TEXT,
-    "DIRECCIÓN DEL PDV" TEXT,
-    "ACTIVIDAD" TEXT,
-    "HORARIO" TEXT,
-    "CIUDAD" TEXT,
-    "ZONA" TEXT,
-    "FECHA" TIMESTAMPTZ,
-    "PRESUPUESTO" NUMERIC,
-    "AFLUENCIA ESPERADA" INTEGER,
-    "FECHA DE ENTREGA DE MATERIAL" TIMESTAMPTZ,
-    "OBJETIVO DE LA ACTIVIDAD" TEXT,
-    "CANTIDAD DE MUESTRAS" INTEGER,
-    "OBSERVACION" TEXT,
-    visit_materials JSONB,
-    total_cost NUMERIC
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT
-        v.id,
-        v."EJECUTIVA DE TRADE",
-        v."ASESOR COMERCIAL",
-        v."CANAL",
-        v."CADENA",
-        v."DIRECCIÓN DEL PDV",
-        v."ACTIVIDAD",
-        v."HORARIO",
-        v."CIUDAD",
-        v."ZONA",
-        v."FECHA",
-        v."PRESUPUESTO",
-        v."AFLUENCIA ESPERADA",
-        v."FECHA DE ENTREGA DE MATERIAL",
-        v."OBJETIVO DE LA ACTIVIDAD",
-        v."CANTIDAD DE MUESTRAS",
-        v."OBSERVACION",
-        COALESCE(
-            jsonb_agg(
-                jsonb_build_object(
-                    'quantity', vm.quantity,
-                    'materials', jsonb_build_object(
-                        'id', m.id,
-                        'name', m.name,
-                        'unit_price', m.unit_price
-                    )
-                )
-            ) FILTER (WHERE vm.id IS NOT NULL),
-            '[]'::jsonb
-        ) AS visit_materials,
-        COALESCE(SUM(vm.quantity * m.unit_price), 0) AS total_cost
-    FROM
-        public.visits v
-    LEFT JOIN
-        public.visit_materials vm ON v.id = vm.visit_id
-    LEFT JOIN
-        public.materials m ON vm.material_id = m.id
-    GROUP BY
-        v.id
-    ORDER BY
-        v."FECHA" DESC;
-END;
-$$ LANGUAGE plpgsql;
-
 */
 
 
@@ -182,7 +109,7 @@ const buildSupabaseError = (error: any, context: string): Error => {
         message = `Ocurrió un error en la operación de ${context} con Supabase.\n\n` +
                   `**Detalles Técnicos:**\n` +
                   `Código: ${error?.code || 'N/A'}\n` +
-                  `Mensaje: ${errorMessage}`;
+                  `Mensaje: errorMessage`;
     }
     return new Error(message);
 };
@@ -220,28 +147,6 @@ export const getVisits = async (): Promise<Visit[]> => {
             }
             return acc;
         }, {}),
-    }));
-};
-
-export const getLogisticsData = async (): Promise<VisitWithMaterials[]> => {
-    const supabase = getSupabase();
-    const { data, error } = await supabase.rpc('get_visits_with_materials_and_cost');
-
-    if (error) {
-        throw buildSupabaseError(error, 'lectura de datos de logística (getLogisticsData RPC)');
-    }
-    if (!data) {
-        return [];
-    }
-
-    return data.map((visit: any) => ({
-        ...visit,
-        'MATERIAL POP': (visit.visit_materials || []).reduce((acc: Record<string, number>, item: any) => {
-            if (item.materials?.name) {
-                acc[item.materials.name] = item.quantity;
-            }
-            return acc;
-        }, {})
     }));
 };
 

@@ -85,12 +85,6 @@ export default function CronogramaTradePage() {
     refreshData();
   }, [refreshData]);
 
-  const loadedMonthsFormatted = useMemo(() => {
-    if (!data || data.length === 0) return [];
-    const months = [...new Set(data.map(v => format(new Date(v['FECHA']), 'yyyy-MM')))].sort().reverse();
-    return months.map(m => capitalize(format(new Date(m + '-02'), 'MMMM yyyy', { locale: es })));
-  }, [data]);
-
   const handleFileProcessed = (processedData: Omit<Visit, 'id'>[]) => {
     if (processedData.length === 0) return;
 

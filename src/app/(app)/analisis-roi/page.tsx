@@ -133,7 +133,7 @@ export default function AnalisisRoiPage() {
         const units = form.watch('units_sold');
 
         let roi = 0;
-        let status: 'Positivo' | 'Negativo' | 'Punto de Equilibrio' | '---' = '---';
+        let status: 'Positivo' | 'Negativo' | '---' = '---';
         let statusIcon: React.ElementType = Minus;
         let ticket = 0;
 
@@ -142,12 +142,9 @@ export default function AnalisisRoiPage() {
             if (roi > 500) {
                 status = 'Positivo';
                 statusIcon = TrendingUp;
-            } else if (roi < 0) {
+            } else {
                 status = 'Negativo';
                 statusIcon = TrendingDown;
-            } else {
-                status = 'Punto de Equilibrio';
-                statusIcon = TrendingUp;
             }
         }
         
@@ -251,7 +248,7 @@ export default function AnalisisRoiPage() {
                                             <TableCell className={cn(
                                                 "font-bold",
                                                 c.roi > 500 && "text-green-600",
-                                                c.roi < 0 && "text-red-600"
+                                                c.roi <= 500 && "text-red-600"
                                             )}>{c.roi.toFixed(2)}%</TableCell>
                                             <TableCell>{c.amount_invested.toLocaleString('es-CO', { style: 'currency', currency: 'USD' })}</TableCell>
                                             <TableCell>{c.profit_generated.toLocaleString('es-CO', { style: 'currency', currency: 'USD' })}</TableCell>
@@ -363,5 +360,3 @@ export default function AnalisisRoiPage() {
         </div>
     );
 }
-
-    

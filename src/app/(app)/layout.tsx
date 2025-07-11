@@ -89,14 +89,6 @@ export default function AppLayout({
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={pathname.startsWith('/analisis-ventas')} tooltip="Análisis de Ventas">
-                            <Link href="/analisis-ventas">
-                                <LineChart />
-                                <span>Análisis de Ventas</span>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
                      <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={pathname.startsWith('/analisis-roi')} tooltip="Análisis de ROI">
                             <Link href="/analisis-roi">

@@ -125,6 +125,13 @@ export default function AnalisisRoiPage() {
             comment: ''
         }
     });
+    
+    const revenueGenerated = form.watch('revenue_generated');
+    
+    useEffect(() => {
+        const profit = (revenueGenerated || 0) * 0.15;
+        form.setValue('profit_generated', profit, { shouldValidate: true });
+    }, [revenueGenerated, form]);
 
     const calculatedResult = useMemo(() => {
         const invested = form.watch('amount_invested');
@@ -133,8 +140,8 @@ export default function AnalisisRoiPage() {
         const units = form.watch('units_sold');
 
         let roi = 0;
-        let status: 'Positivo' | 'Negativo' | '---' = '---';
-        let statusIcon: React.ElementType = Minus;
+        let status: 'Positivo' | 'Negativo' = 'Negativo';
+        let statusIcon: React.ElementType = TrendingDown;
         let ticket = 0;
 
         if (invested > 0) {

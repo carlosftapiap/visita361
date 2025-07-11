@@ -72,6 +72,7 @@ CREATE TABLE public.roi_campaigns (
     ) STORED
 );
 
+
 -- ========= HABILITAR SEGURIDAD A NIVEL DE FILA (RLS) =========
 ALTER TABLE public.roi_campaigns ENABLE ROW LEVEL SECURITY;
 
@@ -319,7 +320,7 @@ export default function AnalisisRoiPage() {
                                         <FormField control={form.control} name="amount_invested" render={({ field }) => (<FormItem><FormLabel>Monto invertido (USD)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                     </div>
                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField control={form.control} name="revenue_generated" render={({ field }) => (<FormItem><FormLabel>Ingresos generados (USD)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="revenue_generated" render={({ field }) => (<FormItem><FormLabel>Ventas Adicionales Generadas (USD)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                          <FormField control={form.control} name="profit_generated" render={({ field }) => (<FormItem><FormLabel>Utilidad generada (USD)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                      </div>
                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

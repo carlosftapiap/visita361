@@ -38,24 +38,3 @@ export interface VisitWithMaterials extends Visit {
     total_cost: number;
     materials_list: { name: string, quantity: number, unit_price: number }[];
 }
-
-export interface Sale {
-    FECHA: string; // ISO 8601 date string
-    ANIO: number;
-    MES: string;
-    REGION: string;
-    CIUDAD: string;
-    PROVINCIA: string;
-    ASESOR: string;
-    CLIENTE: string;
-    CANAL: string;
-    DATA: string;
-    FORMA: string;
-    MARCA: string;
-    CATEGORIA: string;
-    PRODUCTO: string;
-    'PRODUCTO SISTEMA': string;
-    UNIDADES: number;
-    DOLARES: number;
-    COSTO_PROMEDIO: number;
-}

@@ -10,10 +10,10 @@ para crear y configurar las tablas necesarias para la aplicación.
 
 -- ========= PASO 1: Eliminar tablas antiguas (si existen) para empezar de cero =========
 -- Esto asegura que no haya conflictos con versiones anteriores.
-DROP TABLE IF EXISTS public.roi_campaigns;
-DROP TABLE IF EXISTS public.visit_materials;
-DROP TABLE IF EXISTS public.materials;
-DROP TABLE IF EXISTS public.visits;
+DROP TABLE IF EXISTS public.roi_campaigns CASCADE;
+DROP TABLE IF EXISTS public.visit_materials CASCADE;
+DROP TABLE IF EXISTS public.materials CASCADE;
+DROP TABLE IF EXISTS public.visits CASCADE;
 
 
 -- ========= PASO 2: Crear la tabla principal de VISITAS =========
@@ -56,10 +56,10 @@ CREATE TABLE public.visit_materials (
     UNIQUE(visit_id, material_id)
 );
 
--- ========= PASO 5: Crear la tabla de ANÁLISIS DE ROI =========
+-- ========= PASO 5: Crear la tabla de ANÁLISIS DE ROI (versión con utilidad) =========
 -- Almacena los datos y resultados de las campañas de marketing.
 CREATE TABLE public.roi_campaigns (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT NOT NULL,
     start_date TIMESTAMPTZ NOT NULL,
     end_date TIMESTAMPTZ NOT NULL,
@@ -68,12 +68,13 @@ CREATE TABLE public.roi_campaigns (
     investment_type TEXT NOT NULL,
     amount_invested NUMERIC NOT NULL CHECK (amount_invested > 0),
     revenue_generated NUMERIC NOT NULL,
+    profit_generated NUMERIC NOT NULL,
     units_sold INTEGER,
     comment TEXT,
     roi NUMERIC GENERATED ALWAYS AS (
-        CASE 
-            WHEN amount_invested = 0 THEN 0 
-            ELSE ((revenue_generated - amount_invested) / amount_invested) * 100 
+        CASE
+            WHEN amount_invested = 0 THEN 0
+            ELSE (profit_generated / amount_invested) * 100
         END
     ) STORED
 );

@@ -50,6 +50,7 @@ export interface RoiCampaign {
   investment_type: string;
   amount_invested: number;
   revenue_generated: number;
+  profit_generated: number; // Utilidad neta generada
   units_sold?: number;
   comment?: string;
   roi: number; // Calculated field

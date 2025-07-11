@@ -35,6 +35,7 @@ const campaignSchema = z.object({
   investment_type: z.string().min(1, { message: 'El tipo de inversión es requerido.' }),
   amount_invested: z.coerce.number().positive({ message: 'La inversión debe ser un número positivo.' }),
   revenue_generated: z.coerce.number().min(0, { message: 'Los ingresos no pueden ser negativos.' }),
+  profit_generated: z.coerce.number().min(0, { message: 'La utilidad no puede ser negativa.' }),
   units_sold: z.coerce.number().min(0).optional(),
   comment: z.string().optional(),
 }).refine(data => data.end_date >= data.start_date, {
@@ -44,10 +45,12 @@ const campaignSchema = z.object({
 
 type CampaignFormValues = z.infer<typeof campaignSchema>;
 
-const roiTableCreationScript = `-- ========= CREAR LA TABLA DE ANÁLISIS DE ROI =========
--- Almacena los datos y resultados de las campañas de marketing.
+const roiTableCreationScript = `-- ========= ELIMINAR TABLA ANTERIOR (si existe) =========
+DROP TABLE IF EXISTS public.roi_campaigns CASCADE;
+
+-- ========= CREAR TABLA ROI CAMPAIGNS CON UTILIDAD =========
 CREATE TABLE public.roi_campaigns (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT NOT NULL,
     start_date TIMESTAMPTZ NOT NULL,
     end_date TIMESTAMPTZ NOT NULL,
@@ -56,24 +59,26 @@ CREATE TABLE public.roi_campaigns (
     investment_type TEXT NOT NULL,
     amount_invested NUMERIC NOT NULL CHECK (amount_invested > 0),
     revenue_generated NUMERIC NOT NULL,
+    profit_generated NUMERIC NOT NULL,
     units_sold INTEGER,
     comment TEXT,
     roi NUMERIC GENERATED ALWAYS AS (
-        CASE 
-            WHEN amount_invested = 0 THEN 0 
-            ELSE ((revenue_generated - amount_invested) / amount_invested) * 100 
+        CASE
+            WHEN amount_invested = 0 THEN 0
+            ELSE (profit_generated / amount_invested) * 100
         END
     ) STORED
 );
 
--- ========= Habilitar Seguridad a Nivel de Fila (RLS) =========
+-- ========= HABILITAR SEGURIDAD A NIVEL DE FILA (RLS) =========
 ALTER TABLE public.roi_campaigns ENABLE ROW LEVEL SECURITY;
 
--- ========= Crear Política de Acceso para Usuarios Autenticados =========
-CREATE POLICY "Public full access on roi_campaigns" 
-ON public.roi_campaigns 
-FOR ALL TO authenticated 
-USING (true) WITH CHECK (true);`;
+-- ========= POLÍTICA DE ACCESO PARA USUARIOS AUTENTICADOS =========
+CREATE POLICY "Public full access on roi_campaigns"
+ON public.roi_campaigns
+FOR ALL TO authenticated
+USING (true)
+WITH CHECK (true);`;
 
 export default function AnalisisRoiPage() {
     const [campaigns, setCampaigns] = useState<RoiCampaign[]>([]);
@@ -112,6 +117,7 @@ export default function AnalisisRoiPage() {
             investment_type: '',
             amount_invested: 0,
             revenue_generated: 0,
+            profit_generated: 0,
             units_sold: 0,
             comment: ''
         }
@@ -119,25 +125,26 @@ export default function AnalisisRoiPage() {
 
     const calculatedResult = useMemo(() => {
         const invested = form.watch('amount_invested');
+        const profit = form.watch('profit_generated');
         const revenue = form.watch('revenue_generated');
         const units = form.watch('units_sold');
 
         if (invested <= 0) return null;
-        if (revenue < 0) return null;
+        if (profit < 0) return null;
         
-        const roi = ((revenue - invested) / invested) * 100;
+        const roi = (profit / invested) * 100;
         let status: 'Positivo' | 'Negativo' | 'Punto de Equilibrio' = 'Punto de Equilibrio';
         if (roi > 500) status = 'Positivo';
         if (roi < 0) status = 'Negativo';
 
-        const ticket = (units && units > 0) ? (revenue / units) : 0;
+        const ticket = (units && units > 0 && revenue > 0) ? (revenue / units) : 0;
 
         return {
             roi: roi.toFixed(2),
             status,
             ticket: ticket.toFixed(2)
         };
-    }, [form.watch('amount_invested'), form.watch('revenue_generated'), form.watch('units_sold')]);
+    }, [form.watch('amount_invested'), form.watch('profit_generated'), form.watch('revenue_generated'), form.watch('units_sold')]);
 
     const handleFormSubmit = async (values: CampaignFormValues) => {
         try {
@@ -172,13 +179,13 @@ export default function AnalisisRoiPage() {
                     <CardHeader>
                         <CardTitle className="font-headline text-xl text-destructive flex items-center gap-2"><AlertTriangle /> Error de Base de Datos</CardTitle>
                         <CardDescription className="text-destructive/90">
-                            No se pudieron cargar los análisis de ROI. Esto suele ocurrir porque la tabla <strong>`roi_campaigns`</strong> no existe en tu base de datos de Supabase.
+                            No se pudieron cargar los análisis de ROI. Esto suele ocurrir porque la tabla <strong>`roi_campaigns`</strong> no existe o su estructura es incorrecta.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div>
-                             <h3 className="font-semibold text-card-foreground">Solución: Crear la Tabla Faltante</h3>
-                            <p className="text-sm text-muted-foreground mt-1 mb-2">Copia el siguiente script SQL y ejecútalo en el <strong>SQL Editor</strong> de tu proyecto de Supabase para crear la tabla necesaria.</p>
+                             <h3 className="font-semibold text-card-foreground">Solución: Crear o Actualizar la Tabla</h3>
+                            <p className="text-sm text-muted-foreground mt-1 mb-2">Copia el siguiente script SQL y ejecútalo en el <strong>SQL Editor</strong> de tu proyecto de Supabase para crear o reemplazar la tabla necesaria.</p>
                             <pre className="text-sm bg-background p-4 rounded-md whitespace-pre-wrap font-code border text-left">
                                 {roiTableCreationScript}
                             </pre>
@@ -213,6 +220,7 @@ export default function AnalisisRoiPage() {
                                     <TableHead>ROI (%)</TableHead>
                                     <TableHead>Invertido</TableHead>
                                     <TableHead>Ingresos</TableHead>
+                                    <TableHead>Utilidad</TableHead>
                                     <TableHead>Responsable</TableHead>
                                     <TableHead>Acciones</TableHead>
                                 </TableRow>
@@ -229,6 +237,7 @@ export default function AnalisisRoiPage() {
                                             )}>{c.roi.toFixed(2)}%</TableCell>
                                             <TableCell>{c.amount_invested.toLocaleString('es-CO', { style: 'currency', currency: 'USD' })}</TableCell>
                                             <TableCell>{c.revenue_generated.toLocaleString('es-CO', { style: 'currency', currency: 'USD' })}</TableCell>
+                                            <TableCell>{c.profit_generated.toLocaleString('es-CO', { style: 'currency', currency: 'USD' })}</TableCell>
                                             <TableCell>{c.responsible}</TableCell>
                                             <TableCell>
                                                 <Button variant="ghost" size="icon" onClick={() => setDeletingCampaign(c)}>
@@ -239,7 +248,7 @@ export default function AnalisisRoiPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-24 text-center">No hay campañas registradas. ¡Añada la primera!</TableCell>
+                                        <TableCell colSpan={7} className="h-24 text-center">No hay campañas registradas. ¡Añada la primera!</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
@@ -284,11 +293,14 @@ export default function AnalisisRoiPage() {
                                         <FormField control={form.control} name="zone" render={({ field }) => (<FormItem><FormLabel>Zona / Región</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Costa Norte">Costa Norte</SelectItem><SelectItem value="Costa Sur">Costa Sur</SelectItem><SelectItem value="Sierra">Sierra</SelectItem><SelectItem value="Oriente">Oriente</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                                         <FormField control={form.control} name="investment_type" render={({ field }) => (<FormItem><FormLabel>Tipo de inversión</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Publicidad">Publicidad</SelectItem><SelectItem value="Muestras">Muestras</SelectItem><SelectItem value="Promocion en PDV">Promoción en PDV</SelectItem><SelectItem value="Capacitacion">Capacitación</SelectItem><SelectItem value="Otro">Otro</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                                     </div>
-                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField control={form.control} name="amount_invested" render={({ field }) => (<FormItem><FormLabel>Monto invertido (USD)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                         <FormField control={form.control} name="revenue_generated" render={({ field }) => (<FormItem><FormLabel>Ingresos generados (USD)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                     </div>
+                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField control={form.control} name="profit_generated" render={({ field }) => (<FormItem><FormLabel>Utilidad generada (USD)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                         <FormField control={form.control} name="units_sold" render={({ field }) => (<FormItem><FormLabel>Unidades vendidas</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                    </div>
+                                     </div>
                                     <FormField control={form.control} name="comment" render={({ field }) => (<FormItem><FormLabel>Comentario / Observación</FormLabel><FormControl><Textarea rows={3} {...field} /></FormControl><FormMessage /></FormItem>)} />
                                 </div>
                                 <div className="md:col-span-1 space-y-4">

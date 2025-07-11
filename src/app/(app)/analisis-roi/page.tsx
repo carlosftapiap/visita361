@@ -321,7 +321,7 @@ export default function AnalisisRoiPage() {
                                     </div>
                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField control={form.control} name="revenue_generated" render={({ field }) => (<FormItem><FormLabel>Ventas Adicionales Generadas (USD)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                         <FormField control={form.control} name="profit_generated" render={({ field }) => (<FormItem><FormLabel>Utilidad generada (USD)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                         <FormField control={form.control} name="profit_generated" render={({ field }) => (<FormItem className="hidden"><FormLabel>Utilidad generada (USD)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                      </div>
                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField control={form.control} name="units_sold" render={({ field }) => (<FormItem><FormLabel>Unidades vendidas</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />

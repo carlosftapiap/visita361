@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 
 const campaignSchema = z.object({
   name: z.string().min(3, { message: 'El nombre debe tener al menos 3 caracteres.' }),
+  client: z.string().min(1, { message: 'El nombre del cliente es requerido.' }),
   start_date: z.date({ required_error: 'La fecha de inicio es requerida.' }),
   end_date: z.date({ required_error: 'La fecha de fin es requerida.' }),
   zone: z.string().min(1, { message: 'La zona es requerida.' }),
@@ -52,6 +53,7 @@ DROP TABLE IF EXISTS public.roi_campaigns CASCADE;
 CREATE TABLE public.roi_campaigns (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT NOT NULL,
+    client TEXT NOT NULL,
     start_date TIMESTAMPTZ NOT NULL,
     end_date TIMESTAMPTZ NOT NULL,
     zone TEXT NOT NULL,
@@ -110,6 +112,7 @@ export default function AnalisisRoiPage() {
         resolver: zodResolver(campaignSchema),
         defaultValues: {
             name: '',
+            client: '',
             start_date: new Date(),
             end_date: new Date(),
             zone: '',
@@ -217,9 +220,9 @@ export default function AnalisisRoiPage() {
                             <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
                                 <TableRow>
                                     <TableHead>Campaña</TableHead>
+                                    <TableHead>Cliente</TableHead>
                                     <TableHead>ROI (%)</TableHead>
                                     <TableHead>Invertido</TableHead>
-                                    <TableHead>Ingresos</TableHead>
                                     <TableHead>Utilidad</TableHead>
                                     <TableHead>Responsable</TableHead>
                                     <TableHead>Acciones</TableHead>
@@ -230,13 +233,13 @@ export default function AnalisisRoiPage() {
                                     campaigns.map(c => (
                                         <TableRow key={c.id}>
                                             <TableCell className="font-medium">{c.name}</TableCell>
+                                            <TableCell>{c.client}</TableCell>
                                             <TableCell className={cn(
                                                 "font-bold",
                                                 c.roi > 500 && "text-green-600",
                                                 c.roi < 0 && "text-red-600"
                                             )}>{c.roi.toFixed(2)}%</TableCell>
                                             <TableCell>{c.amount_invested.toLocaleString('es-CO', { style: 'currency', currency: 'USD' })}</TableCell>
-                                            <TableCell>{c.revenue_generated.toLocaleString('es-CO', { style: 'currency', currency: 'USD' })}</TableCell>
                                             <TableCell>{c.profit_generated.toLocaleString('es-CO', { style: 'currency', currency: 'USD' })}</TableCell>
                                             <TableCell>{c.responsible}</TableCell>
                                             <TableCell>
@@ -283,22 +286,25 @@ export default function AnalisisRoiPage() {
                                 <div className="md:col-span-2 space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Nombre de la campaña</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="client" render={({ field }) => (<FormItem><FormLabel>Nombre del cliente</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField control={form.control} name="responsible" render={({ field }) => (<FormItem><FormLabel>Responsable</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="zone" render={({ field }) => (<FormItem><FormLabel>Zona / Región</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Costa">Costa</SelectItem><SelectItem value="Sierra">Sierra</SelectItem><SelectItem value="Austro">Austro</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField control={form.control} name="start_date" render={({ field }) => (<FormItem><FormLabel>Fecha de inicio</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full justify-start text-left font-normal">{format(field.value, "PPP", { locale: es })}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
                                         <FormField control={form.control} name="end_date" render={({ field }) => (<FormItem><FormLabel>Fecha de fin</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full justify-start text-left font-normal">{format(field.value, "PPP", { locale: es })}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
                                     </div>
                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField control={form.control} name="zone" render={({ field }) => (<FormItem><FormLabel>Zona / Región</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Costa">Costa</SelectItem><SelectItem value="Sierra">Sierra</SelectItem><SelectItem value="Austro">Austro</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                                         <FormField control={form.control} name="investment_type" render={({ field }) => (<FormItem><FormLabel>Tipo de inversión</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Publicidad">Publicidad</SelectItem><SelectItem value="Muestras">Muestras</SelectItem><SelectItem value="Promocion en PDV">Promoción en PDV</SelectItem><SelectItem value="Capacitacion">Capacitación</SelectItem><SelectItem value="Otro">Otro</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="amount_invested" render={({ field }) => (<FormItem><FormLabel>Monto invertido (USD)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                     </div>
                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField control={form.control} name="amount_invested" render={({ field }) => (<FormItem><FormLabel>Monto invertido (USD)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                         <FormField control={form.control} name="revenue_generated" render={({ field }) => (<FormItem><FormLabel>Ingresos generados (USD)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                         <FormField control={form.control} name="profit_generated" render={({ field }) => (<FormItem><FormLabel>Utilidad generada (USD)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                      </div>
                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField control={form.control} name="profit_generated" render={({ field }) => (<FormItem><FormLabel>Utilidad generada (USD)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                         <FormField control={form.control} name="units_sold" render={({ field }) => (<FormItem><FormLabel>Unidades vendidas</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                      </div>
                                     <FormField control={form.control} name="comment" render={({ field }) => (<FormItem><FormLabel>Comentario / Observación</FormLabel><FormControl><Textarea rows={3} {...field} /></FormControl><FormMessage /></FormItem>)} />

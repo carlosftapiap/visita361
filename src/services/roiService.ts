@@ -40,5 +40,3 @@ export const deleteRoiCampaign = async (id: number): Promise<void> => {
         throw buildSupabaseError(error, 'eliminación de campaña ROI');
     }
 };
-
-    

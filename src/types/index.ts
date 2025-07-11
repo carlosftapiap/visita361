@@ -1,5 +1,4 @@
 
-
 export interface Material {
   id: number;
   name: string;
@@ -43,6 +42,7 @@ export interface VisitWithMaterials extends Visit {
 export interface RoiCampaign {
   id: number;
   name: string;
+  client: string;
   start_date: string; // ISO 8601 date string
   end_date: string; // ISO 8601 date string
   zone: string;
@@ -55,5 +55,3 @@ export interface RoiCampaign {
   comment?: string;
   roi: number; // Calculated field
 }
-
-    

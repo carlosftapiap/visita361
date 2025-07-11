@@ -1,19 +1,18 @@
+
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from './ui/button';
 import { Download } from 'lucide-react';
-import * as XLSX from 'xlsx';
 
 interface ModulePlaceholderProps {
     title: string;
     description: string;
     icon: React.ElementType;
-    onFileProcessed: (data: any[]) => void;
     onDownloadTemplate: () => void;
 }
 
-export default function ModulePlaceholder({ title, description, icon: Icon, onFileProcessed, onDownloadTemplate }: ModulePlaceholderProps) {
+export default function ModulePlaceholder({ title, description, icon: Icon, onDownloadTemplate }: ModulePlaceholderProps) {
     return (
         <div className="p-4 md:p-6">
             <Card className="shadow-md">

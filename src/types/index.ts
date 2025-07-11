@@ -1,7 +1,4 @@
 
-
-
-
 export interface Material {
   id: number;
   name: string;
@@ -40,4 +37,16 @@ export interface Visit {
 export interface VisitWithMaterials extends Visit {
     total_cost: number;
     materials_list: { name: string, quantity: number, unit_price: number }[];
+}
+
+export interface Sale {
+    FECHA: string; // ISO 8601 date string
+    PRODUCTO: string;
+    CATEGORIA: string;
+    CANTIDAD: number;
+    PRECIO_UNITARIO: number;
+    TOTAL_VENTA: number;
+    CANAL: string;
+    CIUDAD: string;
+    VENDEDOR: string;
 }

@@ -54,3 +54,5 @@ export interface RoiCampaign {
   comment?: string;
   roi: number; // Calculated field
 }
+
+    

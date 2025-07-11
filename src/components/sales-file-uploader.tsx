@@ -18,9 +18,12 @@ const requiredHeaders = [
     'ASESOR',
     'CLIENTE',
     'CANAL',
+    'DATA',
+    'FORMA',
     'MARCA',
     'CATEGORIA',
     'PRODUCTO',
+    'PRODUCTO SISTEMA',
     'UNIDADES',
     'DOLARES',
     'COSTO_PROMEDIO'
@@ -123,9 +126,12 @@ export default function SalesFileUploader({ onFileProcessed, disabled = false }:
                 ASESOR: String(row['ASESOR'] || ''),
                 CLIENTE: String(row['CLIENTE'] || ''),
                 CANAL: String(row['CANAL'] || ''),
+                DATA: String(row['DATA'] || ''),
+                FORMA: String(row['FORMA'] || ''),
                 MARCA: String(row['MARCA'] || ''),
                 CATEGORIA: String(row['CATEGORIA'] || ''),
                 PRODUCTO: String(row['PRODUCTO'] || ''),
+                'PRODUCTO SISTEMA': String(row['PRODUCTO SISTEMA'] || ''),
                 UNIDADES: getNumber(row['UNIDADES'], 'UNIDADES'),
                 DOLARES: getNumber(row['DOLARES'], 'DOLARES'),
                 COSTO_PROMEDIO: getNumber(row['COSTO_PROMEDIO'], 'COSTO_PROMEDIO'),
@@ -174,7 +180,7 @@ export default function SalesFileUploader({ onFileProcessed, disabled = false }:
 
   const handleDownloadTemplate = () => {
     const exampleRow = [
-       [2024, 'Julio', 'Andina', 'Bogotá', 'Cundinamarca', 'Asesor 1', 'Cliente A', 'Retail', 'Marca X', 'Categoría Y', 'Producto Z', 10, 500.50, 50.05]
+       [2024, 'Julio', 'Andina', 'Bogotá', 'Cundinamarca', 'Asesor 1', 'Cliente A', 'Retail', 'Dato 1', 'Forma 1', 'Marca X', 'Categoría Y', 'Producto Z', 'SKU-123', 10, 500.50, 50.05]
     ];
     
     const ws = XLSX.utils.aoa_to_sheet([requiredHeaders, ...exampleRow]);

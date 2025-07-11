@@ -19,7 +19,7 @@ export default function SalesDashboard({ data, onReset }: SalesDashboardProps) {
     const kpis = useMemo(() => {
         const totalSales = data.reduce((sum, sale) => sum + sale.DOLARES, 0);
         const totalQuantity = data.reduce((sum, sale) => sum + sale.UNIDADES, 0);
-        const uniqueProducts = new Set(data.map(s => s.PRODUCTO)).size;
+        const uniqueProducts = new Set(data.map(s => s['PRODUCTO SISTEMA'])).size;
         
         return {
             totalSales,
@@ -74,10 +74,10 @@ export default function SalesDashboard({ data, onReset }: SalesDashboardProps) {
                                 <TableRow>
                                     <TableHead>Fecha</TableHead>
                                     <TableHead>Asesor</TableHead>
+                                    <TableHead>Cliente</TableHead>
+                                    <TableHead>Producto Sistema</TableHead>
                                     <TableHead>Producto</TableHead>
-                                    <TableHead>Categoría</TableHead>
                                     <TableHead className="text-right">Unidades</TableHead>
-                                    <TableHead className="text-right">Costo Promedio</TableHead>
                                     <TableHead className="text-right">Venta (USD)</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -86,10 +86,10 @@ export default function SalesDashboard({ data, onReset }: SalesDashboardProps) {
                                     <TableRow key={index}>
                                         <TableCell>{new Date(sale.FECHA).toLocaleDateString('es-CO', { year: 'numeric', month: 'long' })}</TableCell>
                                         <TableCell className="font-medium">{sale.ASESOR}</TableCell>
+                                        <TableCell>{sale.CLIENTE}</TableCell>
+                                        <TableCell>{sale['PRODUCTO SISTEMA']}</TableCell>
                                         <TableCell>{sale.PRODUCTO}</TableCell>
-                                        <TableCell>{sale.CATEGORIA}</TableCell>
                                         <TableCell className="text-right">{sale.UNIDADES.toLocaleString('es-CO')}</TableCell>
-                                        <TableCell className="text-right font-mono">{sale.COSTO_PROMEDIO.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</TableCell>
                                         <TableCell className="text-right font-mono">{sale.DOLARES.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</TableCell>
                                     </TableRow>
                                 ))}

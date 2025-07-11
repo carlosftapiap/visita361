@@ -49,9 +49,12 @@ export interface Sale {
     ASESOR: string;
     CLIENTE: string;
     CANAL: string;
+    DATA: string;
+    FORMA: string;
     MARCA: string;
     CATEGORIA: string;
     PRODUCTO: string;
+    'PRODUCTO SISTEMA': string;
     UNIDADES: number;
     DOLARES: number;
     COSTO_PROMEDIO: number;

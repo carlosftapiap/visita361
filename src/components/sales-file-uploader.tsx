@@ -30,20 +30,20 @@ const requiredHeaders = [
 ];
 
 interface SalesFileUploaderProps {
+  onProcessing: () => void;
   onFileProcessed: (data: Sale[]) => void;
+  onError: () => void;
   disabled?: boolean;
 }
 
-export default function SalesFileUploader({ onFileProcessed, disabled = false }: SalesFileUploaderProps) {
+export default function SalesFileUploader({ onProcessing, onFileProcessed, onError, disabled = false }: SalesFileUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const resetState = () => {
     setIsUploading(false);
-    setIsSuccess(false);
     setFileName(null);
      if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -68,9 +68,11 @@ export default function SalesFileUploader({ onFileProcessed, disabled = false }:
         title: 'Archivo no válido',
         description: 'Por favor, seleccione un archivo Excel (.xlsx o .xls).',
       });
+      onError();
       return;
     }
 
+    onProcessing();
     setIsUploading(true);
     setFileName(file.name);
 
@@ -78,7 +80,7 @@ export default function SalesFileUploader({ onFileProcessed, disabled = false }:
     reader.onload = (e) => {
       try {
         const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+        const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const json: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
@@ -113,7 +115,7 @@ export default function SalesFileUploader({ onFileProcessed, disabled = false }:
             if (!month) {
                 throw new Error(`Mes inválido "${row['MES']}" en la fila ${index + 2}. Use el nombre completo, ej: "Enero".`);
             }
-            const saleDate = new Date(year, month - 1, 1);
+            const saleDate = new Date(year, month - 1, 15); // Use 15 to avoid timezone issues
             
 
             return {
@@ -145,10 +147,6 @@ export default function SalesFileUploader({ onFileProcessed, disabled = false }:
           description: `Archivo "${file.name}" procesado con ${parsedData.length} registros de ventas.`,
         });
 
-        setIsUploading(false);
-        setIsSuccess(true);
-        // No resetear para que el dashboard aparezca
-
       } catch (error: any) {
         console.error('Error processing file:', error);
         toast({
@@ -156,6 +154,8 @@ export default function SalesFileUploader({ onFileProcessed, disabled = false }:
           title: 'Error al procesar el archivo',
           description: error.message || 'Asegúrese de que el formato del archivo sea correcto.',
         });
+        onError();
+      } finally {
         resetState();
       }
     };
@@ -167,6 +167,7 @@ export default function SalesFileUploader({ onFileProcessed, disabled = false }:
             title: "Error de lectura",
             description: "No se pudo leer el archivo.",
         });
+        onError();
         resetState();
     };
 

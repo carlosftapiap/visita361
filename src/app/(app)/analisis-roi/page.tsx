@@ -127,7 +127,7 @@ export default function AnalisisRoiPage() {
         
         const roi = ((revenue - invested) / invested) * 100;
         let status: 'Positivo' | 'Negativo' | 'Punto de Equilibrio' = 'Punto de Equilibrio';
-        if (roi > 30) status = 'Positivo';
+        if (roi > 500) status = 'Positivo';
         if (roi < 0) status = 'Negativo';
 
         const ticket = (units && units > 0) ? (revenue / units) : 0;
@@ -224,7 +224,7 @@ export default function AnalisisRoiPage() {
                                             <TableCell className="font-medium">{c.name}</TableCell>
                                             <TableCell className={cn(
                                                 "font-bold",
-                                                c.roi > 30 && "text-green-600",
+                                                c.roi > 500 && "text-green-600",
                                                 c.roi < 0 && "text-red-600"
                                             )}>{c.roi.toFixed(2)}%</TableCell>
                                             <TableCell>{c.amount_invested.toLocaleString('es-CO', { style: 'currency', currency: 'USD' })}</TableCell>

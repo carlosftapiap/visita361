@@ -76,7 +76,8 @@ export default function SalesDashboard({ data, onReset }: SalesDashboardProps) {
                                     <TableHead>Asesor</TableHead>
                                     <TableHead>Cliente</TableHead>
                                     <TableHead>Producto Sistema</TableHead>
-                                    <TableHead>Producto</TableHead>
+                                    <TableHead>Data</TableHead>
+                                    <TableHead>Forma</TableHead>
                                     <TableHead className="text-right">Unidades</TableHead>
                                     <TableHead className="text-right">Venta (USD)</TableHead>
                                 </TableRow>
@@ -88,7 +89,8 @@ export default function SalesDashboard({ data, onReset }: SalesDashboardProps) {
                                         <TableCell className="font-medium">{sale.ASESOR}</TableCell>
                                         <TableCell>{sale.CLIENTE}</TableCell>
                                         <TableCell>{sale['PRODUCTO SISTEMA']}</TableCell>
-                                        <TableCell>{sale.PRODUCTO}</TableCell>
+                                        <TableCell>{sale.DATA}</TableCell>
+                                        <TableCell>{sale.FORMA}</TableCell>
                                         <TableCell className="text-right">{sale.UNIDADES.toLocaleString('es-CO')}</TableCell>
                                         <TableCell className="text-right font-mono">{sale.DOLARES.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</TableCell>
                                     </TableRow>

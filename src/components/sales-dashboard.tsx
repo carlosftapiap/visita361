@@ -17,8 +17,8 @@ interface SalesDashboardProps {
 export default function SalesDashboard({ data, onReset }: SalesDashboardProps) {
 
     const kpis = useMemo(() => {
-        const totalSales = data.reduce((sum, sale) => sum + sale.TOTAL_VENTA, 0);
-        const totalQuantity = data.reduce((sum, sale) => sum + sale.CANTIDAD, 0);
+        const totalSales = data.reduce((sum, sale) => sum + sale.DOLARES, 0);
+        const totalQuantity = data.reduce((sum, sale) => sum + sale.UNIDADES, 0);
         const uniqueProducts = new Set(data.map(s => s.PRODUCTO)).size;
         
         return {
@@ -44,8 +44,8 @@ export default function SalesDashboard({ data, onReset }: SalesDashboardProps) {
                 <CardContent>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <KpiCard 
-                            title="Ventas Totales" 
-                            value={kpis.totalSales.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })} 
+                            title="Ventas Totales (USD)" 
+                            value={kpis.totalSales.toLocaleString('en-US', { style: 'currency', currency: 'USD' })} 
                             icon={DollarSign}
                         />
                         <KpiCard 
@@ -73,22 +73,24 @@ export default function SalesDashboard({ data, onReset }: SalesDashboardProps) {
                             <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
                                 <TableRow>
                                     <TableHead>Fecha</TableHead>
+                                    <TableHead>Asesor</TableHead>
                                     <TableHead>Producto</TableHead>
                                     <TableHead>Categoría</TableHead>
-                                    <TableHead className="text-right">Cantidad</TableHead>
-                                    <TableHead className="text-right">Precio Unitario</TableHead>
-                                    <TableHead className="text-right">Venta Total</TableHead>
+                                    <TableHead className="text-right">Unidades</TableHead>
+                                    <TableHead className="text-right">Costo Promedio</TableHead>
+                                    <TableHead className="text-right">Venta (USD)</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {data.map((sale, index) => (
                                     <TableRow key={index}>
-                                        <TableCell>{new Date(sale.FECHA).toLocaleDateString('es-CO')}</TableCell>
-                                        <TableCell className="font-medium">{sale.PRODUCTO}</TableCell>
+                                        <TableCell>{new Date(sale.FECHA).toLocaleDateString('es-CO', { year: 'numeric', month: 'long' })}</TableCell>
+                                        <TableCell className="font-medium">{sale.ASESOR}</TableCell>
+                                        <TableCell>{sale.PRODUCTO}</TableCell>
                                         <TableCell>{sale.CATEGORIA}</TableCell>
-                                        <TableCell className="text-right">{sale.CANTIDAD.toLocaleString('es-CO')}</TableCell>
-                                        <TableCell className="text-right font-mono">{sale.PRECIO_UNITARIO.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</TableCell>
-                                        <TableCell className="text-right font-mono">{sale.TOTAL_VENTA.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</TableCell>
+                                        <TableCell className="text-right">{sale.UNIDADES.toLocaleString('es-CO')}</TableCell>
+                                        <TableCell className="text-right font-mono">{sale.COSTO_PROMEDIO.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</TableCell>
+                                        <TableCell className="text-right font-mono">{sale.DOLARES.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

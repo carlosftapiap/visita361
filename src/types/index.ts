@@ -41,12 +41,18 @@ export interface VisitWithMaterials extends Visit {
 
 export interface Sale {
     FECHA: string; // ISO 8601 date string
-    PRODUCTO: string;
-    CATEGORIA: string;
-    CANTIDAD: number;
-    PRECIO_UNITARIO: number;
-    TOTAL_VENTA: number;
-    CANAL: string;
+    ANIO: number;
+    MES: string;
+    REGION: string;
     CIUDAD: string;
-    VENDEDOR: string;
+    PROVINCIA: string;
+    ASESOR: string;
+    CLIENTE: string;
+    CANAL: string;
+    MARCA: string;
+    CATEGORIA: string;
+    PRODUCTO: string;
+    UNIDADES: number;
+    DOLARES: number;
+    COSTO_PROMEDIO: number;
 }

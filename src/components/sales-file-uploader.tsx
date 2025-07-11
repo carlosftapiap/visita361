@@ -10,15 +10,20 @@ import * as XLSX from 'xlsx';
 import { cn } from '@/lib/utils';
 
 const requiredHeaders = [
-    'FECHA',
-    'PRODUCTO',
-    'CATEGORIA',
-    'CANTIDAD',
-    'PRECIO_UNITARIO',
-    'TOTAL_VENTA',
-    'CANAL',
+    'ANIO',
+    'MES',
+    'REGION',
     'CIUDAD',
-    'VENDEDOR'
+    'PROVINCIA',
+    'ASESOR',
+    'CLIENTE',
+    'CANAL',
+    'MARCA',
+    'CATEGORIA',
+    'PRODUCTO',
+    'UNIDADES',
+    'DOLARES',
+    'COSTO_PROMEDIO'
 ];
 
 interface SalesFileUploaderProps {
@@ -41,6 +46,12 @@ export default function SalesFileUploader({ onFileProcessed, disabled = false }:
         fileInputRef.current.value = '';
      }
   }
+  
+  const monthNameToNumber: { [key: string]: number } = {
+    'enero': 1, 'febrero': 2, 'marzo': 3, 'abril': 4, 'mayo': 5, 'junio': 6,
+    'julio': 7, 'agosto': 8, 'septiembre': 9, 'octubre': 10, 'noviembre': 11, 'diciembre': 12
+  };
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -81,32 +92,43 @@ export default function SalesFileUploader({ onFileProcessed, disabled = false }:
         }
 
         const parsedData = json.map((row, index) => {
-            const saleDate = row['FECHA'] ? new Date(row['FECHA']) : null;
-            if (!saleDate || isNaN(saleDate.getTime())) {
-                throw new Error(`La fila ${index + 2} tiene una fecha inválida.`);
-            }
-
             const getNumber = (value: any, fieldName: string) => {
                 if (value === undefined || value === null || value === '') {
                      throw new Error(`El campo '${fieldName}' está vacío en la fila ${index + 2}.`);
                 }
-                const num = Number(value);
+                const num = Number(String(value).replace(/[^0-9.-]+/g,""));
                 if (isNaN(num)) {
                     throw new Error(`El campo '${fieldName}' no es un número válido en la fila ${index + 2}.`);
                 }
                 return num;
             };
 
+            const year = getNumber(row['ANIO'], 'ANIO');
+            const monthStr = String(row['MES'] || '').toLowerCase();
+            const month = monthNameToNumber[monthStr];
+
+            if (!month) {
+                throw new Error(`Mes inválido "${row['MES']}" en la fila ${index + 2}.`);
+            }
+            const saleDate = new Date(year, month - 1, 1);
+            
+
             return {
                 FECHA: saleDate.toISOString(),
-                PRODUCTO: String(row['PRODUCTO'] || ''),
-                CATEGORIA: String(row['CATEGORIA'] || ''),
-                CANTIDAD: getNumber(row['CANTIDAD'], 'CANTIDAD'),
-                PRECIO_UNITARIO: getNumber(row['PRECIO_UNITARIO'], 'PRECIO_UNITARIO'),
-                TOTAL_VENTA: getNumber(row['TOTAL_VENTA'], 'TOTAL_VENTA'),
-                CANAL: String(row['CANAL'] || ''),
+                ANIO: year,
+                MES: String(row['MES'] || ''),
+                REGION: String(row['REGION'] || ''),
                 CIUDAD: String(row['CIUDAD'] || ''),
-                VENDEDOR: String(row['VENDEDOR'] || ''),
+                PROVINCIA: String(row['PROVINCIA'] || ''),
+                ASESOR: String(row['ASESOR'] || ''),
+                CLIENTE: String(row['CLIENTE'] || ''),
+                CANAL: String(row['CANAL'] || ''),
+                MARCA: String(row['MARCA'] || ''),
+                CATEGORIA: String(row['CATEGORIA'] || ''),
+                PRODUCTO: String(row['PRODUCTO'] || ''),
+                UNIDADES: getNumber(row['UNIDADES'], 'UNIDADES'),
+                DOLARES: getNumber(row['DOLARES'], 'DOLARES'),
+                COSTO_PROMEDIO: getNumber(row['COSTO_PROMEDIO'], 'COSTO_PROMEDIO'),
             } as Sale;
         });
 
@@ -152,7 +174,7 @@ export default function SalesFileUploader({ onFileProcessed, disabled = false }:
 
   const handleDownloadTemplate = () => {
     const exampleRow = [
-        ['2024-08-01', 'Producto A', 'Categoría X', 10, 15000, 150000, 'Retail', 'Bogotá', 'Vendedor 1']
+       [2024, 'Julio', 'Andina', 'Bogotá', 'Cundinamarca', 'Asesor 1', 'Cliente A', 'Retail', 'Marca X', 'Categoría Y', 'Producto Z', 10, 500.50, 50.05]
     ];
     
     const ws = XLSX.utils.aoa_to_sheet([requiredHeaders, ...exampleRow]);

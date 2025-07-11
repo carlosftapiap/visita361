@@ -147,7 +147,7 @@ export default function AnalisisRoiPage() {
 
         if (invested > 0) {
             roi = (profit / invested) * 100;
-            if (roi > 500) {
+            if (roi > 300) {
                 status = 'Positivo';
                 statusIcon = TrendingUp;
             } else {
@@ -255,8 +255,8 @@ export default function AnalisisRoiPage() {
                                             <TableCell>{c.client}</TableCell>
                                             <TableCell className={cn(
                                                 "font-bold",
-                                                c.roi > 500 && "text-green-600",
-                                                c.roi <= 500 && "text-red-600"
+                                                c.roi > 300 && "text-green-600",
+                                                c.roi <= 300 && "text-red-600"
                                             )}>{c.roi.toFixed(2)}%</TableCell>
                                             <TableCell>{c.amount_invested.toLocaleString('es-CO', { style: 'currency', currency: 'USD' })}</TableCell>
                                             <TableCell>{c.profit_generated.toLocaleString('es-CO', { style: 'currency', currency: 'USD' })}</TableCell>

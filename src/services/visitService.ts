@@ -1,10 +1,5 @@
 
 
-
-import { getSupabase } from '@/lib/supabase';
-import type { Material, Visit, VisitMaterial } from '@/types';
-import { startOfMonth, endOfMonth } from 'date-fns';
-
 /*
 ================================================================================
 SCRIPT SQL PARA CONFIGURAR LA BASE DE DATOS EN SUPABASE
@@ -71,11 +66,16 @@ CREATE TABLE public.roi_campaigns (
     zone TEXT NOT NULL,
     responsible TEXT NOT NULL,
     investment_type TEXT NOT NULL,
-    amount_invested NUMERIC NOT NULL,
+    amount_invested NUMERIC NOT NULL CHECK (amount_invested > 0),
     revenue_generated NUMERIC NOT NULL,
     units_sold INTEGER,
     comment TEXT,
-    roi NUMERIC GENERATED ALWAYS AS (((revenue_generated - amount_invested) / amount_invested) * 100) STORED
+    roi NUMERIC GENERATED ALWAYS AS (
+        CASE 
+            WHEN amount_invested = 0 THEN 0 
+            ELSE ((revenue_generated - amount_invested) / amount_invested) * 100 
+        END
+    ) STORED
 );
 
 
@@ -105,6 +105,10 @@ ON CONFLICT (name) DO NOTHING;
 
 */
 
+
+import { getSupabase } from '@/lib/supabase';
+import type { Material, Visit, VisitMaterial } from '@/types';
+import { startOfMonth, endOfMonth } from 'date-fns';
 
 const buildSupabaseError = (error: any, context: string): Error => {
     const errorMessage = typeof error === 'object' && error !== null 

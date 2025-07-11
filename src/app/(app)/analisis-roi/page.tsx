@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Target, Plus, Loader2, Trash2, TrendingUp, TrendingDown, DollarSign, AlertTriangle, BadgePercent, Database, RefreshCw } from 'lucide-react';
+import { Target, Plus, Loader2, Trash2, TrendingUp, TrendingDown, DollarSign, AlertTriangle, BadgePercent, Database, RefreshCw, Minus } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -132,19 +132,33 @@ export default function AnalisisRoiPage() {
         const revenue = form.watch('revenue_generated');
         const units = form.watch('units_sold');
 
-        if (invested <= 0) return null;
-        if (profit < 0) return null;
-        
-        const roi = (profit / invested) * 100;
-        let status: 'Positivo' | 'Negativo' | 'Punto de Equilibrio' = 'Punto de Equilibrio';
-        if (roi > 500) status = 'Positivo';
-        if (roi < 0) status = 'Negativo';
+        let roi = 0;
+        let status: 'Positivo' | 'Negativo' | 'Punto de Equilibrio' | '---' = '---';
+        let statusIcon: React.ElementType = Minus;
+        let ticket = 0;
 
-        const ticket = (units && units > 0 && revenue > 0) ? (revenue / units) : 0;
+        if (invested > 0 && profit >= 0) {
+            roi = (profit / invested) * 100;
+            if (roi > 500) {
+                status = 'Positivo';
+                statusIcon = TrendingUp;
+            } else if (roi < 0) {
+                status = 'Negativo';
+                statusIcon = TrendingDown;
+            } else {
+                status = 'Punto de Equilibrio';
+                statusIcon = TrendingUp;
+            }
+        }
+        
+        if (units && units > 0 && revenue > 0) {
+            ticket = revenue / units;
+        }
 
         return {
             roi: roi.toFixed(2),
             status,
+            statusIcon,
             ticket: ticket.toFixed(2)
         };
     }, [form.watch('amount_invested'), form.watch('profit_generated'), form.watch('revenue_generated'), form.watch('units_sold')]);
@@ -260,7 +274,7 @@ export default function AnalisisRoiPage() {
                 </CardContent>
             </Card>
         );
-    }
+    };
     
     return (
         <div className="p-4 md:p-6 flex flex-col gap-6">
@@ -313,14 +327,9 @@ export default function AnalisisRoiPage() {
                                     <Card className="bg-muted/30">
                                         <CardHeader><CardTitle>Resultados</CardTitle></CardHeader>
                                         <CardContent className="space-y-4">
-                                            {!calculatedResult && <p className="text-sm text-muted-foreground">Ingrese los montos para ver los resultados.</p>}
-                                            {calculatedResult && (
-                                                <>
-                                                    <KpiCard icon={BadgePercent} title="ROI" value={`${calculatedResult.roi}%`} />
-                                                    <KpiCard icon={calculatedResult.status === 'Negativo' ? TrendingDown : TrendingUp} title="Estado" value={calculatedResult.status} />
-                                                    <KpiCard icon={DollarSign} title="Ticket Promedio" value={calculatedResult.ticket > 0 ? `$${calculatedResult.ticket}` : 'N/A'} />
-                                                </>
-                                            )}
+                                            <KpiCard icon={BadgePercent} title="ROI" value={`${calculatedResult.roi}%`} />
+                                            <KpiCard icon={calculatedResult.statusIcon} title="Estado" value={calculatedResult.status} />
+                                            <KpiCard icon={DollarSign} title="Ticket Promedio" value={Number(calculatedResult.ticket) > 0 ? `$${calculatedResult.ticket}` : 'N/A'} />
                                         </CardContent>
                                     </Card>
                                      <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2">

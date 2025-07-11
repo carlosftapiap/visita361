@@ -104,11 +104,11 @@ export default function SalesFileUploader({ onFileProcessed, disabled = false }:
             };
 
             const year = getNumber(row['ANIO'], 'ANIO');
-            const monthStr = String(row['MES'] || '').toLowerCase();
+            const monthStr = String(row['MES'] || '').toLowerCase().trim();
             const month = monthNameToNumber[monthStr];
 
             if (!month) {
-                throw new Error(`Mes inválido "${row['MES']}" en la fila ${index + 2}.`);
+                throw new Error(`Mes inválido "${row['MES']}" en la fila ${index + 2}. Use el nombre completo, ej: "Enero".`);
             }
             const saleDate = new Date(year, month - 1, 1);
             
@@ -178,7 +178,7 @@ export default function SalesFileUploader({ onFileProcessed, disabled = false }:
     ];
     
     const ws = XLSX.utils.aoa_to_sheet([requiredHeaders, ...exampleRow]);
-    ws['!cols'] = requiredHeaders.map(() => ({ wch: 20 }));
+    ws['!cols'] = requiredHeaders.map(header => ({ wch: header.length + 5 })); // Adjust column width
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Datos de Ventas');
     XLSX.writeFile(wb, 'Ventas_Template.xlsx');

@@ -36,7 +36,7 @@ const campaignSchema = z.object({
   investment_type: z.string().min(1, { message: 'El tipo de inversión es requerido.' }),
   amount_invested: z.coerce.number().positive({ message: 'La inversión debe ser un número positivo.' }),
   revenue_generated: z.coerce.number().min(0, { message: 'Los ingresos no pueden ser negativos.' }),
-  profit_generated: z.coerce.number().min(0, { message: 'La utilidad no puede ser negativa.' }),
+  profit_generated: z.coerce.number(),
   units_sold: z.coerce.number().min(0).optional(),
   comment: z.string().optional(),
 }).refine(data => data.end_date >= data.start_date, {
@@ -137,7 +137,7 @@ export default function AnalisisRoiPage() {
         let statusIcon: React.ElementType = Minus;
         let ticket = 0;
 
-        if (invested > 0 && profit >= 0) {
+        if (invested > 0) {
             roi = (profit / invested) * 100;
             if (roi > 500) {
                 status = 'Positivo';
@@ -307,8 +307,8 @@ export default function AnalisisRoiPage() {
                                         <FormField control={form.control} name="zone" render={({ field }) => (<FormItem><FormLabel>Zona / Región</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Costa">Costa</SelectItem><SelectItem value="Sierra">Sierra</SelectItem><SelectItem value="Austro">Austro</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField control={form.control} name="start_date" render={({ field }) => (<FormItem><FormLabel>Fecha de inicio</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full justify-start text-left font-normal">{format(field.value, "PPP", { locale: es })}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-                                        <FormField control={form.control} name="end_date" render={({ field }) => (<FormItem><FormLabel>Fecha de fin</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full justify-start text-left font-normal">{format(field.value, "PPP", { locale: es })}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                        <FormField control={form.control} name="start_date" render={({ field }) => (<FormItem><FormLabel>Fecha de inicio</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full justify-start text-left font-normal">{field.value ? format(field.value, "PPP", { locale: es }) : <span>Seleccione una fecha</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                        <FormField control={form.control} name="end_date" render={({ field }) => (<FormItem><FormLabel>Fecha de fin</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full justify-start text-left font-normal">{field.value ? format(field.value, "PPP", { locale: es }) : <span>Seleccione una fecha</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
                                     </div>
                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField control={form.control} name="investment_type" render={({ field }) => (<FormItem><FormLabel>Tipo de inversión</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Publicidad">Publicidad</SelectItem><SelectItem value="Muestras">Muestras</SelectItem><SelectItem value="Promocion en PDV">Promoción en PDV</SelectItem><SelectItem value="Capacitacion">Capacitación</SelectItem><SelectItem value="Otro">Otro</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
@@ -363,3 +363,5 @@ export default function AnalisisRoiPage() {
         </div>
     );
 }
+
+    

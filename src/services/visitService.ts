@@ -262,7 +262,7 @@ export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     const materialIdMap = new Map(allMaterialsList.map(m => [m.name, m.id]));
 
     for (const visit of visits) {
-        const { 'MATERIAL POP': materials, ...visitData } = visit;
+        const { 'MATERIAL POP': materials, total_cost, ...visitData } = visit;
 
         const { data: newVisit, error: visitError } = await supabase
             .from('visits')

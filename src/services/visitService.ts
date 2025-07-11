@@ -1,5 +1,6 @@
 
 
+
 import { getSupabase } from '@/lib/supabase';
 import type { Material, Visit, VisitMaterial } from '@/types';
 import { startOfMonth, endOfMonth } from 'date-fns';
@@ -14,9 +15,11 @@ para crear y configurar las tablas necesarias para la aplicación.
 
 -- ========= PASO 1: Eliminar tablas antiguas (si existen) para empezar de cero =========
 -- Esto asegura que no haya conflictos con versiones anteriores.
+DROP TABLE IF EXISTS public.roi_campaigns;
 DROP TABLE IF EXISTS public.visit_materials;
 DROP TABLE IF EXISTS public.materials;
 DROP TABLE IF EXISTS public.visits;
+
 
 -- ========= PASO 2: Crear la tabla principal de VISITAS =========
 -- Guarda la información general de cada visita.
@@ -58,18 +61,39 @@ CREATE TABLE public.visit_materials (
     UNIQUE(visit_id, material_id)
 );
 
--- ========= PASO 5: Configurar la Seguridad a Nivel de Fila (RLS) =========
--- Habilitamos la seguridad en las tres tablas.
+-- ========= PASO 5: Crear la tabla de ANÁLISIS DE ROI =========
+-- Almacena los datos y resultados de las campañas de marketing.
+CREATE TABLE public.roi_campaigns (
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    name TEXT NOT NULL,
+    start_date TIMESTAMPTZ NOT NULL,
+    end_date TIMESTAMPTZ NOT NULL,
+    zone TEXT NOT NULL,
+    responsible TEXT NOT NULL,
+    investment_type TEXT NOT NULL,
+    amount_invested NUMERIC NOT NULL,
+    revenue_generated NUMERIC NOT NULL,
+    units_sold INTEGER,
+    comment TEXT,
+    roi NUMERIC GENERATED ALWAYS AS (((revenue_generated - amount_invested) / amount_invested) * 100) STORED
+);
+
+
+-- ========= PASO 6: Configurar la Seguridad a Nivel de Fila (RLS) =========
+-- Habilitamos la seguridad en todas las tablas.
 ALTER TABLE public.visits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.visit_materials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.roi_campaigns ENABLE ROW LEVEL SECURITY;
 
 -- Creamos políticas que permiten a los usuarios autenticados interactuar con las tablas.
 CREATE POLICY "Public full access on visits" ON public.visits FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Public full access on materials" ON public.materials FOR ALL TO authenticated USING (true) WITH CHECK(true);
 CREATE POLICY "Public full access on visit_materials" ON public.visit_materials FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Public full access on roi_campaigns" ON public.roi_campaigns FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- ========= PASO 6: Insertar los materiales iniciales en el catálogo =========
+
+-- ========= PASO 7: Insertar los materiales iniciales en el catálogo =========
 -- Estos son los materiales que aparecerán la primera vez. Puedes modificarlos desde la app.
 INSERT INTO public.materials (name, unit_price) VALUES
     ('AFICHE', 1.50), ('CARPA', 150.00), ('EXHIBIDOR MADERA', 80.00), ('FUNDA', 0.50),
@@ -98,7 +122,7 @@ const buildSupabaseError = (error: any, context: string): Error => {
                   `3. Pega el script y haz clic en 'RUN'.\n\n` +
                   `Esto creará las tablas y funciones que la aplicación necesita para funcionar.`;
     } else if (error?.message && (error.message.includes('does not exist') || error.message.includes('no existe la relación'))) {
-        message = `Una o más tablas ('visits', 'materials', 'visit_materials') no se encontraron en Supabase o les faltan columnas.\n\n` +
+        message = `Una o más tablas ('visits', 'materials', 'visit_materials', 'roi_campaigns') no se encontraron en Supabase o les faltan columnas.\n\n` +
                   `**SOLUCIÓN:**\n` +
                   `Ve al editor de SQL en tu dashboard de Supabase y ejecuta el script de configuración que se encuentra en los comentarios del archivo 'src/services/visitService.ts'.`;
     } else if (error?.code === '42501') {

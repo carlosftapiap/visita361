@@ -1,4 +1,5 @@
 
+
 export interface Material {
   id: number;
   name: string;
@@ -37,4 +38,19 @@ export interface Visit {
 export interface VisitWithMaterials extends Visit {
     total_cost: number;
     materials_list: { name: string, quantity: number, unit_price: number }[];
+}
+
+export interface RoiCampaign {
+  id: number;
+  name: string;
+  start_date: string; // ISO 8601 date string
+  end_date: string; // ISO 8601 date string
+  zone: string;
+  responsible: string;
+  investment_type: string;
+  amount_invested: number;
+  revenue_generated: number;
+  units_sold?: number;
+  comment?: string;
+  roi: number; // Calculated field
 }

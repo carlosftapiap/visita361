@@ -49,7 +49,7 @@ type CampaignFormValues = z.infer<typeof campaignSchema>;
 const roiTableCreationScript = `-- ========= ELIMINAR TABLA ANTERIOR (si existe) =========
 DROP TABLE IF EXISTS public.roi_campaigns CASCADE;
 
--- ========= CREAR TABLA ROI CAMPAIGNS CON UTILIDAD =========
+-- ========= CREAR TABLA ROI CAMPAIGNS CON CLIENTE Y UTILIDAD =========
 CREATE TABLE public.roi_campaigns (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT NOT NULL,

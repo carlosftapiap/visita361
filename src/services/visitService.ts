@@ -56,11 +56,12 @@ CREATE TABLE public.visit_materials (
     UNIQUE(visit_id, material_id)
 );
 
--- ========= PASO 5: Crear la tabla de ANÁLISIS DE ROI (versión con utilidad) =========
+-- ========= PASO 5: Crear la tabla de ANÁLISIS DE ROI (versión con cliente y utilidad) =========
 -- Almacena los datos y resultados de las campañas de marketing.
 CREATE TABLE public.roi_campaigns (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT NOT NULL,
+    client TEXT NOT NULL,
     start_date TIMESTAMPTZ NOT NULL,
     end_date TIMESTAMPTZ NOT NULL,
     zone TEXT NOT NULL,

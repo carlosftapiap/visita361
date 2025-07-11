@@ -5,14 +5,14 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Target, Plus, Loader2, Trash2, TrendingUp, TrendingDown, DollarSign, AlertTriangle, BadgePercent } from 'lucide-react';
+import { Target, Plus, Loader2, Trash2, TrendingUp, TrendingDown, DollarSign, AlertTriangle, BadgePercent, Database, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import type { RoiCampaign } from '@/types';
 import { getRoiCampaigns, addRoiCampaign, deleteRoiCampaign } from '@/services/roiService';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -44,6 +44,37 @@ const campaignSchema = z.object({
 
 type CampaignFormValues = z.infer<typeof campaignSchema>;
 
+const roiTableCreationScript = `-- ========= CREAR LA TABLA DE ANÁLISIS DE ROI =========
+-- Almacena los datos y resultados de las campañas de marketing.
+CREATE TABLE public.roi_campaigns (
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    name TEXT NOT NULL,
+    start_date TIMESTAMPTZ NOT NULL,
+    end_date TIMESTAMPTZ NOT NULL,
+    zone TEXT NOT NULL,
+    responsible TEXT NOT NULL,
+    investment_type TEXT NOT NULL,
+    amount_invested NUMERIC NOT NULL CHECK (amount_invested > 0),
+    revenue_generated NUMERIC NOT NULL,
+    units_sold INTEGER,
+    comment TEXT,
+    roi NUMERIC GENERATED ALWAYS AS (
+        CASE 
+            WHEN amount_invested = 0 THEN 0 
+            ELSE ((revenue_generated - amount_invested) / amount_invested) * 100 
+        END
+    ) STORED
+);
+
+-- ========= Habilitar Seguridad a Nivel de Fila (RLS) =========
+ALTER TABLE public.roi_campaigns ENABLE ROW LEVEL SECURITY;
+
+-- ========= Crear Política de Acceso para Usuarios Autenticados =========
+CREATE POLICY "Public full access on roi_campaigns" 
+ON public.roi_campaigns 
+FOR ALL TO authenticated 
+USING (true) WITH CHECK (true);`;
+
 export default function AnalisisRoiPage() {
     const [campaigns, setCampaigns] = useState<RoiCampaign[]>([]);
     const [loading, setLoading] = useState(true);
@@ -60,7 +91,7 @@ export default function AnalisisRoiPage() {
             setCampaigns(data);
         } catch (err: any) {
             setError(err.message || "Ocurrió un error desconocido.");
-            toast({ variant: "destructive", title: "Error al cargar campañas", description: "No se pudieron obtener los datos." });
+            toast({ variant: "destructive", title: "Error al cargar campañas", description: "No se pudieron obtener los datos. Revisa el error en pantalla." });
         } finally {
             setLoading(false);
         }
@@ -135,17 +166,37 @@ export default function AnalisisRoiPage() {
 
     const renderContent = () => {
         if (loading) return <DashboardSkeleton />;
-        if (error) return (
-             <Card className="shadow-md border-destructive bg-destructive/5">
-                <CardHeader>
-                    <CardTitle className="font-headline text-xl text-destructive flex items-center gap-2"><AlertTriangle /> Error</CardTitle>
-                    <CardDescription className="text-destructive/90">No se pudieron cargar los análisis de ROI. Revisa el mensaje.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <pre className="text-sm bg-background p-4 rounded-md whitespace-pre-wrap font-code border">{error}</pre>
-                </CardContent>
-            </Card>
-        );
+        if (error) {
+             return (
+                 <Card className="shadow-md border-destructive bg-destructive/5">
+                    <CardHeader>
+                        <CardTitle className="font-headline text-xl text-destructive flex items-center gap-2"><AlertTriangle /> Error de Base de Datos</CardTitle>
+                        <CardDescription className="text-destructive/90">
+                            No se pudieron cargar los análisis de ROI. Esto suele ocurrir porque la tabla <strong>`roi_campaigns`</strong> no existe en tu base de datos de Supabase.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                             <h3 className="font-semibold text-card-foreground">Solución: Crear la Tabla Faltante</h3>
+                            <p className="text-sm text-muted-foreground mt-1 mb-2">Copia el siguiente script SQL y ejecútalo en el <strong>SQL Editor</strong> de tu proyecto de Supabase para crear la tabla necesaria.</p>
+                            <pre className="text-sm bg-background p-4 rounded-md whitespace-pre-wrap font-code border text-left">
+                                {roiTableCreationScript}
+                            </pre>
+                        </div>
+                        <div className="border-t pt-4">
+                            <h3 className="font-semibold text-card-foreground">Mensaje de Error Original</h3>
+                            <pre className="text-sm bg-background p-4 rounded-md whitespace-pre-wrap font-code border mt-2 text-left">{error}</pre>
+                        </div>
+                    </CardContent>
+                    <CardFooter>
+                        <Button onClick={fetchCampaigns} disabled={loading}>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Reintentar Conexión
+                        </Button>
+                    </CardFooter>
+                </Card>
+            );
+        }
 
         return (
              <Card className="shadow-lg">
@@ -285,5 +336,3 @@ export default function AnalisisRoiPage() {
         </div>
     );
 }
-
-    

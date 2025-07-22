@@ -33,12 +33,24 @@ export default function AppLayout({
 
   React.useEffect(() => {
     const supabase = getSupabase();
+
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setUser(session.user);
+      } else {
+        router.push('/login');
+      }
+      setLoading(false);
+    };
+
+    checkSession();
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setUser(session.user);
-        setLoading(false);
       } else {
         router.push('/login');
       }

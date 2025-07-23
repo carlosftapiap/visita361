@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { Trash2, Plus, Copy, CalendarClock, AlertTriangle, RefreshCw, Loader2, Settings } from 'lucide-react';
 import type { Visit } from '@/types';
 import { format } from 'date-fns';
@@ -41,8 +41,10 @@ import {
   deleteVisitsInMonths,
 } from '@/services/visitService';
 import { Separator } from '@/components/ui/separator';
+import { useUser } from '@/context/UserContext';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const ADMIN_EMAIL = 'carlosftapiap@gmail.com';
 
 export default function CronogramaTradeContent() {
   const [data, setData] = useState<Visit[]>([]);
@@ -58,6 +60,9 @@ export default function CronogramaTradeContent() {
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const { user } = useUser();
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   const refreshData = useCallback(async () => {
     setLoading(true);
@@ -327,10 +332,12 @@ export default function CronogramaTradeContent() {
                     <Plus className="mr-2 h-4 w-4" />
                     Añadir Visita
                 </Button>
-                <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" size="icon" disabled={loading} title="Cargar y configurar datos">
-                    <Settings className="h-5 w-5" />
-                    <span className="sr-only">Cargar y configurar datos</span>
-                </Button>
+                {isAdmin && (
+                    <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" size="icon" disabled={loading} title="Cargar y configurar datos">
+                        <Settings className="h-5 w-5" />
+                        <span className="sr-only">Cargar y configurar datos</span>
+                    </Button>
+                )}
             </div>
         </div>
         
@@ -367,7 +374,7 @@ export default function CronogramaTradeContent() {
                         disabled={loading}
                     />
                 </div>
-                {!loading && data.length > 0 && (
+                {isAdmin && !loading && data.length > 0 && (
                   <div className="pt-4">
                     <Separator className="my-4" />
                     <h3 className="font-semibold text-lg mb-2">Acciones de Zona de Peligro</h3>

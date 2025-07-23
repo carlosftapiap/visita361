@@ -324,10 +324,6 @@ export default function CronogramaTradeContent() {
                 <p className="text-muted-foreground">Panel de control de actividades y visitas conectado a Supabase.</p>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Button onClick={() => setIsDuplicateDialogOpen(true)} variant="outline" disabled={loading || data.length === 0} className="flex-1 sm:flex-none">
-                    <Copy className="mr-2 h-4 w-4" />
-                    Cronograma nuevo
-                </Button>
                 <Button onClick={handleAddVisitClick} className="flex-1 sm:flex-none" disabled={loading}>
                     <Plus className="mr-2 h-4 w-4" />
                     Añadir Visita
@@ -362,10 +358,10 @@ export default function CronogramaTradeContent() {
                 <DialogHeader>
                     <DialogTitle>Cargar y Configurar Datos</DialogTitle>
                     <DialogDescription>
-                        Cargue archivos, descargue plantillas y administre sus datos.
+                        Cargue archivos, duplique cronogramas y administre sus datos.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="pt-4">
+                <div className="pt-4 space-y-4">
                     <FileUploader 
                         onFileProcessed={(processedData) => {
                             handleFileProcessed(processedData);
@@ -373,6 +369,19 @@ export default function CronogramaTradeContent() {
                         }} 
                         disabled={loading}
                     />
+                    <Separator />
+                    <Button 
+                      onClick={() => {
+                        setIsDuplicateDialogOpen(true);
+                        setIsUploadDialogOpen(false);
+                      }} 
+                      variant="outline" 
+                      disabled={loading || data.length === 0} 
+                      className="w-full"
+                    >
+                        <Copy className="mr-2 h-4 w-4" />
+                        Duplicar Cronograma de un Mes
+                    </Button>
                 </div>
                 {isAdmin && !loading && data.length > 0 && (
                   <div className="pt-4">

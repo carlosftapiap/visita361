@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Users, Plus, Loader2, Trash2, Pencil, AlertTriangle, Image as ImageIcon } from 'lucide-react';
 import type { Executive } from '@/types';
-import { getExecutives, addExecutive, updateExecutive, deleteExecutive } from '@/services/executiveService';
+import { getExecutives, addExecutive, updateExecutive, deleteExecutive, uploadExecutivePhoto } from '@/services/executiveService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -42,6 +42,8 @@ export default function GestionEjecutivasPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingExecutive, setEditingExecutive] = useState<Executive | null>(null);
     const [deletingExecutive, setDeletingExecutive] = useState<Executive | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const { toast } = useToast();
 
@@ -75,17 +77,40 @@ export default function GestionEjecutivasPage() {
         }
     });
 
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files && event.target.files[0]) {
+            const file = event.target.files[0];
+            setSelectedFile(file);
+        }
+    };
+
     const handleFormSubmit = async (values: ExecutiveFormValues) => {
+        let finalPhotoUrl = editingExecutive?.photo_url || '';
+
+        if (selectedFile) {
+            try {
+                finalPhotoUrl = await uploadExecutivePhoto(selectedFile);
+            } catch (uploadError: any) {
+                toast({
+                    variant: "destructive",
+                    title: "Error al subir la imagen",
+                    description: uploadError.message || "No se pudo subir la foto de perfil."
+                });
+                return;
+            }
+        }
+
+        const executiveData = { ...values, photo_url: finalPhotoUrl };
+
         try {
             if (editingExecutive) {
-                await updateExecutive(editingExecutive.id, values);
+                await updateExecutive(editingExecutive.id, executiveData);
                 toast({ title: "Ejecutiva actualizada", description: `"${values.name}" ha sido modificada.` });
             } else {
-                await addExecutive(values);
+                await addExecutive(executiveData);
                 toast({ title: "Ejecutiva añadida", description: `"${values.name}" ha sido creada.` });
             }
             setIsFormOpen(false);
-            setEditingExecutive(null);
             await fetchExecutives();
         } catch (err: any) {
              toast({
@@ -118,6 +143,8 @@ export default function GestionEjecutivasPage() {
 
     const openEditDialog = (executive: Executive) => {
         setEditingExecutive(executive);
+        setSelectedFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
         form.reset({
             name: executive.name,
             photo_url: executive.photo_url || ''
@@ -127,6 +154,8 @@ export default function GestionEjecutivasPage() {
     
     const openAddDialog = () => {
         setEditingExecutive(null);
+        setSelectedFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
         form.reset({ name: '', photo_url: '' });
         setIsFormOpen(true);
     }
@@ -252,19 +281,25 @@ export default function GestionEjecutivasPage() {
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={form.control}
-                                name="photo_url"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>URL de la Foto de Perfil</FormLabel>
-                                        <FormControl>
-                                            <Input type="text" placeholder="https://ejemplo.com/foto.png" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
+                            <FormItem>
+                                <FormLabel>Foto de Perfil</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        type="file"
+                                        accept="image/png, image/jpeg, image/gif, image/bmp"
+                                        ref={fileInputRef}
+                                        onChange={handleFileChange}
+                                        className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                                {selectedFile && <p className="text-xs text-muted-foreground mt-1">Archivo seleccionado: {selectedFile.name}</p>}
+                                {!selectedFile && editingExecutive?.photo_url && (
+                                     <p className="text-xs text-muted-foreground mt-1">
+                                        Foto actual: <a href={editingExecutive.photo_url} target="_blank" rel="noopener noreferrer" className="underline">{editingExecutive.photo_url.split('/').pop()}</a>
+                                     </p>
                                 )}
-                            />
+                            </FormItem>
                              <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancelar</Button>
                                 <Button type="submit" disabled={form.formState.isSubmitting}>

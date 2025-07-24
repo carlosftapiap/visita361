@@ -44,3 +44,27 @@ export const deleteExecutive = async (id: number): Promise<void> => {
         throw buildSupabaseError(error, 'eliminación de ejecutiva');
     }
 };
+
+export const uploadExecutivePhoto = async (file: File): Promise<string> => {
+    const supabase = getSupabase();
+    const fileName = `${Date.now()}_${file.name.replace(/\s/g, '_')}`;
+    const filePath = `public/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+        .from('executive-photos')
+        .upload(filePath, file);
+
+    if (uploadError) {
+        throw buildSupabaseError(uploadError, 'carga de foto de ejecutiva');
+    }
+
+    const { data } = supabase.storage
+        .from('executive-photos')
+        .getPublicUrl(filePath);
+
+    if (!data.publicUrl) {
+        throw new Error("No se pudo obtener la URL pública de la imagen después de subirla.");
+    }
+    
+    return data.publicUrl;
+};

@@ -100,40 +100,30 @@ export default function GestionEjecutivasPage() {
     const handleFormSubmit = async (values: ExecutiveFormValues) => {
         let finalPhotoUrl = editingExecutive?.photo_url || '';
 
-        if (selectedFile) {
-            try {
-                finalPhotoUrl = await uploadExecutivePhoto(selectedFile);
-            } catch (uploadError: any) {
-                toast({
-                    variant: "destructive",
-                    title: "Error al subir la imagen",
-                    description: uploadError.message || "No se pudo subir la foto de perfil."
-                });
-                return;
-            }
-        }
-
-        const executiveData = { ...values, photo_url: finalPhotoUrl };
-
         try {
+            if (selectedFile) {
+                finalPhotoUrl = await uploadExecutivePhoto(selectedFile);
+            }
+
+            const executiveData = { ...values, photo_url: finalPhotoUrl };
+
             if (editingExecutive) {
-                // When editing, we only update the photo. Name is read-only.
                 await updateExecutive(editingExecutive.id, { photo_url: finalPhotoUrl });
                 toast({ title: "Ejecutiva actualizada", description: `La foto de "${values.name}" ha sido modificada.` });
             } else {
-                // When adding, we create a new executive record.
                 await addExecutive(executiveData);
                 toast({ title: "Ejecutiva añadida", description: `"${values.name}" ha sido creada.` });
             }
+
             setIsFormOpen(false);
-            await fetchData(); // Use fetchData to refresh both lists
+            await fetchData();
         } catch (err: any) {
              toast({
                 variant: "destructive",
                 title: "Error al guardar",
                 description: err.message.includes('unique constraint') 
                     ? `La ejecutiva con nombre "${values.name}" ya existe.`
-                    : "No se pudo guardar la ejecutiva."
+                    : err.message || "No se pudo guardar la ejecutiva."
             });
         }
     };
@@ -370,5 +360,3 @@ export default function GestionEjecutivasPage() {
         </div>
     );
 }
-
-    

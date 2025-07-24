@@ -68,5 +68,3 @@ export const uploadExecutivePhoto = async (file: File): Promise<string> => {
     
     return data.publicUrl;
 };
-
-    

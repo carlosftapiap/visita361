@@ -29,7 +29,7 @@ export const addExecutive = async (executive: Omit<Executive, 'id'>): Promise<vo
     }
 };
 
-export const updateExecutive = async (id: number, executive: Partial<Omit<Executive, 'id'>>): Promise<void> => {
+export const updateExecutive = async (id: number, executive: Partial<Omit<Executive, 'id' | 'name'>>): Promise<void> => {
     const supabase = getSupabase();
     const { error } = await supabase.from('executives').update(executive).eq('id', id);
     if (error) {
@@ -68,3 +68,5 @@ export const uploadExecutivePhoto = async (file: File): Promise<string> => {
     
     return data.publicUrl;
 };
+
+    

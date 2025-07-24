@@ -104,7 +104,7 @@ export default function GestionEjecutivasPage() {
 
         try {
             if (editingExecutive) {
-                await updateExecutive(editingExecutive.id, executiveData);
+                await updateExecutive(editingExecutive.id, { photo_url: finalPhotoUrl });
                 toast({ title: "Ejecutiva actualizada", description: `"${values.name}" ha sido modificada.` });
             } else {
                 await addExecutive(executiveData);
@@ -275,7 +275,12 @@ export default function GestionEjecutivasPage() {
                                     <FormItem>
                                         <FormLabel>Nombre de la Ejecutiva</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Ej: Carolina Caicedo" {...field} />
+                                            <Input 
+                                                placeholder="Ej: Carolina Caicedo" 
+                                                {...field} 
+                                                readOnly={!!editingExecutive}
+                                                className={!!editingExecutive ? "bg-muted/50 cursor-not-allowed" : ""}
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -329,5 +334,7 @@ export default function GestionEjecutivasPage() {
         </div>
     );
 }
+
+    
 
     

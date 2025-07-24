@@ -30,7 +30,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const executiveSchema = z.object({
     name: z.string().min(1, { message: "El nombre de la ejecutiva es requerido." }),
-    photo_url: z.string().url({ message: "Por favor, ingrese una URL válida." }).or(z.literal('')),
+    photo_url: z.string().url({ message: "Por favor, ingrese una URL válida." }).or(z.literal('')).optional(),
 });
 
 type ExecutiveFormValues = z.infer<typeof executiveSchema>;
@@ -329,3 +329,5 @@ export default function GestionEjecutivasPage() {
         </div>
     );
 }
+
+    

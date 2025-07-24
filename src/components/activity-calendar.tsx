@@ -28,6 +28,16 @@ interface ActivityCalendarProps {
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+const chartColors = [
+  "hsl(var(--chart-1))", 
+  "hsl(var(--chart-2))", 
+  "hsl(var(--chart-3))", 
+  "hsl(var(--chart-4))", 
+  "hsl(var(--chart-5))",
+  "hsl(var(--primary))",
+  "hsl(var(--accent))",
+];
+
 export default function ActivityCalendar({ 
   data,
   executives: tradeExecutives,
@@ -60,6 +70,15 @@ export default function ActivityCalendar({
     fetchPhotos();
   }, []);
 
+  const executiveColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    const allExecutives = [...new Set(data.map(d => d['EJECUTIVA DE TRADE']))];
+    allExecutives.forEach((exec, index) => {
+      map[exec] = chartColors[index % chartColors.length];
+    });
+    return map;
+  }, [data]);
+
   const getExecutivePhoto = (name: string) => {
     return executivePhotos[name] || 'https://placehold.co/40x40.png';
   }
@@ -70,7 +89,6 @@ export default function ActivityCalendar({
       monthSet.add(format(new Date(visit['FECHA']), 'yyyy-MM'));
     });
     
-    // Also add the next 12 months from today, and past 3 months to ensure navigation is possible
     const today = new Date();
     for (let i = -3; i < 12; i++) {
         const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
@@ -87,13 +105,11 @@ export default function ActivityCalendar({
   const handleMonthChange = (monthStr: string) => {
     if (monthStr) {
       setSelectedMonth(monthStr);
-      // Set calendar to the first day of the selected month
       const [year, month] = monthStr.split('-').map(Number);
       setCurrentDate(new Date(year, month - 1, 1));
     }
   };
 
-  // Sync selectedMonth with currentDate when navigating with arrows
   useEffect(() => {
     const currentMonthStr = format(currentDate, 'yyyy-MM');
     if (selectedMonth !== currentMonthStr) {
@@ -116,13 +132,6 @@ export default function ActivityCalendar({
     return Array.from({ length: 7 }).map((_, i) => addDays(start, i));
   }, [currentDate]);
 
-  const activityColors: Record<string, string> = {
-    'Visita': 'hsl(var(--primary))',
-    'IMPULSACIÓN': 'hsl(var(--accent))',
-    'Verificación': 'hsl(var(--chart-3))',
-    'Libre': 'hsl(var(--secondary))',
-  };
-  
   const weekStart = weekDays[0];
   const weekEnd = weekDays[6];
   const formattedDateRange = `${capitalize(format(weekStart, 'd MMM', { locale: es }))} - ${capitalize(format(weekEnd, 'd MMM yyyy', { locale: es }))}`;
@@ -213,7 +222,7 @@ export default function ActivityCalendar({
                             key={visit.id}
                             onClick={() => setSelectedVisit(visit)}
                             className="rounded-md bg-card p-2 text-xs shadow-sm cursor-pointer transition-colors hover:bg-muted/50"
-                            style={{ borderLeft: `4px solid ${activityColors[visit['ACTIVIDAD']] || 'hsl(var(--muted))'}` }}
+                            style={{ borderLeft: `4px solid ${executiveColorMap[visit['EJECUTIVA DE TRADE']] || 'hsl(var(--muted))'}` }}
                           >
                              <div className="flex items-start gap-2">
                                 <Avatar className="h-8 w-8">
@@ -319,5 +328,3 @@ export default function ActivityCalendar({
     </>
   );
 }
-
-    

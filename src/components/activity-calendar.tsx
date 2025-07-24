@@ -10,10 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import type { Visit } from '@/types';
+import type { Visit, Executive } from '@/types';
 import { cn } from '@/lib/utils';
 import { Textarea } from './ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { getExecutives } from '@/services/executiveService';
 
 interface ActivityCalendarProps {
   data: Visit[];
@@ -27,21 +28,9 @@ interface ActivityCalendarProps {
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-const executivePhotoMap: Record<string, string> = {
-    'Luisa Perez': 'https://placehold.co/40x40.png',
-    'CAROLINA CAICEDO': 'https://placehold.co/40x40.png',
-    'JOHANA CORTES': 'https://placehold.co/40x40.png',
-    'KATHERINE PARRA': 'https://placehold.co/40x40.png',
-    'DEFAULT': 'https://placehold.co/40x40.png',
-};
-
-const getExecutivePhoto = (name: string) => {
-    return executivePhotoMap[name] || executivePhotoMap['DEFAULT'];
-}
-
 export default function ActivityCalendar({ 
   data,
-  executives,
+  executives: tradeExecutives,
   agents,
   selectedExecutive,
   selectedAgent,
@@ -51,6 +40,29 @@ export default function ActivityCalendar({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
+  const [executivePhotos, setExecutivePhotos] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    async function fetchPhotos() {
+        try {
+            const fetchedExecutives = await getExecutives();
+            const photoMap = fetchedExecutives.reduce((acc, exec) => {
+                if (exec.photo_url) {
+                    acc[exec.name] = exec.photo_url;
+                }
+                return acc;
+            }, {} as Record<string, string>);
+            setExecutivePhotos(photoMap);
+        } catch (error) {
+            console.error("Failed to fetch executive photos:", error);
+        }
+    }
+    fetchPhotos();
+  }, []);
+
+  const getExecutivePhoto = (name: string) => {
+    return executivePhotos[name] || 'https://placehold.co/40x40.png';
+  }
   
   const availableMonths = useMemo(() => {
     const monthSet = new Set<string>();
@@ -155,12 +167,12 @@ export default function ActivityCalendar({
                   </Select>
               </div>
               <div className="w-full sm:w-52">
-                <Select value={selectedExecutive} onValueChange={onExecutiveChange} disabled={executives.length <= 1}>
+                <Select value={selectedExecutive} onValueChange={onExecutiveChange} disabled={tradeExecutives.length <= 1}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar Ejecutiva" />
                   </SelectTrigger>
                   <SelectContent>
-                    {executives.length > 1 ? executives.map(exec => (
+                    {tradeExecutives.length > 1 ? tradeExecutives.map(exec => (
                       <SelectItem key={exec} value={exec}>{exec === 'all' ? 'Todas las Ejecutivas' : exec}</SelectItem>
                     )) : <SelectItem value="all" disabled>No hay ejecutivas</SelectItem>}
                   </SelectContent>

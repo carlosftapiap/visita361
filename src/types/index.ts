@@ -1,4 +1,5 @@
 
+
 export interface Material {
   id: number;
   name: string;
@@ -10,6 +11,12 @@ export interface VisitMaterial {
     visit_id: number;
     material_id: number;
     quantity: number;
+}
+
+export interface Executive {
+  id: number;
+  name: string;
+  photo_url?: string | null;
 }
 
 export interface Visit {

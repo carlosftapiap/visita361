@@ -16,9 +16,9 @@ import {
   SidebarFooter,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { CalendarCheck, LineChart, Target, Package, LogOut, Database, Truck } from 'lucide-react';
+import { CalendarCheck, LineChart, Target, Package, LogOut, Database, Users } from 'lucide-react';
 import { getSupabase } from "@/lib/supabase";
-import type { User } from "@supabase/supabase-js";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 import DashboardSkeleton from "@/components/dashboard-skeleton";
 import { UserProvider } from '@/context/UserContext';
 
@@ -29,7 +29,7 @@ export default function AppLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = React.useState<User | null>(null);
+  const [user, setUser] = React.useState<SupabaseUser | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -124,6 +124,14 @@ export default function AppLayout({
                               <Link href="/gestion-datos">
                                   <Database />
                                   <span>Gestión de Datos</span>
+                              </Link>
+                          </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive={pathname.startsWith('/gestion-ejecutivas')} tooltip="Gestión de Ejecutivas">
+                              <Link href="/gestion-ejecutivas">
+                                  <Users />
+                                  <span>Gestión de Ejecutivas</span>
                               </Link>
                           </SidebarMenuButton>
                       </SidebarMenuItem>

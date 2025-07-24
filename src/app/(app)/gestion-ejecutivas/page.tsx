@@ -6,13 +6,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Users, Plus, Loader2, Trash2, Pencil, AlertTriangle, Image as ImageIcon } from 'lucide-react';
-import type { Executive } from '@/types';
+import type { Executive, Visit } from '@/types';
 import { getExecutives, addExecutive, updateExecutive, deleteExecutive, uploadExecutivePhoto } from '@/services/executiveService';
+import { getVisits } from '@/services/visitService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -37,6 +39,7 @@ type ExecutiveFormValues = z.infer<typeof executiveSchema>;
 
 export default function GestionEjecutivasPage() {
     const [executives, setExecutives] = useState<Executive[]>([]);
+    const [unregisteredExecutives, setUnregisteredExecutives] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -47,17 +50,27 @@ export default function GestionEjecutivasPage() {
 
     const { toast } = useToast();
 
-    const fetchExecutives = useCallback(async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const data = await getExecutives();
-            setExecutives(data);
+            const [execs, visits] = await Promise.all([
+                getExecutives(),
+                getVisits()
+            ]);
+
+            setExecutives(execs);
+
+            const registeredNames = new Set(execs.map(e => e.name));
+            const visitNames = new Set(visits.map(v => v['EJECUTIVA DE TRADE']).filter(Boolean));
+            const unregistered = Array.from(visitNames).filter(name => !registeredNames.has(name));
+            setUnregisteredExecutives(unregistered);
+
         } catch (err: any) {
             setError(err.message || "Ocurrió un error desconocido.");
             toast({
                 variant: "destructive",
-                title: "Error al cargar ejecutivas",
+                title: "Error al cargar datos",
                 description: "No se pudieron obtener los datos. Por favor, reintente más tarde."
             });
         } finally {
@@ -66,8 +79,8 @@ export default function GestionEjecutivasPage() {
     }, [toast]);
 
     useEffect(() => {
-        fetchExecutives();
-    }, [fetchExecutives]);
+        fetchData();
+    }, [fetchData]);
     
     const form = useForm<ExecutiveFormValues>({
         resolver: zodResolver(executiveSchema),
@@ -104,14 +117,16 @@ export default function GestionEjecutivasPage() {
 
         try {
             if (editingExecutive) {
+                // When editing, we only update the photo. Name is read-only.
                 await updateExecutive(editingExecutive.id, { photo_url: finalPhotoUrl });
-                toast({ title: "Ejecutiva actualizada", description: `"${values.name}" ha sido modificada.` });
+                toast({ title: "Ejecutiva actualizada", description: `La foto de "${values.name}" ha sido modificada.` });
             } else {
+                // When adding, we create a new executive record.
                 await addExecutive(executiveData);
                 toast({ title: "Ejecutiva añadida", description: `"${values.name}" ha sido creada.` });
             }
             setIsFormOpen(false);
-            await fetchExecutives();
+            await fetchData(); // Use fetchData to refresh both lists
         } catch (err: any) {
              toast({
                 variant: "destructive",
@@ -130,7 +145,7 @@ export default function GestionEjecutivasPage() {
             await deleteExecutive(deletingExecutive.id);
             toast({ title: "Ejecutiva eliminada", description: `"${deletingExecutive.name}" ha sido borrada.` });
             setDeletingExecutive(null);
-            await fetchExecutives();
+            await fetchData();
         } catch (err: any) {
             toast({
                 variant: "destructive",
@@ -264,28 +279,49 @@ export default function GestionEjecutivasPage() {
             <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setIsFormOpen(isOpen); if (!isOpen) setEditingExecutive(null); }}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editingExecutive ? 'Editar Ejecutiva' : 'Añadir Nueva Ejecutiva'}</DialogTitle>
+                        <DialogTitle>{editingExecutive ? 'Editar Foto de Ejecutiva' : 'Añadir Nueva Ejecutiva'}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 py-4">
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Nombre de la Ejecutiva</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                placeholder="Ej: Carolina Caicedo" 
-                                                {...field} 
-                                                readOnly={!!editingExecutive}
-                                                className={!!editingExecutive ? "bg-muted/50 cursor-not-allowed" : ""}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                           {editingExecutive ? (
+                                <FormItem>
+                                    <FormLabel>Nombre de la Ejecutiva</FormLabel>
+                                    <FormControl>
+                                        <Input 
+                                            value={editingExecutive.name} 
+                                            readOnly
+                                            className="bg-muted/50 cursor-not-allowed"
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                           ) : (
+                                <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Nombre de la Ejecutiva</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Seleccione una ejecutiva pendiente..." />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {unregisteredExecutives.length > 0 ? (
+                                                        unregisteredExecutives.map(name => (
+                                                            <SelectItem key={name} value={name}>{name}</SelectItem>
+                                                        ))
+                                                    ) : (
+                                                        <SelectItem value="none" disabled>No hay ejecutivas nuevas por registrar</SelectItem>
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                           )}
                             <FormItem>
                                 <FormLabel>Foto de Perfil</FormLabel>
                                 <FormControl>
@@ -307,7 +343,7 @@ export default function GestionEjecutivasPage() {
                             </FormItem>
                              <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancelar</Button>
-                                <Button type="submit" disabled={form.formState.isSubmitting}>
+                                <Button type="submit" disabled={form.formState.isSubmitting || (!editingExecutive && unregisteredExecutives.length === 0)}>
                                     {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Guardar
                                 </Button>
@@ -334,7 +370,5 @@ export default function GestionEjecutivasPage() {
         </div>
     );
 }
-
-    
 
     

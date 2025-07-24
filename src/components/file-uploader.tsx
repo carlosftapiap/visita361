@@ -95,8 +95,11 @@ export default function FileUploader({ onFileProcessed, disabled = false }: File
         }
 
         const initialData = json.map((row) => {
-            const visitDate = row['FECHA'] ? new Date(row['FECHA']) : new Date();
-            const deliveryDate = row['FECHA DE ENTREGA DE MATERIAL'] ? new Date(row['FECHA DE ENTREGA DE MATERIAL']) : undefined;
+            const visitDateRaw = row['FECHA'];
+            const visitDate = visitDateRaw && !isNaN(new Date(visitDateRaw).getTime()) ? new Date(visitDateRaw) : null;
+            
+            const deliveryDateRaw = row['FECHA DE ENTREGA DE MATERIAL'];
+            const deliveryDate = deliveryDateRaw && !isNaN(new Date(deliveryDateRaw).getTime()) ? new Date(deliveryDateRaw) : null;
 
             const getNumber = (value: any) => {
                 if (value === undefined || value === null || value === '') return undefined;
@@ -109,11 +112,9 @@ export default function FileUploader({ onFileProcessed, disabled = false }: File
             const getMaterialPopObject = (row: any) => {
                 const materials: Record<string, number> = {};
                 materialsList.forEach(material => {
-                    // Look for "CANTIDAD [MATERIAL_NAME]" in the row
                     const colName = `CANTIDAD ${material}`;
                     const quantity = getNumber(row[colName]);
                     if (quantity !== undefined && quantity > 0) {
-                        // Store it with the simple name, e.g., "AFICHE"
                         materials[material] = quantity;
                     }
                 });
@@ -130,10 +131,10 @@ export default function FileUploader({ onFileProcessed, disabled = false }: File
                 'HORARIO': getString(row['HORARIO']),
                 'CIUDAD': getString(row['CIUDAD']),
                 'ZONA': getString(row['ZONA']),
-                'FECHA': visitDate.toISOString(),
+                'FECHA': visitDate ? visitDate.toISOString() : '',
                 'PRESUPUESTO': getNumber(row['PRESUPUESTO']) || 0,
                 'AFLUENCIA ESPERADA': getNumber(row['AFLUENCIA ESPERADA']),
-                'FECHA DE ENTREGA DE MATERIAL': deliveryDate?.toISOString(),
+                'FECHA DE ENTREGA DE MATERIAL': deliveryDate ? deliveryDate.toISOString() : undefined,
                 'OBJETIVO DE LA ACTIVIDAD': getString(row['OBJETIVO DE LA ACTIVIDAD']),
                 'CANTIDAD DE MUESTRAS': getNumber(row['CANTIDAD DE MUESTRAS']),
                 'MATERIAL POP': getMaterialPopObject(row),

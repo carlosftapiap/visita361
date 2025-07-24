@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Target, Plus, Loader2, Trash2, TrendingUp, TrendingDown, DollarSign, AlertTriangle, BadgePercent, Database, RefreshCw, Minus } from 'lucide-react';
+import { Target, Plus, Loader2, Trash2, TrendingUp, TrendingDown, DollarSign, AlertTriangle, BadgePercent, Database, RefreshCw, Minus, User, Calendar, MapPin, Tag, Type, FileText, ShoppingCart, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -17,11 +17,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import DashboardSkeleton from '@/components/dashboard-skeleton';
 import KpiCard from '@/components/kpi-card';
 import { cn } from '@/lib/utils';
@@ -89,6 +90,7 @@ export default function AnalisisRoiPage() {
     const [error, setError] = useState<string | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [deletingCampaign, setDeletingCampaign] = useState<RoiCampaign | null>(null);
+    const [selectedCampaign, setSelectedCampaign] = useState<RoiCampaign | null>(null);
     const { toast } = useToast();
 
     const fetchCampaigns = useCallback(async () => {
@@ -180,6 +182,11 @@ export default function AnalisisRoiPage() {
         }
     };
     
+    const handleDeleteClick = (campaign: RoiCampaign, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setDeletingCampaign(campaign);
+    };
+
     const handleDeleteConfirm = async () => {
         if (!deletingCampaign) return;
         try {
@@ -244,13 +251,13 @@ export default function AnalisisRoiPage() {
                                     <TableHead>Invertido</TableHead>
                                     <TableHead>Utilidad</TableHead>
                                     <TableHead>Responsable</TableHead>
-                                    <TableHead>Acciones</TableHead>
+                                    <TableHead className="text-right">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {campaigns.length > 0 ? (
                                     campaigns.map(c => (
-                                        <TableRow key={c.id}>
+                                        <TableRow key={c.id} onClick={() => setSelectedCampaign(c)} className="cursor-pointer">
                                             <TableCell className="font-medium">{c.name}</TableCell>
                                             <TableCell>{c.client}</TableCell>
                                             <TableCell className={cn(
@@ -261,8 +268,8 @@ export default function AnalisisRoiPage() {
                                             <TableCell>{c.amount_invested.toLocaleString('es-CO', { style: 'currency', currency: 'USD' })}</TableCell>
                                             <TableCell>{c.profit_generated.toLocaleString('es-CO', { style: 'currency', currency: 'USD' })}</TableCell>
                                             <TableCell>{c.responsible}</TableCell>
-                                            <TableCell>
-                                                <Button variant="ghost" size="icon" onClick={() => setDeletingCampaign(c)}>
+                                            <TableCell className="text-right">
+                                                <Button variant="ghost" size="icon" onClick={(e) => handleDeleteClick(c, e)}>
                                                     <Trash2 className="h-4 w-4 text-destructive" />
                                                 </Button>
                                             </TableCell>
@@ -312,8 +319,8 @@ export default function AnalisisRoiPage() {
                                         <FormField control={form.control} name="zone" render={({ field }) => (<FormItem><FormLabel>Zona / Región</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Costa">Costa</SelectItem><SelectItem value="Sierra">Sierra</SelectItem><SelectItem value="Austro">Austro</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField control={form.control} name="start_date" render={({ field }) => (<FormItem><FormLabel>Fecha de inicio</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full justify-start text-left font-normal">{field.value ? format(field.value, "PPP", { locale: es }) : <span>Seleccione una fecha</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-                                        <FormField control={form.control} name="end_date" render={({ field }) => (<FormItem><FormLabel>Fecha de fin</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full justify-start text-left font-normal">{field.value ? format(field.value, "PPP", { locale: es }) : <span>Seleccione una fecha</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                        <FormField control={form.control} name="start_date" render={({ field }) => (<FormItem><FormLabel>Fecha de inicio</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full justify-start text-left font-normal">{field.value ? format(field.value, "PPP", { locale: es }) : <span>Seleccione una fecha</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><CalendarPicker mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                        <FormField control={form.control} name="end_date" render={({ field }) => (<FormItem><FormLabel>Fecha de fin</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full justify-start text-left font-normal">{field.value ? format(field.value, "PPP", { locale: es }) : <span>Seleccione una fecha</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><CalendarPicker mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
                                     </div>
                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField control={form.control} name="investment_type" render={({ field }) => (<FormItem><FormLabel>Tipo de inversión</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Publicidad">Publicidad</SelectItem><SelectItem value="Muestras">Muestras</SelectItem><SelectItem value="Promocion en PDV">Promoción en PDV</SelectItem><SelectItem value="Capacitacion">Capacitación</SelectItem><SelectItem value="Otro">Otro</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
@@ -350,6 +357,68 @@ export default function AnalisisRoiPage() {
                     </CardContent>
                 </Card>
             )}
+            
+            <Dialog open={!!selectedCampaign} onOpenChange={(isOpen) => !isOpen && setSelectedCampaign(null)}>
+                <DialogContent className="sm:max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle className="font-headline text-2xl">{selectedCampaign?.name}</DialogTitle>
+                        <DialogDescription>
+                            Detalles del análisis de la campaña para el cliente {selectedCampaign?.client}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {selectedCampaign && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 py-4 text-sm">
+                            <div className="flex items-start gap-3">
+                                <User className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                                <div className="space-y-1"><p className="font-medium text-muted-foreground">Responsable</p><p className="font-semibold text-card-foreground">{selectedCampaign.responsible}</p></div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <MapPin className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                                <div className="space-y-1"><p className="font-medium text-muted-foreground">Zona</p><p className="font-semibold text-card-foreground">{selectedCampaign.zone}</p></div>
+                            </div>
+                             <div className="flex items-start gap-3">
+                                <Type className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                                <div className="space-y-1"><p className="font-medium text-muted-foreground">Tipo de Inversión</p><p className="font-semibold text-card-foreground">{selectedCampaign.investment_type}</p></div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <Calendar className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                                <div className="space-y-1"><p className="font-medium text-muted-foreground">Fecha de Inicio</p><p className="font-semibold text-card-foreground">{format(new Date(selectedCampaign.start_date), "PPP", { locale: es })}</p></div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <Calendar className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                                <div className="space-y-1"><p className="font-medium text-muted-foreground">Fecha de Fin</p><p className="font-semibold text-card-foreground">{format(new Date(selectedCampaign.end_date), "PPP", { locale: es })}</p></div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <BadgePercent className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                                <div className="space-y-1"><p className="font-medium text-muted-foreground">ROI</p><p className={cn("font-bold text-card-foreground", selectedCampaign.roi > 300 && "text-green-600", selectedCampaign.roi <= 300 && "text-red-600")}>{selectedCampaign.roi.toFixed(2)}%</p></div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <DollarSign className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                                <div className="space-y-1"><p className="font-medium text-muted-foreground">Invertido</p><p className="font-semibold text-card-foreground">{selectedCampaign.amount_invested.toLocaleString('es-CO', { style: 'currency', currency: 'USD' })}</p></div>
+                            </div>
+                             <div className="flex items-start gap-3">
+                                <TrendingUp className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                                <div className="space-y-1"><p className="font-medium text-muted-foreground">Ventas Adicionales</p><p className="font-semibold text-card-foreground">{selectedCampaign.revenue_generated.toLocaleString('es-CO', { style: 'currency', currency: 'USD' })}</p></div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <TrendingUp className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                                <div className="space-y-1"><p className="font-medium text-muted-foreground">Utilidad</p><p className="font-semibold text-card-foreground">{selectedCampaign.profit_generated.toLocaleString('es-CO', { style: 'currency', currency: 'USD' })}</p></div>
+                            </div>
+                            <div className="flex items-start gap-3 md:col-span-3">
+                                <ShoppingCart className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                                <div className="space-y-1"><p className="font-medium text-muted-foreground">Unidades Vendidas</p><p className="font-semibold text-card-foreground">{selectedCampaign.units_sold?.toLocaleString('es-CO') || 'N/A'}</p></div>
+                            </div>
+                            <div className="flex items-start gap-3 md:col-span-3">
+                                <Info className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                                <div className="space-y-1 w-full">
+                                    <p className="font-medium text-muted-foreground">Comentario / Observación</p>
+                                    <Textarea readOnly value={selectedCampaign.comment || 'Sin comentarios.'} className="mt-1 h-auto bg-transparent" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
 
             <AlertDialog open={!!deletingCampaign} onOpenChange={(isOpen) => !isOpen && setDeletingCampaign(null)}>
                 <AlertDialogContent>

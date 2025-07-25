@@ -13,7 +13,6 @@ para crear y configurar las tablas necesarias para la aplicación.
 DROP TABLE IF EXISTS public.roi_campaigns CASCADE;
 DROP TABLE IF EXISTS public.visit_materials CASCADE;
 DROP TABLE IF EXISTS public.materials CASCADE;
-DROP TABLE IF EXISTS public.executives CASCADE; -- Nueva tabla
 DROP TABLE IF EXISTS public.visits CASCADE;
 
 
@@ -47,15 +46,7 @@ CREATE TABLE public.materials (
     unit_price NUMERIC NOT NULL DEFAULT 0
 );
 
--- ========= PASO 4: Crear la tabla de EJECUTIVAS (NUEVO) =========
--- Almacenará los nombres y URLs de las fotos de las ejecutivas.
-CREATE TABLE public.executives (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    name TEXT NOT NULL UNIQUE,
-    photo_url TEXT
-);
-
--- ========= PASO 5: Crear la tabla de enlace VISIT_MATERIALS =========
+-- ========= PASO 4: Crear la tabla de enlace VISIT_MATERIALS =========
 -- Esta tabla conecta las visitas con los materiales y almacena la cantidad usada en cada una.
 CREATE TABLE public.visit_materials (
     id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -65,7 +56,7 @@ CREATE TABLE public.visit_materials (
     UNIQUE(visit_id, material_id)
 );
 
--- ========= PASO 6: Crear la tabla de ANÁLISIS DE ROI (versión con cliente y utilidad) =========
+-- ========= PASO 5: Crear la tabla de ANÁLISIS DE ROI (versión con cliente y utilidad) =========
 -- Almacena los datos y resultados de las campañas de marketing.
 CREATE TABLE public.roi_campaigns (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -90,23 +81,21 @@ CREATE TABLE public.roi_campaigns (
 );
 
 
--- ========= PASO 7: Configurar la Seguridad a Nivel de Fila (RLS) =========
+-- ========= PASO 6: Configurar la Seguridad a Nivel de Fila (RLS) =========
 -- Habilitamos la seguridad en todas las tablas.
 ALTER TABLE public.visits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.visit_materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.roi_campaigns ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.executives ENABLE ROW LEVEL SECURITY; -- Seguridad para la nueva tabla
 
 -- Creamos políticas que permiten a los usuarios autenticados interactuar con las tablas.
 CREATE POLICY "Public full access on visits" ON public.visits FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Public full access on materials" ON public.materials FOR ALL TO authenticated USING (true) WITH CHECK(true);
 CREATE POLICY "Public full access on visit_materials" ON public.visit_materials FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Public full access on roi_campaigns" ON public.roi_campaigns FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Public full access on executives" ON public.executives FOR ALL TO authenticated USING (true) WITH CHECK (true); -- Política para la nueva tabla
 
 
--- ========= PASO 8: Insertar los datos iniciales =========
+-- ========= PASO 7: Insertar los datos iniciales =========
 -- Materiales que aparecerán la primera vez.
 INSERT INTO public.materials (name, unit_price) VALUES
     ('AFICHE', 1.50), ('CARPA', 150.00), ('EXHIBIDOR MADERA', 80.00), ('FUNDA', 0.50),
@@ -114,14 +103,6 @@ INSERT INTO public.materials (name, unit_price) VALUES
     ('SERVILLETA', 0.10), ('OTROS', 0.00), ('FLAYER', 0.20), ('ROLL UP', 45.00),
     ('LLAVERO', 1.00), ('PORTAVASO', 0.30), ('STAND', 250.00), ('VIBRIN', 3.00),
     ('EXHIBIDOR ACRILICO', 60.00)
-ON CONFLICT (name) DO NOTHING;
-
--- Ejecutivas de ejemplo. ¡Puedes modificarlas desde la app!
-INSERT INTO public.executives (name, photo_url) VALUES
-    ('CAROLINA CAICEDO', 'https://placehold.co/100x100.png'),
-    ('JOHANA CORTES', 'https://placehold.co/100x100.png'),
-    ('KATHERINE PARRA', 'https://placehold.co/100x100.png'),
-    ('Luisa Perez', 'https://placehold.co/100x100.png')
 ON CONFLICT (name) DO NOTHING;
 
 */
@@ -147,7 +128,7 @@ const buildSupabaseError = (error: any, context: string): Error => {
                   `3. Pega el script y haz clic en 'RUN'.\n\n` +
                   `Esto creará las tablas y funciones que la aplicación necesita para funcionar.`;
     } else if (error?.message && (error.message.includes('does not exist') || error.message.includes('no existe la relación'))) {
-        message = `Una o más tablas ('visits', 'materials', 'visit_materials', 'roi_campaigns', 'executives') no se encontraron en Supabase o les faltan columnas.\n\n` +
+        message = `Una o más tablas ('visits', 'materials', 'visit_materials', 'roi_campaigns') no se encontraron en Supabase o les faltan columnas.\n\n` +
                   `**SOLUCIÓN:**\n` +
                   `Ve al editor de SQL en tu dashboard de Supabase y ejecuta el script de configuración que se encuentra en los comentarios del archivo 'src/services/visitService.ts'.`;
     } else if (error?.code === '42501') {

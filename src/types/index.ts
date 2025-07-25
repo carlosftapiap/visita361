@@ -13,12 +13,6 @@ export interface VisitMaterial {
     quantity: number;
 }
 
-export interface Executive {
-  id: number;
-  name: string;
-  photo_url?: string | null;
-}
-
 export interface Visit {
   id: number;
   'EJECUTIVA DE TRADE': string;

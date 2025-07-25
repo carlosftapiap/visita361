@@ -10,11 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import type { Visit, Executive } from '@/types';
+import type { Visit } from '@/types';
 import { cn } from '@/lib/utils';
 import { Textarea } from './ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { getExecutives } from '@/services/executiveService';
 
 interface ActivityCalendarProps {
   data: Visit[];
@@ -50,25 +48,6 @@ export default function ActivityCalendar({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
-  const [executivePhotos, setExecutivePhotos] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    async function fetchPhotos() {
-        try {
-            const fetchedExecutives = await getExecutives();
-            const photoMap = fetchedExecutives.reduce((acc, exec) => {
-                if (exec.photo_url) {
-                    acc[exec.name] = exec.photo_url;
-                }
-                return acc;
-            }, {} as Record<string, string>);
-            setExecutivePhotos(photoMap);
-        } catch (error) {
-            console.error("Failed to fetch executive photos:", error);
-        }
-    }
-    fetchPhotos();
-  }, []);
 
   const executiveColorMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -78,10 +57,6 @@ export default function ActivityCalendar({
     });
     return map;
   }, [data]);
-
-  const getExecutivePhoto = (name: string) => {
-    return executivePhotos[name] || 'https://placehold.co/40x40.png';
-  }
   
   const availableMonths = useMemo(() => {
     const monthSet = new Set<string>();
@@ -224,17 +199,11 @@ export default function ActivityCalendar({
                             className="rounded-md bg-card p-2 text-xs shadow-sm cursor-pointer transition-colors hover:bg-muted/50"
                             style={{ borderLeft: `4px solid ${executiveColorMap[visit['EJECUTIVA DE TRADE']] || 'hsl(var(--muted))'}` }}
                           >
-                             <div className="flex items-start gap-2">
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage src={getExecutivePhoto(visit['EJECUTIVA DE TRADE'])} alt={visit['EJECUTIVA DE TRADE']} data-ai-hint="woman portrait" />
-                                    <AvatarFallback>{visit['EJECUTIVA DE TRADE']?.charAt(0) ?? 'U'}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-grow">
-                                    <p className="font-semibold text-card-foreground">{visit['ACTIVIDAD']}</p>
-                                    <p className="truncate text-muted-foreground">{visit['EJECUTIVA DE TRADE']}</p>
-                                    <p className="truncate text-muted-foreground">{visit['CADENA']}</p>
-                                </div>
-                             </div>
+                             <div className="flex-grow space-y-0.5">
+                                <p className="font-semibold text-card-foreground">{visit['ACTIVIDAD']}</p>
+                                <p className="truncate text-muted-foreground">{visit['EJECUTIVA DE TRADE']}</p>
+                                <p className="truncate text-muted-foreground font-medium">{visit['CADENA']}</p>
+                            </div>
                           </div>
                         ))
                       ) : (

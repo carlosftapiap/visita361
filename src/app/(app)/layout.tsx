@@ -127,14 +127,6 @@ export default function AppLayout({
                               </Link>
                           </SidebarMenuButton>
                       </SidebarMenuItem>
-                      <SidebarMenuItem>
-                          <SidebarMenuButton asChild isActive={pathname.startsWith('/gestion-ejecutivas')} tooltip="Gestión de Ejecutivas">
-                              <Link href="/gestion-ejecutivas">
-                                  <Users />
-                                  <span>Gestión de Ejecutivas</span>
-                              </Link>
-                          </SidebarMenuButton>
-                      </SidebarMenuItem>
                   </SidebarMenu>
               </SidebarContent>
                <SidebarFooter>

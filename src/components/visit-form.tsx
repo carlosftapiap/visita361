@@ -32,8 +32,7 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import type { Visit, Executive } from '@/types';
-import { getExecutives } from '@/services/executiveService';
+import type { Visit } from '@/types';
 import { Textarea } from './ui/textarea';
 import { materialsList } from '@/lib/materials';
 
@@ -74,30 +73,10 @@ interface VisitFormProps {
 
 export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: VisitFormProps) {
   const { toast } = useToast();
-  const [executives, setExecutives] = useState<Executive[]>([]);
   
   const form = useForm<VisitFormValues>({
     resolver: zodResolver(visitSchema),
   });
-
-  useEffect(() => {
-    async function loadExecutives() {
-        try {
-            const data = await getExecutives();
-            setExecutives(data);
-        } catch (error) {
-            console.error("Failed to load executives", error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'No se pudieron cargar las ejecutivas para el formulario.'
-            });
-        }
-    }
-    if (isOpen) {
-        loadExecutives();
-    }
-  }, [isOpen, toast]);
 
   useEffect(() => {
     if (isOpen) {
@@ -183,7 +162,7 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Fila 1 */}
-              <FormField control={form.control} name="EJECUTIVA DE TRADE" render={({ field }) => ( <FormItem><FormLabel>Ejecutiva de Trade</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una ejecutiva..." /></SelectTrigger></FormControl><SelectContent>{executives.map(exec => (<SelectItem key={exec.id} value={exec.name}>{exec.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="EJECUTIVA DE TRADE" render={({ field }) => ( <FormItem><FormLabel>Ejecutiva de Trade</FormLabel><FormControl><Input placeholder="Nombre de la ejecutiva" {...field} /></FormControl><FormMessage /></FormItem> )} />
               <FormField control={form.control} name="ASESOR COMERCIAL" render={({ field }) => ( <FormItem><FormLabel>Asesor Comercial</FormLabel><FormControl><Input placeholder="Nombre del asesor" {...field} /></FormControl><FormMessage /></FormItem> )} />
               <FormField control={form.control} name="FECHA" render={({ field }) => ( <FormItem className="flex flex-col pt-2"><FormLabel>Fecha de Visita</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)} />
               
@@ -257,6 +236,3 @@ export default function VisitForm({ isOpen, onOpenChange, onSave, visit }: Visit
     </Dialog>
   );
 }
-
-    
-    

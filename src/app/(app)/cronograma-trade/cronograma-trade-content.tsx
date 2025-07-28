@@ -44,7 +44,6 @@ import { Separator } from '@/components/ui/separator';
 import { useUser } from '@/context/UserContext';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const ADMIN_EMAIL = 'carlosftapiap@gmail.com';
 
 export default function CronogramaTradeContent() {
   const [data, setData] = useState<Visit[]>([]);
@@ -62,7 +61,7 @@ export default function CronogramaTradeContent() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { user } = useUser();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = user?.email === "carlosftapiap@gmail.com";
 
   const refreshData = useCallback(async () => {
     setLoading(true);

@@ -103,8 +103,10 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const freeDaysSet = new Set<string>();
 
         filteredData.forEach(v => {
+            if (!v['FECHA']) return;
             const dayKey = new Date(v['FECHA']).toISOString().split('T')[0];
             const activityUpper = v['ACTIVIDAD']?.toUpperCase();
+
             if (activityUpper === 'LIBRE') {
                 freeDaysSet.add(dayKey);
             } else {

@@ -100,7 +100,6 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const uniqueChains = new Set(filteredData.map(v => v['CADENA']).filter(Boolean)).size;
 
         const workedDaysSet = new Set<string>();
-
         filteredData.forEach(v => {
             if (!v['FECHA']) return;
             const dayKey = new Date(v['FECHA']).toISOString().split('T')[0];
@@ -110,12 +109,12 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                 workedDaysSet.add(dayKey);
             }
         });
-
         const workedDays = workedDaysSet.size;
         
         const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
         const totalMaterialCost = filteredData.reduce((sum, visit) => sum + (visit.total_cost || 0), 0);
         const totalSamples = filteredData.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
+        const totalFreeActivities = filteredData.filter(v => v['ACTIVIDAD']?.toUpperCase() === 'LIBRE').length;
 
         return { 
             totalVisits, 
@@ -124,7 +123,8 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             workedDays,
             totalBudget,
             totalMaterialCost,
-            totalSamples
+            totalSamples,
+            totalFreeActivities,
         };
     }, [filteredData]);
 
@@ -298,11 +298,12 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                 />
             </div>
 
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5">
                 <KpiCard title="Total de Actividades" value={kpis.totalVisits} icon={Activity} description="Registros en el periodo filtrado" />
                 <KpiCard title="Ejecutivas Activas" value={kpis.uniqueExecutives} icon={Users} description="Ejecutivas con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
                 <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="En el periodo filtrado" />
+                <KpiCard title="Total Días Libres" value={kpis.totalFreeActivities} icon={CalendarOff} description="Registros de 'Libre' en el periodo" />
             </div>
              <Card>
                 <CardHeader>

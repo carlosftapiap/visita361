@@ -99,23 +99,39 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const uniqueExecutives = new Set(filteredData.map(v => v['EJECUTIVA DE TRADE']).filter(Boolean)).size;
         const uniqueChains = new Set(filteredData.map(v => v['CADENA']).filter(Boolean)).size;
 
-        const workedDaysSet = new Set<string>();
-        const freeDaysSet = new Set<string>();
+        const dailyActivityStatus: Record<string, { hasWork: boolean; onlyFree: boolean }> = {};
 
         filteredData.forEach(v => {
             if (!v['FECHA']) return;
             const dayKey = new Date(v['FECHA']).toISOString().split('T')[0];
-            const activityUpper = v['ACTIVIDAD']?.toUpperCase();
+            const isFreeActivity = v['ACTIVIDAD']?.toUpperCase() === 'LIBRE';
 
-            if (activityUpper === 'LIBRE') {
-                freeDaysSet.add(dayKey);
+            if (!dailyActivityStatus[dayKey]) {
+                dailyActivityStatus[dayKey] = { hasWork: false, onlyFree: true };
+            }
+
+            if (!isFreeActivity) {
+                dailyActivityStatus[dayKey].hasWork = true;
+                dailyActivityStatus[dayKey].onlyFree = false;
             } else {
-                workedDaysSet.add(dayKey);
+                 // If a 'Libre' activity comes, but we already know there's work, this day is a work day.
+                 // We only update if `hasWork` is false.
+                 if (!dailyActivityStatus[dayKey].hasWork) {
+                    dailyActivityStatus[dayKey].onlyFree = dailyActivityStatus[dayKey].onlyFree && true;
+                 }
             }
         });
         
-        const workedDaysInPeriod = workedDaysSet.size;
-        const freeDaysInPeriod = freeDaysSet.size;
+        let workedDays = 0;
+        let freeDays = 0;
+
+        for (const day in dailyActivityStatus) {
+            if (dailyActivityStatus[day].hasWork) {
+                workedDays++;
+            } else if (dailyActivityStatus[day].onlyFree) {
+                freeDays++;
+            }
+        }
 
         const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
         const totalMaterialCost = filteredData.reduce((sum, visit) => sum + (visit.total_cost || 0), 0);
@@ -125,8 +141,8 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             totalVisits, 
             uniqueExecutives, 
             uniqueChains, 
-            workedDays: workedDaysInPeriod,
-            freeDays: freeDaysInPeriod,
+            workedDays,
+            freeDays,
             totalBudget,
             totalMaterialCost,
             totalSamples

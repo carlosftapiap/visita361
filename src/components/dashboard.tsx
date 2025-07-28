@@ -110,11 +110,12 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             }
         });
         const workedDays = workedDaysSet.size;
+
+        const totalFreeActivities = filteredData.filter(v => v['ACTIVIDAD']?.trim().toUpperCase() === 'LIBRE').length;
         
         const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
         const totalMaterialCost = filteredData.reduce((sum, visit) => sum + (visit.total_cost || 0), 0);
         const totalSamples = filteredData.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
-        const totalFreeActivities = filteredData.filter(v => v['ACTIVIDAD']?.trim().toUpperCase() === 'LIBRE').length;
 
         return { 
             totalVisits, 

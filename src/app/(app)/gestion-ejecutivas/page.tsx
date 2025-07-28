@@ -29,6 +29,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import DashboardSkeleton from '@/components/dashboard-skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
+import Link from 'next/link';
 
 const executiveSchema = z.object({
     name: z.string().min(1, { message: "El nombre de la ejecutiva es requerido." }),

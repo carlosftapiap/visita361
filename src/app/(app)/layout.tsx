@@ -36,13 +36,20 @@ export default function AppLayout({
     const supabase = getSupabase();
 
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setUser(session.user);
-      } else {
-        router.push('/login');
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
+        if (session) {
+          setUser(session.user);
+        } else {
+          router.push('/login');
+        }
+      } catch (error) {
+          router.push('/login');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     checkSession();
@@ -124,6 +131,14 @@ export default function AppLayout({
                               <Link href="/gestion-datos">
                                   <Database />
                                   <span>Gestión de Datos</span>
+                              </Link>
+                          </SidebarMenuButton>
+                      </SidebarMenuItem>
+                       <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive={pathname.startsWith('/gestion-ejecutivas')} tooltip="Gestión de Ejecutivas">
+                              <Link href="/gestion-ejecutivas">
+                                  <Users />
+                                  <span>Gestión de Ejecutivas</span>
                               </Link>
                           </SidebarMenuButton>
                       </SidebarMenuItem>

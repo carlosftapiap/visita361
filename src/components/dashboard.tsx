@@ -99,19 +99,10 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const uniqueAgents = new Set(filteredData.map(v => v['ASESOR COMERCIAL']).filter(Boolean)).size;
         const uniqueChains = new Set(filteredData.map(v => v['CADENA']).filter(Boolean)).size;
 
-        const today = new Date();
-        const daysInCurrentMonth = getDaysInMonth(today);
-        
-        const dataInCurrentMonth = filteredData.filter(v => {
-            const visitDate = new Date(v['FECHA']);
-            return visitDate.getMonth() === today.getMonth() && 
-                   visitDate.getFullYear() === today.getFullYear();
-        });
-
         const workedDaysSet = new Set<string>();
         const freeDaysSet = new Set<string>();
 
-        dataInCurrentMonth.forEach(v => {
+        filteredData.forEach(v => {
             const dayKey = new Date(v['FECHA']).toISOString().split('T')[0];
             if (v['ACTIVIDAD']?.toUpperCase() === 'LIBRE') {
                 freeDaysSet.add(dayKey);
@@ -120,8 +111,8 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             }
         });
         
-        const workedDaysInCurrentMonth = workedDaysSet.size;
-        const freeDaysInCurrentMonth = freeDaysSet.size;
+        const workedDaysInPeriod = workedDaysSet.size;
+        const freeDaysInPeriod = freeDaysSet.size;
 
         const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
         const totalMaterialCost = filteredData.reduce((sum, visit) => sum + (visit.total_cost || 0), 0);
@@ -131,9 +122,8 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             totalVisits, 
             uniqueAgents, 
             uniqueChains, 
-            workedDays: workedDaysInCurrentMonth,
-            freeDays: freeDaysInCurrentMonth,
-            daysInMonth: daysInCurrentMonth,
+            workedDays: workedDaysInPeriod,
+            freeDays: freeDaysInPeriod,
             totalBudget,
             totalMaterialCost,
             totalSamples
@@ -311,11 +301,11 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             </div>
 
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-                <KpiCard title="Total de Actividades" value={kpis.totalVisits} icon={Activity} description="Total de registros en el periodo" />
+                <KpiCard title="Total de Actividades" value={kpis.totalVisits} icon={Activity} description="Registros en el periodo filtrado" />
                 <KpiCard title="Asesores Activos" value={kpis.uniqueAgents} icon={Users} description="Asesores con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
-                <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description={`En el mes actual (${kpis.daysInMonth} días)`} />
-                <KpiCard title="Días Libres" value={kpis.freeDays} icon={CalendarOff} description={`En el mes actual (${kpis.daysInMonth} días)`} />
+                <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="En el periodo filtrado" />
+                <KpiCard title="Días Libres" value={kpis.freeDays} icon={CalendarOff} description="En el periodo filtrado" />
             </div>
              <Card>
                 <CardHeader>

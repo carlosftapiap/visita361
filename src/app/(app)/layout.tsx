@@ -16,7 +16,7 @@ import {
   SidebarFooter,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { CalendarCheck, LineChart, Target, Package, LogOut, Database, Users } from 'lucide-react';
+import { CalendarCheck, Target, Package, LogOut, Database } from 'lucide-react';
 import { getSupabase } from "@/lib/supabase";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import DashboardSkeleton from "@/components/dashboard-skeleton";

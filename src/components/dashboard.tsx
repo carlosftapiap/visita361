@@ -96,7 +96,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
 
     const kpis = useMemo(() => {
         const totalVisits = filteredData.length;
-        const uniqueAgents = new Set(filteredData.map(v => v['ASESOR COMERCIAL']).filter(Boolean)).size;
+        const uniqueExecutives = new Set(filteredData.map(v => v['EJECUTIVA DE TRADE']).filter(Boolean)).size;
         const uniqueChains = new Set(filteredData.map(v => v['CADENA']).filter(Boolean)).size;
 
         const workedDaysSet = new Set<string>();
@@ -120,7 +120,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
 
         return { 
             totalVisits, 
-            uniqueAgents, 
+            uniqueExecutives, 
             uniqueChains, 
             workedDays: workedDaysInPeriod,
             freeDays: freeDaysInPeriod,
@@ -302,7 +302,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
 
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
                 <KpiCard title="Total de Actividades" value={kpis.totalVisits} icon={Activity} description="Registros en el periodo filtrado" />
-                <KpiCard title="Asesores Activos" value={kpis.uniqueAgents} icon={Users} description="Asesores con actividad registrada" />
+                <KpiCard title="Ejecutivas Activas" value={kpis.uniqueExecutives} icon={Users} description="Ejecutivas con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
                 <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="En el periodo filtrado" />
                 <KpiCard title="Días Libres" value={kpis.freeDays} icon={CalendarOff} description="En el periodo filtrado" />

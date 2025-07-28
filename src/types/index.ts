@@ -20,7 +20,7 @@ export interface Visit {
   'CANAL': string;
   'CADENA': string;
   'DIRECCIÓN DEL PDV': string;
-  'ACTIVIDAD': 'Visita' | 'IMPULSACIÓN' | 'Verificación' | 'Libre';
+  'ACTIVIDAD': string;
   'HORARIO': string;
   'CIUDAD': string;
   'ZONA': string;

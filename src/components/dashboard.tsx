@@ -103,7 +103,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         filteredData.forEach(v => {
             if (!v['FECHA']) return;
             const dayKey = new Date(v['FECHA']).toISOString().split('T')[0];
-            const isFreeActivity = v['ACTIVIDAD']?.toUpperCase() === 'LIBRE';
+            const isFreeActivity = v['ACTIVIDAD']?.trim().toUpperCase() === 'LIBRE';
 
             if (!isFreeActivity) {
                 workedDaysSet.add(dayKey);
@@ -114,7 +114,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
         const totalMaterialCost = filteredData.reduce((sum, visit) => sum + (visit.total_cost || 0), 0);
         const totalSamples = filteredData.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
-        const totalFreeActivities = filteredData.filter(v => v['ACTIVIDAD']?.toUpperCase() === 'LIBRE').length;
+        const totalFreeActivities = filteredData.filter(v => v['ACTIVIDAD']?.trim().toUpperCase() === 'LIBRE').length;
 
         return { 
             totalVisits, 

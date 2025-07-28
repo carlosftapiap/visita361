@@ -119,6 +119,26 @@ export default function ActivityCalendar({
         .map(([key, value]) => `${key} (${value})`)
         .join(', ');
   };
+  
+  const groupedVisitsByDay = useMemo(() => {
+    const grouped: Record<string, Record<string, Visit[]>> = {};
+    weekDays.forEach(day => {
+      const dayKey = format(day, 'yyyy-MM-dd');
+      const dayVisits = data.filter(visit => isSameDay(new Date(visit['FECHA']), day));
+      
+      const visitsByExecutive: Record<string, Visit[]> = {};
+      dayVisits.forEach(visit => {
+        const executive = visit['EJECUTIVA DE TRADE'] || 'Sin Asignar';
+        if (!visitsByExecutive[executive]) {
+          visitsByExecutive[executive] = [];
+        }
+        visitsByExecutive[executive].push(visit);
+      });
+      
+      grouped[dayKey] = visitsByExecutive;
+    });
+    return grouped;
+  }, [data, weekDays]);
 
   return (
     <>
@@ -185,24 +205,37 @@ export default function ActivityCalendar({
               ))}
             </div>
             {weekDays.map(day => {
-              const dayVisits = data.filter(visit => isSameDay(new Date(visit['FECHA']), day));
+              const dayKey = format(day, 'yyyy-MM-dd');
+              const dayVisitsByExecutive = groupedVisitsByDay[dayKey] || {};
+              const executiveNames = Object.keys(dayVisitsByExecutive).sort();
+
               return (
                 <div key={day.toISOString()} className={cn("flex min-h-[16rem] flex-col bg-background p-2 border-t md:border-t-0 md:border-l")}>
                    <div className="text-center text-sm font-semibold md:hidden">{capitalize(format(day, 'eee d', { locale: es }))}</div>
                    <ScrollArea className="flex-grow mt-2">
-                    <div className="space-y-1.5 pr-2">
-                      {dayVisits.length > 0 ? (
-                        dayVisits.map(visit => (
-                          <div
-                            key={visit.id}
-                            onClick={() => setSelectedVisit(visit)}
-                            className="rounded-md bg-card p-2 text-xs shadow-sm cursor-pointer transition-colors hover:bg-muted/50"
-                            style={{ borderLeft: `4px solid ${executiveColorMap[visit['EJECUTIVA DE TRADE']] || 'hsl(var(--muted))'}` }}
-                          >
-                             <div className="flex-grow space-y-0.5">
-                                <p className="font-semibold text-card-foreground">{visit['ACTIVIDAD']}</p>
-                                <p className="truncate text-muted-foreground">{visit['EJECUTIVA DE TRADE']}</p>
-                                <p className="truncate text-muted-foreground font-medium">{visit['CADENA']}</p>
+                    <div className="space-y-3 pr-2">
+                      {executiveNames.length > 0 ? (
+                        executiveNames.map(executive => (
+                          <div key={executive} className="space-y-1.5">
+                            <div className="flex items-center gap-2">
+                               <div 
+                                className="h-2 w-2 rounded-full" 
+                                style={{ backgroundColor: executiveColorMap[executive] || 'hsl(var(--muted))' }}
+                               />
+                               <h4 className="text-xs font-semibold text-muted-foreground">{executive}</h4>
+                            </div>
+                            <div className="space-y-1.5 pl-4">
+                               {dayVisitsByExecutive[executive].map(visit => (
+                                <div
+                                    key={visit.id}
+                                    onClick={() => setSelectedVisit(visit)}
+                                    className="rounded-md bg-card p-2 text-xs shadow-sm cursor-pointer transition-colors hover:bg-muted/50 border-l-2"
+                                    style={{ borderColor: executiveColorMap[executive] || 'hsl(var(--muted))' }}
+                                >
+                                    <p className="font-semibold text-card-foreground">{visit['ACTIVIDAD']}</p>
+                                    <p className="truncate text-muted-foreground font-medium">{visit['CADENA']}</p>
+                                </div>
+                               ))}
                             </div>
                           </div>
                         ))

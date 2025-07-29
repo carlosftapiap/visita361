@@ -67,7 +67,7 @@ export default function AppLayout({
     return () => {
       subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router, pathname]);
   
   const handleSignOut = async () => {
     const supabase = getSupabase();

@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Visita360',
+  title: 'VisitaTrade',
   description: 'Análisis de datos de visitas de agentes de trade.',
 };
 

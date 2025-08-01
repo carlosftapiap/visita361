@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import { format, startOfWeek, addDays, isSameDay, startOfMonth } from 'date-fns';
+import { format, startOfWeek, addDays, isSameDay, startOfMonth, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, User, Building2, Network, Clock, MapPin, DollarSign, Users2, Calendar, Edit, Info, Package, Target, Trash2, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -52,6 +52,12 @@ export default function ActivityCalendar({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
 
+  useEffect(() => {
+    // Sync calendar's date with the global month filter
+    const newDate = parse(filters.month, 'yyyy-MM', new Date());
+    setCurrentDate(newDate);
+  }, [filters.month]);
+
   const executiveColorMap = useMemo(() => {
     const map: Record<string, string> = {};
     const allExecutives = [...new Set(data.map(d => d['EJECUTIVA DE TRADE']))];
@@ -93,19 +99,8 @@ export default function ActivityCalendar({
   const handleMonthChange = (monthStr: string) => {
     if (monthStr) {
       onFilterChange('month', monthStr);
-      const [year, month] = monthStr.split('-').map(Number);
-      setCurrentDate(new Date(year, month - 1, 1));
     }
   };
-
-  useEffect(() => {
-    const currentMonthStr = format(currentDate, 'yyyy-MM');
-    if (filters.month !== currentMonthStr) {
-      if (filterOptions.months.some(m => m.value === currentMonthStr)) {
-        onFilterChange('month', currentMonthStr);
-      }
-    }
-  }, [currentDate, filters.month, onFilterChange, filterOptions.months]);
 
   const handlePrevWeek = () => {
     setCurrentDate(prev => addDays(prev, -7));

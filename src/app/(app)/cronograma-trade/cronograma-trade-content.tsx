@@ -103,7 +103,7 @@ export default function CronogramaTradeContent() {
 
   useEffect(() => {
     refreshData();
-  }, [refreshData]);
+  }, [filters]);
 
   const handleFileProcessed = (processedData: Omit<Visit, 'id'>[]) => {
       if (processedData.length === 0) return;

@@ -169,7 +169,7 @@ export const getVisits = async (): Promise<Visit[]> => {
                 )
             )
         `)
-        .limit(10000); 
+        .limit(2000); 
 
     if (error) {
         throw buildSupabaseError(error, 'lectura de visitas (getVisits)');
@@ -390,5 +390,6 @@ export const deleteMaterial = async (id: number) => {
     
 
     
+
 
 

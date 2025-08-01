@@ -8,7 +8,8 @@ import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxi
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { getDaysInMonth } from 'date-fns';
+import { getDaysInMonth, format, startOfMonth } from 'date-fns';
+import { es } from "date-fns/locale";
 
 import type { Visit } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +35,8 @@ const chartColors = [
     "hsl(var(--chart-5))"
 ];
 
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 const formatMaterialPopForTable = (materials?: Record<string, number>): string => {
     if (!materials || Object.keys(materials).length === 0) {
         return '';
@@ -46,6 +49,7 @@ const formatMaterialPopForTable = (materials?: Record<string, number>): string =
 export default function Dashboard({ data, onEditVisit }: DashboardProps) {
     const calendarRef = useRef<HTMLDivElement>(null);
     const [filters, setFilters] = useState({
+        month: format(new Date(), 'yyyy-MM'),
         trade_executive: 'all',
         agent: 'all',
         city: 'all',
@@ -57,6 +61,15 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
     const filterOptions = useMemo(() => {
         const getUniqueNonEmpty = (items: (string | null | undefined)[]) => 
             ['all', ...[...new Set(items.filter((item): item is string => !!item && item.trim() !== ''))].sort()];
+        
+        const monthSet = new Set<string>();
+        data.forEach(visit => {
+            monthSet.add(format(new Date(visit['FECHA']), 'yyyy-MM'));
+        });
+        const months = Array.from(monthSet).sort().reverse().map(m => ({
+            value: m,
+            label: capitalize(format(startOfMonth(new Date(m)), 'MMMM yyyy', { locale: es }))
+        }));
 
         const trade_executives = getUniqueNonEmpty(data.map(v => v['EJECUTIVA DE TRADE']));
         
@@ -70,7 +83,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const zones = getUniqueNonEmpty(data.map(v => v['ZONA']));
         const chains = getUniqueNonEmpty(data.map(v => v['CADENA']));
         
-        return { trade_executives, agents, cities, activities, zones, chains };
+        return { months, trade_executives, agents, cities, activities, zones, chains };
     }, [data, filters.trade_executive]);
 
     const handleFilterChange = (filterName: keyof typeof filters) => (value: string) => {
@@ -79,6 +92,9 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             if (filterName === 'trade_executive') {
                 newFilters.agent = 'all';
             }
+            if (filterName === 'month' && !value) {
+                newFilters.month = format(new Date(), 'yyyy-MM');
+            }
             return newFilters;
         });
     };
@@ -86,13 +102,14 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
     const filteredData = useMemo(() => {
         if (!data) return [];
         return data.filter(visit => {
+            const monthMatch = format(new Date(visit['FECHA']), 'yyyy-MM') === filters.month;
             const tradeExecutiveMatch = filters.trade_executive === 'all' || visit['EJECUTIVA DE TRADE'] === filters.trade_executive;
             const agentMatch = filters.agent === 'all' || visit['ASESOR COMERCIAL'] === filters.agent;
             const cityMatch = filters.city === 'all' || visit['CIUDAD'] === filters.city;
             const activityMatch = filters.activity === 'all' || visit['ACTIVIDAD'] === filters.activity;
             const zoneMatch = filters.zone === 'all' || visit['ZONA'] === filters.zone;
             const chainMatch = filters.chain === 'all' || visit['CADENA'] === filters.chain;
-            return tradeExecutiveMatch && agentMatch && cityMatch && activityMatch && zoneMatch && chainMatch;
+            return monthMatch && tradeExecutiveMatch && agentMatch && cityMatch && activityMatch && zoneMatch && chainMatch;
         });
     }, [data, filters]);
 
@@ -251,7 +268,14 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                     <CardDescription>Refine los datos para un análisis más detallado.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                    <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+                         <div className="grid gap-2">
+                             <label className="text-sm font-medium">Mes</label>
+                            <Select value={filters.month} onValueChange={handleFilterChange('month')}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>{filterOptions.months.map(m => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}</SelectContent>
+                            </Select>
+                        </div>
                         <div className="grid gap-2">
                              <label className="text-sm font-medium">Ciudad</label>
                             <Select value={filters.city} onValueChange={handleFilterChange('city')}>
@@ -289,7 +313,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
 
             <div ref={calendarRef}>
                 <ActivityCalendar 
-                    data={filteredData}
+                    data={data}
                     executives={filterOptions.trade_executives}
                     agents={filterOptions.agents}
                     selectedExecutive={filters.trade_executive}
@@ -299,7 +323,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                 />
             </div>
 
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-4">
                 <KpiCard title="Ejecutivas Activas" value={kpis.uniqueExecutives} icon={Users} description="Ejecutivas con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
                 <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="En el periodo filtrado" />
@@ -313,7 +337,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <KpiCard 
                             title="Presupuesto Total" 
-                            value={kpis.totalBudget.toLocaleString('es-CO')}
+                            value={kpis.totalBudget.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
                             icon={DollarSign} 
                             description="Suma de presupuestos en el periodo" 
                         />
@@ -435,7 +459,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                                         <TableCell>{visit['CADENA']}</TableCell>
                                         <TableCell>{visit['ACTIVIDAD']}</TableCell>
                                         <TableCell className="text-right font-mono">{visit.total_cost ? visit.total_cost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : '$0'}</TableCell>
-                                        <TableCell className="text-right font-mono">{visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO') : 'N/A'}</TableCell>
+                                        <TableCell className="text-right font-mono">{visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : 'N/A'}</TableCell>
                                         <TableCell>
                                             <Button variant="ghost" size="icon" onClick={() => onEditVisit(visit)}>
                                                 <Pencil className="h-4 w-4" />

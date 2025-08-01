@@ -44,7 +44,6 @@ import {
 } from '@/services/visitService';
 import { Separator } from '@/components/ui/separator';
 import { useUser } from '@/context/UserContext';
-import KpiCard from '@/components/kpi-card';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -209,6 +208,7 @@ export default function CronogramaTradeContent() {
     try {
         await deleteAllVisits();
         setData([]); // Clear data locally immediately
+        await refreshData(); // Re-fetch to confirm and update other states
         toast({
           title: "Datos Eliminados",
           description: "Toda la información ha sido borrada.",
@@ -373,27 +373,18 @@ export default function CronogramaTradeContent() {
         </Card>
       );
     }
-    if (data.length > 0 || Object.values(filters).some(f => f !== 'all' && f !== format(new Date(), 'yyyy-MM'))) {
-      return <Dashboard 
-          data={data}
-          onEditVisit={handleEditVisit}
-          onDeleteVisit={(visit) => setDeletingVisit(visit)}
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          allVisits={allTimeData}
-          isAdmin={isAdmin}
-      />;
-    }
+    
     return (
-      <Card className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center shadow-md">
-          <CardContent className="flex flex-col items-center gap-4 p-6">
-              <div className="rounded-full border-8 border-primary/10 bg-primary/5 p-6">
-                  <CalendarClock className="h-16 w-16 text-primary" />
-              </div>
-              <h2 className="font-headline text-2xl">Aún no hay actividades</h2>
-              <p className="max-w-xs text-muted-foreground">Utilice el botón de <Settings className="inline-block h-4 w-4" /> o el de <Plus className="inline-block h-4 w-4" /> para añadir datos.</p>
-          </CardContent>
-      </Card>
+        <Dashboard 
+            data={data}
+            onEditVisit={handleEditVisit}
+            onDeleteVisit={(visit) => setDeletingVisit(visit)}
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            allVisits={allTimeData}
+            isAdmin={isAdmin}
+            hasData={data.length > 0}
+        />
     );
   };
 
@@ -520,7 +511,7 @@ export default function CronogramaTradeContent() {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
-        <AlertDialog open={!!deletingVisit} onOpenChange={setDeletingVisit}>
+        <AlertDialog open={!!deletingVisit} onOpenChange={(isOpen) => !isOpen && setDeletingVisit(null)}>
             <AlertDialogContent>
                 <AlertDialogHeader>
                 <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>

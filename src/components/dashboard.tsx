@@ -3,7 +3,7 @@
 "use client"
 
 import { useMemo, useState, useRef } from "react";
-import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil, CalendarOff, Package, PackageCheck, Filter, TrendingUp } from "lucide-react";
+import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil, CalendarOff, Package, PackageCheck, Filter, TrendingUp, CalendarClock } from "lucide-react";
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, LabelList } from "recharts";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -28,6 +28,7 @@ interface DashboardProps {
     onEditVisit: (visit: Visit) => void;
     onDeleteVisit: (visit: Visit) => void;
     isAdmin: boolean;
+    hasData: boolean;
     filters: {
         month: string;
         trade_executive: string;
@@ -46,17 +47,7 @@ const chartColors = [
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-const formatMaterialPopForTable = (materials?: Record<string, number>): string => {
-    if (!materials || Object.keys(materials).length === 0) {
-        return '';
-    }
-    return Object.entries(materials)
-        .map(([key, value]) => `${key}(${value})`)
-        .join(', ');
-};
-
-export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit, isAdmin, filters, onFilterChange }: DashboardProps) {
-    const calendarRef = useRef<HTMLDivElement>(null);
+export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit, isAdmin, hasData, filters, onFilterChange }: DashboardProps) {
     const [localFilters, setLocalFilters] = useState({
         city: 'all',
         activity: 'all',
@@ -99,6 +90,37 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
             return acc;
         }, { totalBudget: 0, totalMaterialCost: 0, totalSamples: 0 });
     }, [filteredData]);
+
+     const kpis = useMemo(() => {
+        if (!data || data.length === 0) {
+            const [year, month] = filters.month.split('-').map(Number);
+            const totalDaysInMonth = getDaysInMonth(new Date(year, month - 1));
+            return {
+                totalActivities: 0,
+                activeDays: 0,
+                freeDays: totalDaysInMonth,
+                uniqueChains: 0
+            };
+        }
+
+        const uniqueDays = new Set<string>();
+        data.forEach(visit => {
+            uniqueDays.add(new Date(visit.FECHA).toISOString().split('T')[0]);
+        });
+
+        const uniqueChains = new Set(data.map(v => v['CADENA']));
+        
+        const [year, month] = filters.month.split('-').map(Number);
+        const totalDaysInMonth = getDaysInMonth(new Date(year, month - 1));
+        const activeDays = uniqueDays.size;
+
+        return {
+            totalActivities: data.length,
+            activeDays: activeDays,
+            freeDays: totalDaysInMonth - activeDays,
+            uniqueChains: uniqueChains.size
+        };
+    }, [data, filters.month]);
 
     const activityCounts = useMemo(() => {
         const counts = filteredData.reduce((acc, visit) => {
@@ -150,44 +172,6 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
         ...visitsPerChannel.reduce((acc, cur) => ({...acc, [cur.name]: {label: cur.name, color: cur.fill}}), {})
     };
 
-    const handleDownloadExcel = () => {
-        if (filteredData.length === 0) return;
-
-        const dataToExport = filteredData.map(visit => {
-            const baseData = {
-                'EJECUTIVA DE TRADE': visit['EJECUTIVA DE TRADE'],
-                'ASESOR COMERCIAL': visit['ASESOR COMERCIAL'],
-                'CANAL': visit['CANAL'],
-                'CADENA': visit['CADENA'],
-                'DIRECCIÓN DEL PDV': visit['DIRECCIÓN DEL PDV'],
-                'ACTIVIDAD': visit['ACTIVIDAD'],
-                'HORARIO': visit['HORARIO'],
-                'CIUDAD': visit['CIUDAD'],
-                'ZONA': visit['ZONA'],
-                'FECHA': visit['FECHA'] ? new Date(visit['FECHA']).toLocaleDateString('es-CO') : '',
-                'PRESUPUESTO': visit['PRESUPUESTO'],
-                'COSTO TOTAL MATERIALES': visit.total_cost || 0,
-                'AFLUENCIA ESPERADA': visit['AFLUENCIA ESPERADA'],
-                'FECHA DE ENTREGA DE MATERIAL': visit['FECHA DE ENTREGA DE MATERIAL'] ? new Date(visit['FECHA DE ENTREGA DE MATERIAL']).toLocaleDateString('es-CO') : '',
-                'OBJETIVO DE LA ACTIVIDAD': visit['OBJETIVO DE LA ACTIVIDAD'],
-                'CANTIDAD DE MUESTRAS': visit['CANTIDAD DE MUESTRAS'],
-                'OBSERVACION': visit['OBSERVACION'],
-            };
-
-            const materialsData: Record<string, number> = {};
-            materialsList.forEach(materialName => {
-                materialsData[`CANTIDAD ${materialName}`] = visit['MATERIAL POP']?.[materialName] || 0;
-            });
-            
-            return { ...baseData, ...materialsData };
-        });
-
-        const ws = XLSX.utils.json_to_sheet(dataToExport);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Visitas");
-        XLSX.writeFile(wb, "Visita360_Reporte_Detallado.xlsx");
-    };
-
     const handleDownloadPdf = () => {
         if (filteredData.length === 0) return;
 
@@ -225,7 +209,7 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
                 visit['CADENA'],
                 visit['ACTIVIDAD'],
                 visit.total_cost ? visit.total_cost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : '$0',
-                visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : '$0'
+                visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : 'N/A'
             ];
             tableRows.push(visitData);
         });
@@ -333,144 +317,156 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
                     </CardContent>
                 </Card>
             </div>
-
-            <div ref={calendarRef}>
-                <ActivityCalendar 
-                    data={data}
-                    filters={filters}
-                    onFilterChange={onFilterChange}
-                    allVisits={allVisits}
-                    onEditVisit={onEditVisit}
-                    onDeleteVisit={onDeleteVisit}
-                    isAdmin={isAdmin}
-                />
+            
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <KpiCard icon={Activity} title="Total de Actividades" value={kpis.totalActivities} description="Registros en el periodo filtrado"/>
+                <KpiCard icon={CalendarDays} title="Días con Actividad" value={kpis.activeDays} description="Días únicos con al menos un registro"/>
+                <KpiCard icon={CalendarOff} title="Días Libres" value={kpis.freeDays} description="Días del mes sin actividad"/>
+                <KpiCard icon={Building} title="Cadenas Únicas" value={kpis.uniqueChains} description="Cadenas distintas visitadas"/>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-6">
-                 <Card className="shadow-lg lg:col-span-3">
-                    <CardHeader>
-                        <CardTitle className="font-headline text-xl flex items-center gap-2"><BarChart2 className="text-accent"/>Visitas por Ejecutiva de Trade</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer config={visitsChartConfig} className="h-[300px] w-full">
-                            <BarChart accessibilityLayer data={visitsPerTradeExecutive} margin={{ top: 20, right: 20, left: -10, bottom: 5 }}>
-                                <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
-                                <YAxis />
-                                <Tooltip cursor={{ fill: 'hsl(var(--accent) / 0.1)' }} content={<ChartTooltipContent />} />
-                                <Bar dataKey="visits" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-                <Card className="shadow-lg lg:col-span-3">
-                    <CardHeader>
-                        <CardTitle className="font-headline text-xl flex items-center gap-2"><BarChart2 className="text-accent"/>Visitas por Asesor Comercial</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer config={visitsChartConfig} className="h-[300px] w-full">
-                            <BarChart accessibilityLayer data={visitsPerAgent} margin={{ top: 20, right: 20, left: -10, bottom: 5 }}>
-                                <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
-                                <YAxis />
-                                <Tooltip cursor={{ fill: 'hsl(var(--accent) / 0.1)' }} content={<ChartTooltipContent />} />
-                                <Bar dataKey="visits" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-                <Card className="shadow-lg lg:col-span-3">
-                    <CardHeader>
-                        <CardTitle className="font-headline text-xl flex items-center gap-2"><PieIcon className="text-accent"/>Distribución de Actividades</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                         <ChartContainer config={activityChartConfig} className="h-[300px] w-full">
-                            <PieChart accessibilityLayer>
-                                <Tooltip content={<ChartTooltipContent hideLabel nameKey="name"/>} />
-                                <Pie data={activityCounts} dataKey="value" nameKey="name" cx="50%" cy="50%" labelLine={false} label>
-                                    <LabelList dataKey="value" className="fill-background font-semibold" stroke="none" />
-                                    {activityCounts.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
-                                </Pie>
-                                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                            </PieChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-                 <Card className="shadow-lg lg:col-span-3">
-                    <CardHeader>
-                        <CardTitle className="font-headline text-xl flex items-center gap-2"><Network className="text-accent"/>Visitas por Canal</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                         <ChartContainer config={channelChartConfig} className="h-[300px] w-full">
-                            <PieChart accessibilityLayer>
-                                <Tooltip content={<ChartTooltipContent hideLabel nameKey="name"/>} />
-                                <Pie data={visitsPerChannel} dataKey="value" nameKey="name" cx="50%" cy="50%" labelLine={false} label>
-                                    <LabelList dataKey="value" className="fill-background font-semibold" stroke="none" />
-                                    {visitsPerChannel.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
-                                </Pie>
-                                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                            </PieChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-            </div>
+            {hasData ? (
+                <>
+                    <ActivityCalendar 
+                        data={data}
+                        filters={filters}
+                        onFilterChange={onFilterChange}
+                        allVisits={allVisits}
+                        onEditVisit={onEditVisit}
+                        onDeleteVisit={onDeleteVisit}
+                        isAdmin={isAdmin}
+                    />
 
-            <Card className="shadow-lg">
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle className="font-headline text-xl">Detalle de Visitas</CardTitle>
-                        <CardDescription>Tabla con todos los registros de visitas filtrados.</CardDescription>
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-6">
+                        <Card className="shadow-lg lg:col-span-3">
+                            <CardHeader>
+                                <CardTitle className="font-headline text-xl flex items-center gap-2"><BarChart2 className="text-accent"/>Visitas por Ejecutiva de Trade</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <ChartContainer config={visitsChartConfig} className="h-[300px] w-full">
+                                    <BarChart accessibilityLayer data={visitsPerTradeExecutive} margin={{ top: 20, right: 20, left: -10, bottom: 5 }}>
+                                        <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
+                                        <YAxis />
+                                        <Tooltip cursor={{ fill: 'hsl(var(--accent) / 0.1)' }} content={<ChartTooltipContent />} />
+                                        <Bar dataKey="visits" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
+                        <Card className="shadow-lg lg:col-span-3">
+                            <CardHeader>
+                                <CardTitle className="font-headline text-xl flex items-center gap-2"><BarChart2 className="text-accent"/>Visitas por Asesor Comercial</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <ChartContainer config={visitsChartConfig} className="h-[300px] w-full">
+                                    <BarChart accessibilityLayer data={visitsPerAgent} margin={{ top: 20, right: 20, left: -10, bottom: 5 }}>
+                                        <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
+                                        <YAxis />
+                                        <Tooltip cursor={{ fill: 'hsl(var(--accent) / 0.1)' }} content={<ChartTooltipContent />} />
+                                        <Bar dataKey="visits" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
+                        <Card className="shadow-lg lg:col-span-3">
+                            <CardHeader>
+                                <CardTitle className="font-headline text-xl flex items-center gap-2"><PieIcon className="text-accent"/>Distribución de Actividades</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <ChartContainer config={activityChartConfig} className="h-[300px] w-full">
+                                    <PieChart accessibilityLayer>
+                                        <Tooltip content={<ChartTooltipContent hideLabel nameKey="name"/>} />
+                                        <Pie data={activityCounts} dataKey="value" nameKey="name" cx="50%" cy="50%" labelLine={false} label>
+                                            <LabelList dataKey="value" className="fill-background font-semibold" stroke="none" />
+                                            {activityCounts.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                                        </Pie>
+                                        <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                                    </PieChart>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
+                        <Card className="shadow-lg lg:col-span-3">
+                            <CardHeader>
+                                <CardTitle className="font-headline text-xl flex items-center gap-2"><Network className="text-accent"/>Visitas por Canal</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <ChartContainer config={channelChartConfig} className="h-[300px] w-full">
+                                    <PieChart accessibilityLayer>
+                                        <Tooltip content={<ChartTooltipContent hideLabel nameKey="name"/>} />
+                                        <Pie data={visitsPerChannel} dataKey="value" nameKey="name" cx="50%" cy="50%" labelLine={false} label>
+                                            <LabelList dataKey="value" className="fill-background font-semibold" stroke="none" />
+                                            {visitsPerChannel.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                                        </Pie>
+                                        <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                                    </PieChart>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
                     </div>
-                     <Button variant="outline" size="icon" onClick={handleDownloadExcel} disabled={filteredData.length === 0} title="Descargar Excel">
-                        <Download className="h-4 w-4" />
-                        <span className="sr-only">Descargar Excel</span>
-                    </Button>
-                </CardHeader>
-                <CardContent>
-                    <div className="relative max-h-96 overflow-auto rounded-md border">
-                        <Table>
-                            <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
-                                <TableRow>
-                                    <TableHead>Fecha</TableHead>
-                                    <TableHead>Ejecutiva de Trade</TableHead>
-                                    <TableHead>Asesor Comercial</TableHead>
-                                    <TableHead>Cadena</TableHead>
-                                    <TableHead>Actividad</TableHead>
-                                    <TableHead className="text-right">Costo Materiales</TableHead>
-                                    <TableHead className="text-right">Presupuesto</TableHead>
-                                    <TableHead>Acciones</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredData.length > 0 ? filteredData.map(visit => (
-                                    <TableRow key={visit.id}>
-                                        <TableCell>{visit['FECHA'] ? new Date(visit['FECHA']).toLocaleDateString('es-CO') : 'N/A'}</TableCell>
-                                        <TableCell>{visit['EJECUTIVA DE TRADE']}</TableCell>
-                                        <TableCell className="font-medium">{visit['ASESOR COMERCIAL']}</TableCell>
-                                        <TableCell>{visit['CADENA']}</TableCell>
-                                        <TableCell>{visit['ACTIVIDAD']}</TableCell>
-                                        <TableCell className="text-right font-mono">{visit.total_cost ? visit.total_cost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : '$0'}</TableCell>
-                                        <TableCell className="text-right font-mono">{visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : 'N/A'}</TableCell>
-                                        <TableCell>
-                                            <Button variant="ghost" size="icon" onClick={() => onEditVisit(visit)}>
-                                                <Pencil className="h-4 w-4" />
-                                                <span className="sr-only">Editar</span>
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                )) : (
-                                    <TableRow>
-                                        <TableCell colSpan={8} className="h-24 text-center">No hay datos para mostrar con los filtros seleccionados.</TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
-            </Card>
 
+                    <Card className="shadow-lg">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle className="font-headline text-xl">Detalle de Visitas</CardTitle>
+                                <CardDescription>Tabla con todos los registros de visitas filtrados.</CardDescription>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="relative max-h-96 overflow-auto rounded-md border">
+                                <Table>
+                                    <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
+                                        <TableRow>
+                                            <TableHead>Fecha</TableHead>
+                                            <TableHead>Ejecutiva de Trade</TableHead>
+                                            <TableHead>Asesor Comercial</TableHead>
+                                            <TableHead>Cadena</TableHead>
+                                            <TableHead>Actividad</TableHead>
+                                            <TableHead className="text-right">Costo Materiales</TableHead>
+                                            <TableHead className="text-right">Presupuesto</TableHead>
+                                            <TableHead>Acciones</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredData.length > 0 ? filteredData.map(visit => (
+                                            <TableRow key={visit.id}>
+                                                <TableCell>{visit['FECHA'] ? new Date(visit['FECHA']).toLocaleDateString('es-CO') : 'N/A'}</TableCell>
+                                                <TableCell>{visit['EJECUTIVA DE TRADE']}</TableCell>
+                                                <TableCell className="font-medium">{visit['ASESOR COMERCIAL']}</TableCell>
+                                                <TableCell>{visit['CADENA']}</TableCell>
+                                                <TableCell>{visit['ACTIVIDAD']}</TableCell>
+                                                <TableCell className="text-right font-mono">{visit.total_cost ? visit.total_cost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : '$0'}</TableCell>
+                                                <TableCell className="text-right font-mono">{visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : 'N/A'}</TableCell>
+                                                <TableCell>
+                                                    <Button variant="ghost" size="icon" onClick={() => onEditVisit(visit)}>
+                                                        <Pencil className="h-4 w-4" />
+                                                        <span className="sr-only">Editar</span>
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        )) : (
+                                            <TableRow>
+                                                <TableCell colSpan={8} className="h-24 text-center">No hay datos para mostrar con los filtros seleccionados.</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </>
+            ) : (
+                <Card className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center shadow-md">
+                    <CardContent className="flex flex-col items-center gap-4 p-6">
+                        <div className="rounded-full border-8 border-primary/10 bg-primary/5 p-6">
+                            <CalendarClock className="h-16 w-16 text-primary" />
+                        </div>
+                        <h2 className="font-headline text-2xl">No hay datos para este mes</h2>
+                        <p className="max-w-xs text-muted-foreground">
+                            Seleccione otro mes en el calendario, añada una visita manualmente o cargue un archivo de Excel para empezar.
+                        </p>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
-
-    
-
-
-
+}

@@ -97,7 +97,6 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
     }, [data, filters]);
 
     const kpis = useMemo(() => {
-        const totalActivities = filteredData.length;
         const uniqueExecutives = new Set(filteredData.map(v => v['EJECUTIVA DE TRADE']).filter(Boolean)).size;
         const uniqueChains = new Set(filteredData.map(v => v['CADENA']).filter(Boolean)).size;
 
@@ -120,7 +119,6 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const totalSamples = filteredData.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
 
         return { 
-            totalActivities,
             uniqueExecutives, 
             uniqueChains, 
             workedDays,
@@ -302,16 +300,6 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             </div>
 
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5">
-                <Card className="shadow-md transition-all hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br from-primary to-accent text-primary-foreground">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-primary-foreground">Total de Actividades</CardTitle>
-                        <Activity className="h-5 w-5 text-primary-foreground/80" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="font-headline text-5xl font-bold">{kpis.totalActivities}</div>
-                        <p className="text-xs text-primary-foreground/80">Registros en el periodo filtrado</p>
-                    </CardContent>
-                </Card>
                 <KpiCard title="Ejecutivas Activas" value={kpis.uniqueExecutives} icon={Users} description="Ejecutivas con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
                 <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="En el periodo filtrado" />
@@ -473,3 +461,6 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
 
     
 
+
+
+    

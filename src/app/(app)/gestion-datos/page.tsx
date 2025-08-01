@@ -27,7 +27,7 @@ export default function GestionDatosPage() {
         setLoading(true);
         setError(null);
         try {
-            const data = await getVisits();
+            const data = await getVisits({}); // Fetch all visits without filters
             setVisits(data);
         } catch (err: any) {
             setError(err.message || "Ocurrió un error desconocido.");

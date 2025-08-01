@@ -95,11 +95,17 @@ export default function FileUploader({ onFileProcessed, disabled = false }: File
         }
 
         const initialData = json.map((row) => {
-            const visitDateRaw = row['FECHA'];
-            const visitDate = visitDateRaw && !isNaN(new Date(visitDateRaw).getTime()) ? new Date(visitDateRaw) : null;
+            const parseDate = (dateInput: any): Date | null => {
+                if (!dateInput) return null;
+                const date = new Date(dateInput);
+                if (isNaN(date.getTime())) return null;
+                // Adjust for timezone offset to treat date as local
+                const timezoneOffset = date.getTimezoneOffset() * 60000;
+                return new Date(date.getTime() + timezoneOffset);
+            };
             
-            const deliveryDateRaw = row['FECHA DE ENTREGA DE MATERIAL'];
-            const deliveryDate = deliveryDateRaw && !isNaN(new Date(deliveryDateRaw).getTime()) ? new Date(deliveryDateRaw) : null;
+            const visitDate = parseDate(row['FECHA']);
+            const deliveryDate = parseDate(row['FECHA DE ENTREGA DE MATERIAL']);
 
             const getNumber = (value: any) => {
                 if (value === undefined || value === null || value === '') return undefined;

@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 
 interface DashboardProps {
     data: Visit[];
+    allVisits: Visit[];
     onEditVisit: (visit: Visit) => void;
     filters: {
         month: string;
@@ -52,7 +53,7 @@ const formatMaterialPopForTable = (materials?: Record<string, number>): string =
         .join(', ');
 };
 
-export default function Dashboard({ data, onEditVisit, filters, onFilterChange }: DashboardProps) {
+export default function Dashboard({ data, allVisits, onEditVisit, filters, onFilterChange }: DashboardProps) {
     const calendarRef = useRef<HTMLDivElement>(null);
     const [localFilters, setLocalFilters] = useState({
         city: 'all',
@@ -66,7 +67,7 @@ export default function Dashboard({ data, onEditVisit, filters, onFilterChange }
             ['all', ...[...new Set(items.filter((item): item is string => !!item && item.trim() !== ''))].sort()];
         
         const monthSet = new Set<string>();
-        data.forEach(visit => {
+        allVisits.forEach(visit => {
             monthSet.add(format(new Date(visit['FECHA']), 'yyyy-MM'));
         });
          const today = new Date();
@@ -75,25 +76,25 @@ export default function Dashboard({ data, onEditVisit, filters, onFilterChange }
             monthSet.add(format(date, 'yyyy-MM'));
         }
 
-        const months = Array.from(monthSet).sort().reverse().map(m => ({
+        const months = Array.from(monthSet).sort((a,b) => b.localeCompare(a)).map(m => ({
             value: m,
             label: capitalize(format(startOfMonth(new Date(m + '-02')), 'MMMM yyyy', { locale: es }))
         }));
 
-        const trade_executives = getUniqueNonEmpty(data.map(v => v['EJECUTIVA DE TRADE']));
+        const trade_executives = getUniqueNonEmpty(allVisits.map(v => v['EJECUTIVA DE TRADE']));
         
         const relevantAgentsData = filters.trade_executive === 'all'
-            ? data
-            : data.filter(v => v['EJECUTIVA DE TRADE'] === filters.trade_executive);
+            ? allVisits
+            : allVisits.filter(v => v['EJECUTIVA DE TRADE'] === filters.trade_executive);
         const agents = getUniqueNonEmpty(relevantAgentsData.map(v => v['ASESOR COMERCIAL']));
 
-        const cities = getUniqueNonEmpty(data.map(v => v['CIUDAD']));
-        const activities = getUniqueNonEmpty(data.map(v => v['ACTIVIDAD']));
-        const zones = getUniqueNonEmpty(data.map(v => v['ZONA']));
-        const chains = getUniqueNonEmpty(data.map(v => v['CADENA']));
+        const cities = getUniqueNonEmpty(allVisits.map(v => v['CIUDAD']));
+        const activities = getUniqueNonEmpty(allVisits.map(v => v['ACTIVIDAD']));
+        const zones = getUniqueNonEmpty(allVisits.map(v => v['ZONA']));
+        const chains = getUniqueNonEmpty(allVisits.map(v => v['CADENA']));
         
         return { months, trade_executives, agents, cities, activities, zones, chains };
-    }, [data, filters.trade_executive]);
+    }, [allVisits, filters.trade_executive]);
 
     const handleLocalFilterChange = (filterName: keyof typeof localFilters) => (value: string) => {
         setLocalFilters(prev => ({ ...prev, [filterName]: value }));
@@ -322,8 +323,8 @@ export default function Dashboard({ data, onEditVisit, filters, onFilterChange }
                 />
             </div>
 
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-4">
-                <KpiCard title="Total de Actividades" value={kpis.totalActivities} icon={Activity} description="Registros en el periodo filtrado" />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                 <KpiCard title="Total de Actividades" value={kpis.totalActivities} icon={Activity} description="Registros en el periodo filtrado" />
                 <KpiCard title="Ejecutivas Activas" value={kpis.uniqueExecutives} icon={Users} description="Ejecutivas con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
                 <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="En el periodo filtrado" />

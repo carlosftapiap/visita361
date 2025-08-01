@@ -341,12 +341,13 @@ export default function CronogramaTradeContent() {
         </Card>
       );
     }
-    if (data.length > 0) {
+    if (data.length > 0 || Object.values(filters).some(f => f !== 'all' && f !== format(new Date(), 'yyyy-MM'))) {
       return <Dashboard 
-          data={data} 
+          data={data}
           onEditVisit={handleEditVisit}
           filters={filters}
           onFilterChange={handleFilterChange}
+          allVisits={data} 
       />;
     }
     return (
@@ -509,4 +510,3 @@ export default function CronogramaTradeContent() {
     
 
     
-

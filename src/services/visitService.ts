@@ -169,8 +169,7 @@ export const getVisits = async (): Promise<Visit[]> => {
                 )
             )
         `)
-        .order('FECHA', { ascending: false })
-        .limit(10000); // Set a high limit to fetch all records, avoiding the default 1000 limit.
+        .order('FECHA', { ascending: false });
 
     if (error) {
         throw buildSupabaseError(error, 'lectura de visitas (getVisits)');

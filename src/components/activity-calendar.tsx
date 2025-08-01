@@ -126,11 +126,11 @@ export default function ActivityCalendar({
       const dayKey = format(day, 'yyyy-MM-dd');
       const dayVisits = data.filter(visit => {
           if (!visit.FECHA) return false;
-          // Adjust for timezone when comparing, treating dates as local
+          // CORRECTED: Force both dates to be treated as UTC to prevent timezone shifts
           const visitDate = new Date(visit.FECHA);
-          const timezoneOffset = visitDate.getTimezoneOffset() * 60000;
-          const localVisitDate = new Date(visitDate.getTime() + timezoneOffset);
-          return isSameDay(localVisitDate, day);
+          const visitDateInUTC = new Date(visitDate.getUTCFullYear(), visitDate.getUTCMonth(), visitDate.getUTCDate());
+          const dayInUTC = new Date(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate());
+          return isSameDay(visitDateInUTC, dayInUTC);
       });
       
       const visitsByExecutive: Record<string, Visit[]> = {};
@@ -337,3 +337,4 @@ export default function ActivityCalendar({
     </>
   );
 }
+

@@ -124,7 +124,14 @@ export default function ActivityCalendar({
     const grouped: Record<string, Record<string, Visit[]>> = {};
     weekDays.forEach(day => {
       const dayKey = format(day, 'yyyy-MM-dd');
-      const dayVisits = data.filter(visit => isSameDay(new Date(visit['FECHA']), day));
+      const dayVisits = data.filter(visit => {
+          if (!visit.FECHA) return false;
+          // Adjust for timezone when comparing, treating dates as local
+          const visitDate = new Date(visit.FECHA);
+          const timezoneOffset = visitDate.getTimezoneOffset() * 60000;
+          const localVisitDate = new Date(visitDate.getTime() + timezoneOffset);
+          return isSameDay(localVisitDate, day);
+      });
       
       const visitsByExecutive: Record<string, Visit[]> = {};
       dayVisits.forEach(visit => {

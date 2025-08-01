@@ -97,16 +97,34 @@ export default function FileUploader({ onFileProcessed, disabled = false }: File
         const initialData = json.map((row) => {
             const parseDate = (dateInput: any): Date | null => {
                 if (!dateInput) return null;
+                // Handle Excel's numeric date format
+                if (typeof dateInput === 'number') {
+                    const excelEpoch = new Date(1899, 11, 30);
+                    const date = new Date(excelEpoch.getTime() + dateInput * 24 * 60 * 60 * 1000);
+                    if (!isNaN(date.getTime())) {
+                        return date;
+                    }
+                }
+                // Handle string or Date object formats
                 const date = new Date(dateInput);
                 if (isNaN(date.getTime())) return null;
-                // Adjust for timezone offset to treat date as local
-                const timezoneOffset = date.getTimezoneOffset() * 60000;
-                return new Date(date.getTime() + timezoneOffset);
+                return date;
+            };
+
+            const adjustDateToLocal = (date: Date | null): Date | null => {
+                 if (!date) return null;
+                 // Dates from Excel are often parsed as UTC midnight.
+                 // We add the timezone offset to make them local midnight.
+                 const timezoneOffset = date.getTimezoneOffset() * 60000;
+                 return new Date(date.getTime() + timezoneOffset);
             };
             
-            const visitDate = parseDate(row['FECHA']);
-            const deliveryDate = parseDate(row['FECHA DE ENTREGA DE MATERIAL']);
+            const visitDateRaw = parseDate(row['FECHA']);
+            const deliveryDateRaw = parseDate(row['FECHA DE ENTREGA DE MATERIAL']);
 
+            const visitDate = adjustDateToLocal(visitDateRaw);
+            const deliveryDate = adjustDateToLocal(deliveryDateRaw);
+            
             const getNumber = (value: any) => {
                 if (value === undefined || value === null || value === '') return undefined;
                 const num = Number(value);

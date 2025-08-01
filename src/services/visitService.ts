@@ -169,7 +169,7 @@ export const getVisits = async (): Promise<Visit[]> => {
                 )
             )
         `)
-        .limit(10000); // Set a high limit to fetch all records, adjust if needed
+        .limit(10000); 
 
     if (error) {
         throw buildSupabaseError(error, 'lectura de visitas (getVisits)');

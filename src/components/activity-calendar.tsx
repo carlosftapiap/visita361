@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
+import { format, startOfWeek, addDays, isSameDay, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, User, Building2, Network, Clock, MapPin, DollarSign, Users2, Calendar, Edit, Info, Package, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,12 +16,13 @@ import { Textarea } from './ui/textarea';
 
 interface ActivityCalendarProps {
   data: Visit[];
-  executives: string[];
-  agents: string[];
-  selectedExecutive: string;
-  selectedAgent: string;
-  onExecutiveChange: (value: string) => void;
-  onAgentChange: (value: string) => void;
+  allVisits: Visit[];
+  filters: {
+      month: string;
+      trade_executive: string;
+      agent: string;
+  };
+  onFilterChange: (filterName: keyof ActivityCalendarProps['filters'], value: string) => void;
 }
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -38,15 +39,11 @@ const chartColors = [
 
 export default function ActivityCalendar({ 
   data,
-  executives: tradeExecutives,
-  agents,
-  selectedExecutive,
-  selectedAgent,
-  onExecutiveChange,
-  onAgentChange
+  allVisits,
+  filters,
+  onFilterChange
 }: ActivityCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
 
   const executiveColorMap = useMemo(() => {
@@ -58,28 +55,38 @@ export default function ActivityCalendar({
     return map;
   }, [data]);
   
-  const availableMonths = useMemo(() => {
+  const filterOptions = useMemo(() => {
+    const getUniqueNonEmpty = (items: (string | null | undefined)[]) => 
+        ['all', ...[...new Set(items.filter((item): item is string => !!item && item.trim() !== ''))].sort()];
+
     const monthSet = new Set<string>();
-    data.forEach(visit => {
-      monthSet.add(format(new Date(visit['FECHA']), 'yyyy-MM'));
+    allVisits.forEach(visit => {
+        monthSet.add(format(new Date(visit['FECHA']), 'yyyy-MM'));
     });
-    
-    const today = new Date();
-    for (let i = -3; i < 12; i++) {
+     const today = new Date();
+    for (let i = -6; i <= 6; i++) {
         const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
         monthSet.add(format(date, 'yyyy-MM'));
     }
 
-    const sortedMonths = Array.from(monthSet).sort((a, b) => b.localeCompare(a));
-    return sortedMonths.map(key => ({
-      value: key,
-      label: capitalize(format(new Date(key + '-02'), 'MMMM yyyy', { locale: es })),
+    const months = Array.from(monthSet).sort((a,b) => b.localeCompare(a)).map(m => ({
+        value: m,
+        label: capitalize(format(startOfMonth(new Date(m + '-02')), 'MMMM yyyy', { locale: es }))
     }));
-  }, [data]);
-  
+
+    const trade_executives = getUniqueNonEmpty(allVisits.map(v => v['EJECUTIVA DE TRADE']));
+    
+    const relevantAgentsData = filters.trade_executive === 'all'
+        ? allVisits
+        : allVisits.filter(v => v['EJECUTIVA DE TRADE'] === filters.trade_executive);
+    const agents = getUniqueNonEmpty(relevantAgentsData.map(v => v['ASESOR COMERCIAL']));
+    
+    return { months, trade_executives, agents };
+  }, [allVisits, filters.trade_executive]);
+
   const handleMonthChange = (monthStr: string) => {
     if (monthStr) {
-      setSelectedMonth(monthStr);
+      onFilterChange('month', monthStr);
       const [year, month] = monthStr.split('-').map(Number);
       setCurrentDate(new Date(year, month - 1, 1));
     }
@@ -87,12 +94,12 @@ export default function ActivityCalendar({
 
   useEffect(() => {
     const currentMonthStr = format(currentDate, 'yyyy-MM');
-    if (selectedMonth !== currentMonthStr) {
-      if (availableMonths.some(m => m.value === currentMonthStr)) {
-        setSelectedMonth(currentMonthStr);
+    if (filters.month !== currentMonthStr) {
+      if (filterOptions.months.some(m => m.value === currentMonthStr)) {
+        onFilterChange('month', currentMonthStr);
       }
     }
-  }, [currentDate, selectedMonth, availableMonths]);
+  }, [currentDate, filters.month, onFilterChange, filterOptions.months]);
 
   const handlePrevWeek = () => {
     setCurrentDate(prev => addDays(prev, -7));
@@ -166,36 +173,36 @@ export default function ActivityCalendar({
                   </Button>
               </div>
               <div className="w-full sm:w-52">
-                  <Select value={selectedMonth} onValueChange={handleMonthChange}>
+                  <Select value={filters.month} onValueChange={handleMonthChange}>
                       <SelectTrigger>
                           <SelectValue placeholder="Seleccionar Mes" />
                       </SelectTrigger>
                       <SelectContent>
-                          {availableMonths.map(month => (
+                          {filterOptions.months.map(month => (
                           <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
                           ))}
                       </SelectContent>
                   </Select>
               </div>
               <div className="w-full sm:w-52">
-                <Select value={selectedExecutive} onValueChange={onExecutiveChange} disabled={tradeExecutives.length <= 1}>
+                <Select value={filters.trade_executive} onValueChange={(value) => onFilterChange('trade_executive', value)} disabled={filterOptions.trade_executives.length <= 1}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar Ejecutiva" />
                   </SelectTrigger>
                   <SelectContent>
-                    {tradeExecutives.length > 1 ? tradeExecutives.map(exec => (
+                    {filterOptions.trade_executives.length > 1 ? filterOptions.trade_executives.map(exec => (
                       <SelectItem key={exec} value={exec}>{exec === 'all' ? 'Todas las Ejecutivas' : exec}</SelectItem>
                     )) : <SelectItem value="all" disabled>No hay ejecutivas</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
                <div className="w-full sm:w-52">
-                <Select value={selectedAgent} onValueChange={onAgentChange} disabled={agents.length <= 1}>
+                <Select value={filters.agent} onValueChange={(value) => onFilterChange('agent', value)} disabled={filterOptions.agents.length <= 1}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar Asesor" />
                   </SelectTrigger>
                   <SelectContent>
-                    {agents.length > 1 ? agents.map(agent => (
+                    {filterOptions.agents.length > 1 ? filterOptions.agents.map(agent => (
                       <SelectItem key={agent} value={agent}>{agent === 'all' ? 'Todos los Asesores' : agent}</SelectItem>
                     )) : <SelectItem value="all" disabled>No hay asesores</SelectItem>}
                   </SelectContent>
@@ -337,4 +344,5 @@ export default function ActivityCalendar({
     </>
   );
 }
+
 

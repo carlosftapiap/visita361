@@ -298,12 +298,12 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <Card className="shadow-lg relative overflow-hidden bg-gradient-to-br from-primary to-accent text-primary-foreground">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-primary-foreground/90">Presupuesto Total</CardTitle>
+                        <CardTitle className="text-sm font-medium text-primary-foreground/90">Presupuesto en Unidades</CardTitle>
                         <DollarSign className="h-5 w-5 text-primary-foreground/80" />
                     </CardHeader>
                     <CardContent>
                         <div className="font-headline text-5xl font-bold">
-                            {totalBudget.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })}
+                            {totalBudget.toLocaleString('es-CO', { minimumFractionDigits: 0 })}
                         </div>
                         <p className="text-xs text-primary-foreground/80 mt-1">Suma de presupuestos en el periodo</p>
                     </CardContent>
@@ -471,5 +471,6 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
     );
 
     
+
 
 

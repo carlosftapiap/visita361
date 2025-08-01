@@ -91,41 +91,6 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
         });
     }, [data, localFilters]);
 
-    const kpis = useMemo(() => {
-        const uniqueExecutives = new Set(filteredData.map(v => v['EJECUTIVA DE TRADE']).filter(Boolean)).size;
-        const uniqueChains = new Set(filteredData.map(v => v['CADENA']).filter(Boolean)).size;
-
-        const workedDaysSet = new Set<string>();
-        filteredData.forEach(v => {
-            if (!v['FECHA']) return;
-            const dayKey = new Date(v['FECHA']).toISOString().split('T')[0];
-            const isFreeActivity = v['ACTIVIDAD']?.trim().toUpperCase() === 'LIBRE';
-
-            if (!isFreeActivity) {
-                workedDaysSet.add(dayKey);
-            }
-        });
-        const workedDays = workedDaysSet.size;
-
-        const totalFreeActivities = filteredData.filter(v => v['ACTIVIDAD']?.trim().toUpperCase() === 'LIBRE').length;
-        
-        const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
-        const totalMaterialCost = filteredData.reduce((sum, visit) => sum + (visit.total_cost || 0), 0);
-        const totalSamples = filteredData.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
-        const totalActivities = filteredData.length;
-
-        return { 
-            uniqueExecutives, 
-            uniqueChains, 
-            workedDays,
-            totalBudget,
-            totalMaterialCost,
-            totalSamples,
-            totalFreeActivities,
-            totalActivities
-        };
-    }, [filteredData]);
-
     const activityCounts = useMemo(() => {
         const counts = filteredData.reduce((acc, visit) => {
             const activityName = visit['ACTIVIDAD'] || 'No especificada';
@@ -332,40 +297,6 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
                     </div>
                 </CardContent>
             </Card>
-
-             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                 <KpiCard title="Total de Actividades" value={kpis.totalActivities} icon={Activity} description="Registros en el periodo filtrado" />
-                <KpiCard title="Ejecutivas Activas" value={kpis.uniqueExecutives} icon={Users} description="Ejecutivas con actividad registrada" />
-                <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
-                <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="En el periodo filtrado" />
-            </div>
-             <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline text-xl flex items-center gap-2"><DollarSign className="text-accent"/>Resumen Financiero y de Unidades</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <KpiCard 
-                            title="Presupuesto Total" 
-                            value={kpis.totalBudget.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
-                            icon={DollarSign} 
-                            description="Suma de presupuestos en el periodo" 
-                        />
-                         <KpiCard 
-                            title="Costo Total de Materiales" 
-                            value={kpis.totalMaterialCost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
-                            icon={Package} 
-                            description="Costo total de materiales en el periodo" 
-                        />
-                        <KpiCard
-                            title="Total de Muestras"
-                            value={kpis.totalSamples.toLocaleString('es-CO')}
-                            icon={PackageCheck}
-                            description="Suma total de muestras entregadas"
-                        />
-                    </div>
-                </CardContent>
-             </Card>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-6">
                  <Card className="shadow-lg lg:col-span-3">

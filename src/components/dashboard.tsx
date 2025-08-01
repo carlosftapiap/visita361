@@ -3,7 +3,7 @@
 "use client"
 
 import { useMemo, useState, useRef } from "react";
-import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil, CalendarOff, Package, PackageCheck } from "lucide-react";
+import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil, CalendarOff, Package, PackageCheck, Filter } from "lucide-react";
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, LabelList } from "recharts";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -253,8 +253,61 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
                     isAdmin={isAdmin}
                 />
             </div>
+            
+             <Card className="shadow-md">
+                <CardHeader>
+                    <CardTitle className="font-headline text-xl flex items-center gap-2"><Filter className="text-primary"/> Filtros del Panel</CardTitle>
+                    <CardDescription>Refine los datos para un análisis más detallado.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+                         <div>
+                            <label className="text-sm font-medium">Ciudad</label>
+                            <Select onValueChange={handleLocalFilterChange('city')} defaultValue="all" disabled={filterOptions.cities.length <= 1}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {filterOptions.cities.map(c => <SelectItem key={c} value={c}>{c === 'all' ? 'Todas las ciudades' : c}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium">Cadena</label>
+                            <Select onValueChange={handleLocalFilterChange('chain')} defaultValue="all" disabled={filterOptions.chains.length <= 1}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {filterOptions.chains.map(c => <SelectItem key={c} value={c}>{c === 'all' ? 'Todas las cadenas' : c}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                         <div>
+                            <label className="text-sm font-medium">Zona</label>
+                            <Select onValueChange={handleLocalFilterChange('zone')} defaultValue="all" disabled={filterOptions.zones.length <= 1}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {filterOptions.zones.map(z => <SelectItem key={z} value={z}>{z === 'all' ? 'Todas las zonas' : z}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium">Actividad</label>
+                            <Select onValueChange={handleLocalFilterChange('activity')} defaultValue="all" disabled={filterOptions.activities.length <= 1}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {filterOptions.activities.map(a => <SelectItem key={a} value={a}>{a === 'all' ? 'Todas las actividades' : a}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex items-end">
+                            <Button onClick={handleDownloadPdf} variant="outline" className="w-full">
+                                <Download className="mr-2 h-4 w-4" />
+                                Calendario PDF
+                            </Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <KpiCard title="Total de Actividades" value={kpis.totalActivities} icon={Activity} description="Registros en el periodo filtrado" />
                 <KpiCard title="Ejecutivas Activas" value={kpis.uniqueExecutives} icon={Users} description="Ejecutivas con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />

@@ -3,7 +3,7 @@
 "use client"
 
 import { useMemo, useState, useRef } from "react";
-import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil, CalendarOff, Package, PackageCheck, Filter } from "lucide-react";
+import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart as PieIcon, Network, DollarSign, Pencil, CalendarOff, Package, PackageCheck, Filter, TrendingUp } from "lucide-react";
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, LabelList } from "recharts";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -90,6 +90,15 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
             return cityMatch && activityMatch && zoneMatch && chainMatch;
         });
     }, [data, localFilters]);
+
+    const { totalBudget, totalMaterialCost, totalSamples } = useMemo(() => {
+        return filteredData.reduce((acc, visit) => {
+            acc.totalBudget += visit['PRESUPUESTO'] || 0;
+            acc.totalMaterialCost += visit.total_cost || 0;
+            acc.totalSamples += visit['CANTIDAD DE MUESTRAS'] || 0;
+            return acc;
+        }, { totalBudget: 0, totalMaterialCost: 0, totalSamples: 0 });
+    }, [filteredData]);
 
     const activityCounts = useMemo(() => {
         const counts = filteredData.reduce((acc, visit) => {
@@ -286,6 +295,45 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
                 </CardContent>
             </Card>
 
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <Card className="shadow-lg relative overflow-hidden bg-gradient-to-br from-primary to-accent text-primary-foreground">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-primary-foreground/90">Presupuesto Total</CardTitle>
+                        <DollarSign className="h-5 w-5 text-primary-foreground/80" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="font-headline text-5xl font-bold">
+                            {totalBudget.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })}
+                        </div>
+                        <p className="text-xs text-primary-foreground/80 mt-1">Suma de presupuestos en el periodo</p>
+                    </CardContent>
+                </Card>
+                 <Card className="shadow-lg relative overflow-hidden bg-gradient-to-br from-primary to-accent text-primary-foreground">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-primary-foreground/90">Costo de Materiales</CardTitle>
+                        <PackageCheck className="h-5 w-5 text-primary-foreground/80" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="font-headline text-5xl font-bold">
+                             {totalMaterialCost.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })}
+                        </div>
+                        <p className="text-xs text-primary-foreground/80 mt-1">Costo total de materiales en el periodo</p>
+                    </CardContent>
+                </Card>
+                 <Card className="shadow-lg relative overflow-hidden bg-gradient-to-br from-primary to-accent text-primary-foreground">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-primary-foreground/90">Total de Muestras</CardTitle>
+                        <Package className="h-5 w-5 text-primary-foreground/80" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="font-headline text-5xl font-bold">
+                            {totalSamples.toLocaleString('es-CO')}
+                        </div>
+                        <p className="text-xs text-primary-foreground/80 mt-1">Suma de muestras entregadas</p>
+                    </CardContent>
+                </Card>
+            </div>
+
             <div ref={calendarRef}>
                 <ActivityCalendar 
                     data={data}
@@ -423,4 +471,5 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
     );
 
     
+
 

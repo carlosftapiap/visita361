@@ -176,7 +176,8 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
                 )
             )
         `)
-        .order('FECHA', { ascending: true });
+        .order('FECHA', { ascending: true })
+        .limit(2000);
 
 
     if (filters.month) {
@@ -428,3 +429,4 @@ export const deleteMaterial = async (id: number) => {
         throw buildSupabaseError(error, 'eliminación de material (deleteMaterial)');
     }
 }
+

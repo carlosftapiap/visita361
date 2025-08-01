@@ -37,6 +37,7 @@ import {
   getAllVisitsForDuplication,
   addVisit,
   updateVisit,
+  deleteVisit,
   addBatchVisits,
   deleteAllVisits,
   deleteVisitsInMonthsForExecutives,
@@ -65,6 +66,7 @@ export default function CronogramaTradeContent() {
   const { toast } = useToast();
   const [pendingData, setPendingData] = useState<PendingData | null>(null);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
+  const [deletingVisit, setDeletingVisit] = useState<Visit | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [filters, setFilters] = useState({
@@ -251,6 +253,29 @@ export default function CronogramaTradeContent() {
     }
   };
 
+  const handleDeleteVisit = async () => {
+    if (!deletingVisit) return;
+    
+    setLoading(true);
+    setErrorMessage(null);
+    try {
+      await deleteVisit(deletingVisit.id);
+      await refreshData();
+      setDeletingVisit(null);
+      toast({ title: 'Visita Eliminada', description: 'La visita ha sido eliminada correctamente.' });
+    } catch (error: any) {
+       console.error("Error deleting visit:", error);
+        setErrorMessage(error.message);
+        toast({
+            variant: 'destructive',
+            title: 'Error al Eliminar',
+            description: 'No se pudo eliminar la visita. Revisa el mensaje en pantalla.',
+        });
+    } finally {
+        setLoading(false);
+    }
+  };
+
   const handleEditVisit = (visit: Visit) => {
     setFormState({ open: true, visit });
   };
@@ -352,9 +377,11 @@ export default function CronogramaTradeContent() {
       return <Dashboard 
           data={data}
           onEditVisit={handleEditVisit}
+          onDeleteVisit={(visit) => setDeletingVisit(visit)}
           filters={filters}
           onFilterChange={handleFilterChange}
           allVisits={allTimeData}
+          isAdmin={isAdmin}
       />;
     }
     return (
@@ -490,6 +517,22 @@ export default function CronogramaTradeContent() {
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction onClick={handleReplaceData}>Reemplazar</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        <AlertDialog open={!!deletingVisit} onOpenChange={setDeletingVisit}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Esta acción es irreversible. Se eliminará permanentemente la visita para <span className="font-bold">{deletingVisit?.['CADENA']} el {deletingVisit && format(new Date(deletingVisit.FECHA), 'PPP', {locale: es})}</span>.
+                </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteVisit}>
+                    Sí, eliminar visita
+                </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

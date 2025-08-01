@@ -4,12 +4,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, startOfWeek, addDays, isSameDay, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Building2, Network, Clock, MapPin, DollarSign, Users2, Calendar, Edit, Info, Package, Target } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Building2, Network, Clock, MapPin, DollarSign, Users2, Calendar, Edit, Info, Package, Target, Trash2, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import type { Visit } from '@/types';
 import { cn } from '@/lib/utils';
 import { Textarea } from './ui/textarea';
@@ -23,6 +23,9 @@ interface ActivityCalendarProps {
       agent: string;
   };
   onFilterChange: (filterName: keyof ActivityCalendarProps['filters'], value: string) => void;
+  onEditVisit: (visit: Visit) => void;
+  onDeleteVisit: (visit: Visit) => void;
+  isAdmin: boolean;
 }
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -41,7 +44,10 @@ export default function ActivityCalendar({
   data,
   allVisits,
   filters,
-  onFilterChange
+  onFilterChange,
+  onEditVisit,
+  onDeleteVisit,
+  isAdmin
 }: ActivityCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
@@ -153,6 +159,16 @@ export default function ActivityCalendar({
     });
     return grouped;
   }, [data, weekDays]);
+  
+  const handleEditClick = (visit: Visit) => {
+    setSelectedVisit(null);
+    onEditVisit(visit);
+  };
+  
+  const handleDeleteClick = (visit: Visit) => {
+    setSelectedVisit(null);
+    onDeleteVisit(visit);
+  };
 
   return (
     <>
@@ -276,73 +292,85 @@ export default function ActivityCalendar({
             </DialogDescription>
           </DialogHeader>
           {selectedVisit && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 py-4 text-sm">
-                <div className="flex items-start gap-3">
-                    <User className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Ejecutiva</p><p className="font-semibold text-card-foreground">{selectedVisit['EJECUTIVA DE TRADE']}</p></div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <User className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Asesor</p><p className="font-semibold text-card-foreground">{selectedVisit['ASESOR COMERCIAL']}</p></div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <Clock className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Horario</p><p className="font-semibold text-card-foreground">{selectedVisit['HORARIO']}</p></div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <Network className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Canal</p><p className="font-semibold text-card-foreground">{selectedVisit['CANAL']}</p></div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <Building2 className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Cadena</p><p className="font-semibold text-card-foreground">{selectedVisit['CADENA']}</p></div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <Info className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Dirección PDV</p><p className="font-semibold text-card-foreground">{selectedVisit['DIRECCIÓN DEL PDV']}</p></div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Ciudad</p><p className="font-semibold text-card-foreground">{selectedVisit['CIUDAD']}</p></div>
-                </div>
-                 <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Zona</p><p className="font-semibold text-card-foreground">{selectedVisit['ZONA']}</p></div>
-                </div>
-                 <div className="flex items-start gap-3">
-                    <DollarSign className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Presupuesto</p><p className="font-semibold text-card-foreground">{selectedVisit['PRESUPUESTO'] ? selectedVisit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }) : 'N/A'}</p></div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <Users2 className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Afluencia Esperada</p><p className="font-semibold text-card-foreground">{selectedVisit['AFLUENCIA ESPERADA']?.toLocaleString('es-CO') || 'N/A'}</p></div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <Calendar className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Entrega Material</p><p className="font-semibold text-card-foreground">{selectedVisit['FECHA DE ENTREGA DE MATERIAL'] ? capitalize(format(new Date(selectedVisit['FECHA DE ENTREGA DE MATERIAL']), "d MMM, yyyy", { locale: es })) : 'N/A'}</p></div>
-                </div>
-                 <div className="flex items-start gap-3">
-                    <Edit className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1"><p className="font-medium text-muted-foreground">Muestras</p><p className="font-semibold text-card-foreground">{selectedVisit['CANTIDAD DE MUESTRAS']?.toLocaleString('es-CO') || 'N/A'}</p></div>
-                </div>
-                 <div className="flex items-start gap-3 md:col-span-3">
-                    <Package className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1 w-full"><p className="font-medium text-muted-foreground">Material POP</p><p className="font-semibold text-card-foreground">{formatMaterialPop(selectedVisit['MATERIAL POP'])}</p></div>
-                </div>
-                 <div className="flex items-start gap-3 md:col-span-3">
-                    <Target className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1 w-full"><p className="font-medium text-muted-foreground">Objetivo de la Actividad</p><Textarea readOnly value={selectedVisit['OBJETIVO DE LA ACTIVIDAD'] || 'N/A'} className="mt-1 h-auto bg-transparent" /></div>
-                </div>
-                <div className="flex items-start gap-3 md:col-span-3">
-                    <Info className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1 w-full"><p className="font-medium text-muted-foreground">Observación</p><Textarea readOnly value={selectedVisit['OBSERVACION'] || 'N/A'} className="mt-1 h-auto bg-transparent" /></div>
-                </div>
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 py-4 text-sm">
+                  <div className="flex items-start gap-3">
+                      <User className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                      <div className="space-y-1"><p className="font-medium text-muted-foreground">Ejecutiva</p><p className="font-semibold text-card-foreground">{selectedVisit['EJECUTIVA DE TRADE']}</p></div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                      <User className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                      <div className="space-y-1"><p className="font-medium text-muted-foreground">Asesor</p><p className="font-semibold text-card-foreground">{selectedVisit['ASESOR COMERCIAL']}</p></div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                      <Clock className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                      <div className="space-y-1"><p className="font-medium text-muted-foreground">Horario</p><p className="font-semibold text-card-foreground">{selectedVisit['HORARIO']}</p></div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                      <Network className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                      <div className="space-y-1"><p className="font-medium text-muted-foreground">Canal</p><p className="font-semibold text-card-foreground">{selectedVisit['CANAL']}</p></div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                      <Building2 className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                      <div className="space-y-1"><p className="font-medium text-muted-foreground">Cadena</p><p className="font-semibold text-card-foreground">{selectedVisit['CADENA']}</p></div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                      <Info className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                      <div className="space-y-1"><p className="font-medium text-muted-foreground">Dirección PDV</p><p className="font-semibold text-card-foreground">{selectedVisit['DIRECCIÓN DEL PDV']}</p></div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                      <MapPin className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                      <div className="space-y-1"><p className="font-medium text-muted-foreground">Ciudad</p><p className="font-semibold text-card-foreground">{selectedVisit['CIUDAD']}</p></div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                      <MapPin className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                      <div className="space-y-1"><p className="font-medium text-muted-foreground">Zona</p><p className="font-semibold text-card-foreground">{selectedVisit['ZONA']}</p></div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                      <DollarSign className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                      <div className="space-y-1"><p className="font-medium text-muted-foreground">Presupuesto</p><p className="font-semibold text-card-foreground">{selectedVisit['PRESUPUESTO'] ? selectedVisit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }) : 'N/A'}</p></div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                      <Users2 className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                      <div className="space-y-1"><p className="font-medium text-muted-foreground">Afluencia Esperada</p><p className="font-semibold text-card-foreground">{selectedVisit['AFLUENCIA ESPERADA']?.toLocaleString('es-CO') || 'N/A'}</p></div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                      <Calendar className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                      <div className="space-y-1"><p className="font-medium text-muted-foreground">Entrega Material</p><p className="font-semibold text-card-foreground">{selectedVisit['FECHA DE ENTREGA DE MATERIAL'] ? capitalize(format(new Date(selectedVisit['FECHA DE ENTREGA DE MATERIAL']), "d MMM, yyyy", { locale: es })) : 'N/A'}</p></div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                      <Edit className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                      <div className="space-y-1"><p className="font-medium text-muted-foreground">Muestras</p><p className="font-semibold text-card-foreground">{selectedVisit['CANTIDAD DE MUESTRAS']?.toLocaleString('es-CO') || 'N/A'}</p></div>
+                  </div>
+                  <div className="flex items-start gap-3 md:col-span-3">
+                      <Package className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                      <div className="space-y-1 w-full"><p className="font-medium text-muted-foreground">Material POP</p><p className="font-semibold text-card-foreground">{formatMaterialPop(selectedVisit['MATERIAL POP'])}</p></div>
+                  </div>
+                  <div className="flex items-start gap-3 md:col-span-3">
+                      <Target className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                      <div className="space-y-1 w-full"><p className="font-medium text-muted-foreground">Objetivo de la Actividad</p><Textarea readOnly value={selectedVisit['OBJETIVO DE LA ACTIVIDAD'] || 'N/A'} className="mt-1 h-auto bg-transparent" /></div>
+                  </div>
+                  <div className="flex items-start gap-3 md:col-span-3">
+                      <Info className="h-5 w-5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                      <div className="space-y-1 w-full"><p className="font-medium text-muted-foreground">Observación</p><Textarea readOnly value={selectedVisit['OBSERVACION'] || 'N/A'} className="mt-1 h-auto bg-transparent" /></div>
+                  </div>
+              </div>
+              {isAdmin && (
+                  <DialogFooter>
+                      <Button variant="destructive" onClick={() => handleDeleteClick(selectedVisit)}>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Eliminar
+                      </Button>
+                      <Button onClick={() => handleEditClick(selectedVisit)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Editar
+                      </Button>
+                  </DialogFooter>
+              )}
+            </>
           )}
         </DialogContent>
       </Dialog>
     </>
   );
 }
-
-

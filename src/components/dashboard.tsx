@@ -26,6 +26,8 @@ interface DashboardProps {
     data: Visit[];
     allVisits: Visit[];
     onEditVisit: (visit: Visit) => void;
+    onDeleteVisit: (visit: Visit) => void;
+    isAdmin: boolean;
     filters: {
         month: string;
         trade_executive: string;
@@ -53,7 +55,7 @@ const formatMaterialPopForTable = (materials?: Record<string, number>): string =
         .join(', ');
 };
 
-export default function Dashboard({ data, allVisits, onEditVisit, filters, onFilterChange }: DashboardProps) {
+export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit, isAdmin, filters, onFilterChange }: DashboardProps) {
     const calendarRef = useRef<HTMLDivElement>(null);
     const [localFilters, setLocalFilters] = useState({
         city: 'all',
@@ -246,15 +248,17 @@ export default function Dashboard({ data, allVisits, onEditVisit, filters, onFil
                     filters={filters}
                     onFilterChange={onFilterChange}
                     allVisits={allVisits}
+                    onEditVisit={onEditVisit}
+                    onDeleteVisit={onDeleteVisit}
+                    isAdmin={isAdmin}
                 />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-                 <KpiCard title="Total de Actividades" value={kpis.totalActivities} icon={Activity} description="Registros en el periodo filtrado" />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <KpiCard title="Total de Actividades" value={kpis.totalActivities} icon={Activity} description="Registros en el periodo filtrado" />
                 <KpiCard title="Ejecutivas Activas" value={kpis.uniqueExecutives} icon={Users} description="Ejecutivas con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
                 <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="En el periodo filtrado" />
-                <KpiCard title="Total Días Libres" value={kpis.totalFreeActivities} icon={CalendarOff} description="Registros de 'Libre' en el periodo" />
             </div>
              <Card>
                 <CardHeader>
@@ -407,12 +411,3 @@ export default function Dashboard({ data, allVisits, onEditVisit, filters, onFil
 
         </div>
     );
-
-    
-
-    
-
-
-
-    
-

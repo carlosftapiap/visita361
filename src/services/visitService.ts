@@ -175,7 +175,9 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
                     unit_price
                 )
             )
-        `);
+        `)
+        .order('FECHA', { ascending: true });
+
 
     if (filters.month) {
         const monthDate = parse(filters.month, 'yyyy-MM', new Date());
@@ -317,6 +319,14 @@ export const updateVisit = async (id: number, visit: Partial<Omit<Visit, 'id'>>)
     }
 };
 
+export const deleteVisit = async (id: number) => {
+    const supabase = getSupabase();
+    const { error } = await supabase.from('visits').delete().eq('id', id);
+    if (error) {
+        throw buildSupabaseError(error, 'eliminación de visita (deleteVisit)');
+    }
+}
+
 
 export const addBatchVisits = async (visits: Omit<Visit, 'id'>[]) => {
     const supabase = getSupabase();
@@ -418,13 +428,3 @@ export const deleteMaterial = async (id: number) => {
         throw buildSupabaseError(error, 'eliminación de material (deleteMaterial)');
     }
 }
-
-
-    
-
-    
-
-
-
-
-

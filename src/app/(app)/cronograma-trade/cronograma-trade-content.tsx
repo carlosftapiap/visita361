@@ -450,20 +450,20 @@ export default function CronogramaTradeContent() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>¿Reemplazar datos existentes?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        <span>Ya hay datos para las siguientes ejecutivas y meses. Si continúa, sus registros existentes para estos periodos serán <span className="font-bold text-destructive">eliminados y reemplazados</span> por los del archivo.</span>
-                        <div className="mt-4 space-y-2 max-h-48 overflow-auto">
-                           {pendingData && Object.entries(pendingData.executivesByMonth).map(([month, executives]) => (
-                               <div key={month}>
-                                   <strong className="font-semibold text-card-foreground">{capitalize(format(new Date(month + '-02'), 'MMMM yyyy', { locale: es }))}</strong>
-                                   <ul className="list-disc pl-5 text-muted-foreground">
-                                       {executives.map(exec => <li key={exec}>{exec}</li>)}
-                                   </ul>
-                               </div>
-                           ))}
-                        </div>
-                         <br/>
-                        <span>Esta acción no se puede deshacer. Las demás ejecutivas no se verán afectadas.</span>
+                        Ya hay datos para las siguientes ejecutivas y meses. Si continúa, sus registros existentes para estos periodos serán <span className="font-bold text-destructive">eliminados y reemplazados</span> por los del archivo.
+                        <br/>
+                        Esta acción no se puede deshacer. Las demás ejecutivas no se verán afectadas.
                     </AlertDialogDescription>
+                    <div className="mt-2 space-y-2 max-h-48 overflow-auto text-sm">
+                       {pendingData && Object.entries(pendingData.executivesByMonth).map(([month, executives]) => (
+                           <div key={month}>
+                               <strong className="font-semibold text-card-foreground">{capitalize(format(new Date(month + '-02'), 'MMMM yyyy', { locale: es }))}</strong>
+                               <ul className="list-disc pl-5 text-muted-foreground">
+                                   {executives.map(exec => <li key={exec}>{exec}</li>)}
+                               </ul>
+                           </div>
+                       ))}
+                    </div>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useContext } from 'react';
-import { Trash2, Plus, Copy, CalendarClock, AlertTriangle, RefreshCw, Loader2, Settings, User } from 'lucide-react';
+import { Trash2, Plus, Copy, CalendarClock, AlertTriangle, RefreshCw, Loader2, Settings, User, Activity } from 'lucide-react';
 import type { Visit } from '@/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -34,6 +34,7 @@ import {
 import DashboardSkeleton from '@/components/dashboard-skeleton';
 import {
   getVisits,
+  getAllVisitsForDuplication,
   addVisit,
   updateVisit,
   addBatchVisits,
@@ -42,6 +43,7 @@ import {
 } from '@/services/visitService';
 import { Separator } from '@/components/ui/separator';
 import { useUser } from '@/context/UserContext';
+import KpiCard from '@/components/kpi-card';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -52,6 +54,7 @@ interface PendingData {
 
 export default function CronogramaTradeContent() {
   const [data, setData] = useState<Visit[]>([]);
+  const [allTimeData, setAllTimeData] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [formState, setFormState] = useState<{ open: boolean; visit?: Visit | null }>({
     open: false,
@@ -77,8 +80,12 @@ export default function CronogramaTradeContent() {
     setLoading(true);
     setErrorMessage(null);
     try {
-      const visits = await getVisits(filters);
+      const [visits, allVisits] = await Promise.all([
+        getVisits(filters),
+        getAllVisitsForDuplication()
+      ]);
       setData(visits);
+      setAllTimeData(allVisits);
     } catch (error: any) {
       console.error("Error refreshing data:", error);
       const message = error.message || "No se pudieron obtener los datos de la base de datos.";
@@ -256,7 +263,7 @@ export default function CronogramaTradeContent() {
     const [sourceYear, sourceMonthNum] = sourceMonthStr.split('-').map(Number);
     const [targetYear, targetMonthNum] = targetMonthStr.split('-').map(Number);
 
-    const sourceVisits = data.filter(visit => {
+    const sourceVisits = allTimeData.filter(visit => {
         const visitDate = new Date(visit['FECHA']);
         return visitDate.getFullYear() === sourceYear && visitDate.getMonth() + 1 === sourceMonthNum;
     });
@@ -347,7 +354,7 @@ export default function CronogramaTradeContent() {
           onEditVisit={handleEditVisit}
           filters={filters}
           onFilterChange={handleFilterChange}
-          allVisits={data} 
+          allVisits={allTimeData}
       />;
     }
     return (
@@ -398,7 +405,7 @@ export default function CronogramaTradeContent() {
             isOpen={isDuplicateDialogOpen}
             onOpenChange={setIsDuplicateDialogOpen}
             onDuplicate={handleDuplicateMonth}
-            data={data}
+            data={allTimeData}
         />
         <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
             <DialogContent>
@@ -423,14 +430,14 @@ export default function CronogramaTradeContent() {
                         setIsUploadDialogOpen(false);
                       }} 
                       variant="outline" 
-                      disabled={loading || data.length === 0} 
+                      disabled={loading || allTimeData.length === 0} 
                       className="w-full"
                     >
                         <Copy className="mr-2 h-4 w-4" />
                         Duplicar Cronograma de un Mes
                     </Button>
                 </div>
-                {isAdmin && !loading && data.length > 0 && (
+                {isAdmin && !loading && allTimeData.length > 0 && (
                   <div className="pt-4">
                     <Separator className="my-4" />
                     <h3 className="font-semibold text-lg mb-2">Acciones de Zona de Peligro</h3>
@@ -506,7 +513,3 @@ export default function CronogramaTradeContent() {
     </div>
   );
 }
-
-    
-
-    

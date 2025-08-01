@@ -156,9 +156,9 @@ export const getMaterials = async (): Promise<Material[]> => {
 };
 
 interface VisitFilters {
-    month: string;
-    trade_executive: string;
-    agent: string;
+    month?: string;
+    trade_executive?: string;
+    agent?: string;
 }
 
 export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
@@ -177,7 +177,6 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
             )
         `);
 
-    // Apply month filter
     if (filters.month) {
         const monthDate = parse(filters.month, 'yyyy-MM', new Date());
         const startDate = startOfMonth(monthDate).toISOString();
@@ -185,12 +184,10 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
         query = query.gte('FECHA', startDate).lte('FECHA', endDate);
     }
     
-    // Apply trade executive filter
     if (filters.trade_executive && filters.trade_executive !== 'all') {
         query = query.eq('EJECUTIVA DE TRADE', filters.trade_executive);
     }
     
-    // Apply agent filter
     if (filters.agent && filters.agent !== 'all') {
         query = query.eq('ASESOR COMERCIAL', filters.agent);
     }
@@ -227,6 +224,17 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
 
     return transformedData;
 };
+
+export const getAllVisitsForDuplication = async (): Promise<Visit[]> => {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+        .from('visits')
+        .select('FECHA, "EJECUTIVA DE TRADE", "ASESOR COMERCIAL", "CANAL", "CADENA", "DIRECCIÓN DEL PDV", "ACTIVIDAD", "HORARIO", "CIUDAD", "ZONA", "PRESUPUESTO", "AFLUENCIA ESPERADA", "FECHA DE ENTREGA DE MATERIAL", "OBJETIVO DE LA ACTIVIDAD", "CANTIDAD DE MUESTRAS", "OBSERVACION"');
+    if (error) {
+         throw buildSupabaseError(error, 'lectura de todas las visitas (getAllVisitsForDuplication)');
+    }
+    return (data || []) as Visit[];
+}
 
 export const getVisitMaterials = async (): Promise<VisitMaterial[]> => {
     const supabase = getSupabase();
@@ -415,6 +423,7 @@ export const deleteMaterial = async (id: number) => {
     
 
     
+
 
 
 

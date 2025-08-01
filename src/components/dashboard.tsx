@@ -88,13 +88,13 @@ export default function Dashboard({ data, allVisits, onEditVisit, filters, onFil
             : allVisits.filter(v => v['EJECUTIVA DE TRADE'] === filters.trade_executive);
         const agents = getUniqueNonEmpty(relevantAgentsData.map(v => v['ASESOR COMERCIAL']));
 
-        const cities = getUniqueNonEmpty(allVisits.map(v => v['CIUDAD']));
-        const activities = getUniqueNonEmpty(allVisits.map(v => v['ACTIVIDAD']));
-        const zones = getUniqueNonEmpty(allVisits.map(v => v['ZONA']));
-        const chains = getUniqueNonEmpty(allVisits.map(v => v['CADENA']));
+        const cities = getUniqueNonEmpty(data.map(v => v['CIUDAD']));
+        const activities = getUniqueNonEmpty(data.map(v => v['ACTIVIDAD']));
+        const zones = getUniqueNonEmpty(data.map(v => v['ZONA']));
+        const chains = getUniqueNonEmpty(data.map(v => v['CADENA']));
         
         return { months, trade_executives, agents, cities, activities, zones, chains };
-    }, [allVisits, filters.trade_executive]);
+    }, [data, allVisits, filters.trade_executive]);
 
     const handleLocalFilterChange = (filterName: keyof typeof localFilters) => (value: string) => {
         setLocalFilters(prev => ({ ...prev, [filterName]: value }));
@@ -278,28 +278,28 @@ export default function Dashboard({ data, allVisits, onEditVisit, filters, onFil
                         </div>
                         <div className="grid gap-2">
                              <label className="text-sm font-medium">Ciudad</label>
-                            <Select value={localFilters.city} onValueChange={handleLocalFilterChange('city')}>
+                            <Select value={localFilters.city} onValueChange={handleLocalFilterChange('city')} disabled={filterOptions.cities.length <= 1}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>{filterOptions.cities.map(city => (<SelectItem key={city} value={city}>{city === 'all' ? 'Todas las ciudades' : city}</SelectItem>))}</SelectContent>
                             </Select>
                         </div>
                          <div className="grid gap-2">
                              <label className="text-sm font-medium">Cadena</label>
-                            <Select value={localFilters.chain} onValueChange={handleLocalFilterChange('chain')}>
+                            <Select value={localFilters.chain} onValueChange={handleLocalFilterChange('chain')} disabled={filterOptions.chains.length <= 1}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>{filterOptions.chains.map(chain => (<SelectItem key={chain} value={chain}>{chain === 'all' ? 'Todas las cadenas' : chain}</SelectItem>))}</SelectContent>
                             </Select>
                         </div>
                          <div className="grid gap-2">
                              <label className="text-sm font-medium">Zona</label>
-                            <Select value={localFilters.zone} onValueChange={handleLocalFilterChange('zone')}>
+                            <Select value={localFilters.zone} onValueChange={handleLocalFilterChange('zone')} disabled={filterOptions.zones.length <= 1}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>{filterOptions.zones.map(zone => (<SelectItem key={zone} value={zone}>{zone === 'all' ? 'Todas las zonas' : zone}</SelectItem>))}</SelectContent>
                             </Select>
                         </div>
                         <div className="grid gap-2">
                              <label className="text-sm font-medium">Actividad</label>
-                            <Select value={localFilters.activity} onValueChange={handleLocalFilterChange('activity')}>
+                            <Select value={localFilters.activity} onValueChange={handleLocalFilterChange('activity')} disabled={filterOptions.activities.length <= 1}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>{filterOptions.activities.map(activity => (<SelectItem key={activity} value={activity}>{activity === 'all' ? 'Todas las actividades' : activity}</SelectItem>))}</SelectContent>
                             </Select>
@@ -323,7 +323,7 @@ export default function Dashboard({ data, allVisits, onEditVisit, filters, onFil
                 />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
                  <KpiCard title="Total de Actividades" value={kpis.totalActivities} icon={Activity} description="Registros en el periodo filtrado" />
                 <KpiCard title="Ejecutivas Activas" value={kpis.uniqueExecutives} icon={Users} description="Ejecutivas con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />

@@ -25,6 +25,12 @@ import { cn } from "@/lib/utils";
 interface DashboardProps {
     data: Visit[];
     onEditVisit: (visit: Visit) => void;
+    filters: {
+        month: string;
+        trade_executive: string;
+        agent: string;
+    };
+    onFilterChange: (filterName: keyof DashboardProps['filters'], value: string) => void;
 }
 
 const chartColors = [
@@ -46,12 +52,9 @@ const formatMaterialPopForTable = (materials?: Record<string, number>): string =
         .join(', ');
 };
 
-export default function Dashboard({ data, onEditVisit }: DashboardProps) {
+export default function Dashboard({ data, onEditVisit, filters, onFilterChange }: DashboardProps) {
     const calendarRef = useRef<HTMLDivElement>(null);
-    const [filters, setFilters] = useState({
-        month: format(new Date(), 'yyyy-MM'),
-        trade_executive: 'all',
-        agent: 'all',
+    const [localFilters, setLocalFilters] = useState({
         city: 'all',
         activity: 'all',
         zone: 'all',
@@ -66,9 +69,15 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         data.forEach(visit => {
             monthSet.add(format(new Date(visit['FECHA']), 'yyyy-MM'));
         });
+         const today = new Date();
+        for (let i = -6; i <= 6; i++) {
+            const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
+            monthSet.add(format(date, 'yyyy-MM'));
+        }
+
         const months = Array.from(monthSet).sort().reverse().map(m => ({
             value: m,
-            label: capitalize(format(startOfMonth(new Date(m)), 'MMMM yyyy', { locale: es }))
+            label: capitalize(format(startOfMonth(new Date(m + '-02')), 'MMMM yyyy', { locale: es }))
         }));
 
         const trade_executives = getUniqueNonEmpty(data.map(v => v['EJECUTIVA DE TRADE']));
@@ -86,32 +95,20 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         return { months, trade_executives, agents, cities, activities, zones, chains };
     }, [data, filters.trade_executive]);
 
-    const handleFilterChange = (filterName: keyof typeof filters) => (value: string) => {
-        setFilters(prev => {
-            const newFilters = { ...prev, [filterName]: value };
-            if (filterName === 'trade_executive') {
-                newFilters.agent = 'all';
-            }
-            if (filterName === 'month' && !value) {
-                newFilters.month = format(new Date(), 'yyyy-MM');
-            }
-            return newFilters;
-        });
+    const handleLocalFilterChange = (filterName: keyof typeof localFilters) => (value: string) => {
+        setLocalFilters(prev => ({ ...prev, [filterName]: value }));
     };
 
     const filteredData = useMemo(() => {
         if (!data) return [];
         return data.filter(visit => {
-            const monthMatch = format(new Date(visit['FECHA']), 'yyyy-MM') === filters.month;
-            const tradeExecutiveMatch = filters.trade_executive === 'all' || visit['EJECUTIVA DE TRADE'] === filters.trade_executive;
-            const agentMatch = filters.agent === 'all' || visit['ASESOR COMERCIAL'] === filters.agent;
-            const cityMatch = filters.city === 'all' || visit['CIUDAD'] === filters.city;
-            const activityMatch = filters.activity === 'all' || visit['ACTIVIDAD'] === filters.activity;
-            const zoneMatch = filters.zone === 'all' || visit['ZONA'] === filters.zone;
-            const chainMatch = filters.chain === 'all' || visit['CADENA'] === filters.chain;
-            return monthMatch && tradeExecutiveMatch && agentMatch && cityMatch && activityMatch && zoneMatch && chainMatch;
+            const cityMatch = localFilters.city === 'all' || visit['CIUDAD'] === localFilters.city;
+            const activityMatch = localFilters.activity === 'all' || visit['ACTIVIDAD'] === localFilters.activity;
+            const zoneMatch = localFilters.zone === 'all' || visit['ZONA'] === localFilters.zone;
+            const chainMatch = localFilters.chain === 'all' || visit['CADENA'] === localFilters.chain;
+            return cityMatch && activityMatch && zoneMatch && chainMatch;
         });
-    }, [data, filters]);
+    }, [data, localFilters]);
 
     const kpis = useMemo(() => {
         const uniqueExecutives = new Set(filteredData.map(v => v['EJECUTIVA DE TRADE']).filter(Boolean)).size;
@@ -134,6 +131,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const totalBudget = filteredData.reduce((sum, visit) => sum + (visit['PRESUPUESTO'] || 0), 0);
         const totalMaterialCost = filteredData.reduce((sum, visit) => sum + (visit.total_cost || 0), 0);
         const totalSamples = filteredData.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
+        const totalActivities = filteredData.length;
 
         return { 
             uniqueExecutives, 
@@ -143,6 +141,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             totalMaterialCost,
             totalSamples,
             totalFreeActivities,
+            totalActivities
         };
     }, [filteredData]);
 
@@ -271,35 +270,35 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                     <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
                          <div className="grid gap-2">
                              <label className="text-sm font-medium">Mes</label>
-                            <Select value={filters.month} onValueChange={handleFilterChange('month')}>
+                            <Select value={filters.month} onValueChange={(value) => onFilterChange('month', value)}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>{filterOptions.months.map(m => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}</SelectContent>
                             </Select>
                         </div>
                         <div className="grid gap-2">
                              <label className="text-sm font-medium">Ciudad</label>
-                            <Select value={filters.city} onValueChange={handleFilterChange('city')}>
+                            <Select value={localFilters.city} onValueChange={handleLocalFilterChange('city')}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>{filterOptions.cities.map(city => (<SelectItem key={city} value={city}>{city === 'all' ? 'Todas las ciudades' : city}</SelectItem>))}</SelectContent>
                             </Select>
                         </div>
                          <div className="grid gap-2">
                              <label className="text-sm font-medium">Cadena</label>
-                            <Select value={filters.chain} onValueChange={handleFilterChange('chain')}>
+                            <Select value={localFilters.chain} onValueChange={handleLocalFilterChange('chain')}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>{filterOptions.chains.map(chain => (<SelectItem key={chain} value={chain}>{chain === 'all' ? 'Todas las cadenas' : chain}</SelectItem>))}</SelectContent>
                             </Select>
                         </div>
                          <div className="grid gap-2">
                              <label className="text-sm font-medium">Zona</label>
-                            <Select value={filters.zone} onValueChange={handleFilterChange('zone')}>
+                            <Select value={localFilters.zone} onValueChange={handleLocalFilterChange('zone')}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>{filterOptions.zones.map(zone => (<SelectItem key={zone} value={zone}>{zone === 'all' ? 'Todas las zonas' : zone}</SelectItem>))}</SelectContent>
                             </Select>
                         </div>
                         <div className="grid gap-2">
                              <label className="text-sm font-medium">Actividad</label>
-                            <Select value={filters.activity} onValueChange={handleFilterChange('activity')}>
+                            <Select value={localFilters.activity} onValueChange={handleLocalFilterChange('activity')}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>{filterOptions.activities.map(activity => (<SelectItem key={activity} value={activity}>{activity === 'all' ? 'Todas las actividades' : activity}</SelectItem>))}</SelectContent>
                             </Select>
@@ -318,12 +317,13 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
                     agents={filterOptions.agents}
                     selectedExecutive={filters.trade_executive}
                     selectedAgent={filters.agent}
-                    onExecutiveChange={handleFilterChange('trade_executive')}
-                    onAgentChange={handleFilterChange('agent')}
+                    onExecutiveChange={(value) => onFilterChange('trade_executive', value)}
+                    onAgentChange={(value) => onFilterChange('agent', value)}
                 />
             </div>
 
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-4">
+                <KpiCard title="Total de Actividades" value={kpis.totalActivities} icon={Activity} description="Registros en el periodo filtrado" />
                 <KpiCard title="Ejecutivas Activas" value={kpis.uniqueExecutives} icon={Users} description="Ejecutivas con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
                 <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="En el periodo filtrado" />

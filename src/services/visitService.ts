@@ -110,7 +110,7 @@ ON CONFLICT (name) DO NOTHING;
 
 import { getSupabase } from '@/lib/supabase';
 import type { Material, Visit, VisitMaterial } from '@/types';
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { startOfMonth, endOfMonth, parse } from 'date-fns';
 
 const buildSupabaseError = (error: any, context: string): Error => {
     const errorMessage = typeof error === 'object' && error !== null 
@@ -155,9 +155,16 @@ export const getMaterials = async (): Promise<Material[]> => {
     return data || [];
 };
 
-export const getVisits = async (): Promise<Visit[]> => {
+interface VisitFilters {
+    month: string;
+    trade_executive: string;
+    agent: string;
+}
+
+export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
     const supabase = getSupabase();
-    const { data: visitsData, error } = await supabase
+    
+    let query = supabase
         .from('visits')
         .select(`
             *,
@@ -168,15 +175,33 @@ export const getVisits = async (): Promise<Visit[]> => {
                     unit_price
                 )
             )
-        `)
-        .limit(2000); 
+        `);
+
+    // Apply month filter
+    if (filters.month) {
+        const monthDate = parse(filters.month, 'yyyy-MM', new Date());
+        const startDate = startOfMonth(monthDate).toISOString();
+        const endDate = endOfMonth(monthDate).toISOString();
+        query = query.gte('FECHA', startDate).lte('FECHA', endDate);
+    }
+    
+    // Apply trade executive filter
+    if (filters.trade_executive && filters.trade_executive !== 'all') {
+        query = query.eq('EJECUTIVA DE TRADE', filters.trade_executive);
+    }
+    
+    // Apply agent filter
+    if (filters.agent && filters.agent !== 'all') {
+        query = query.eq('ASESOR COMERCIAL', filters.agent);
+    }
+    
+    const { data: visitsData, error } = await query;
 
     if (error) {
         throw buildSupabaseError(error, 'lectura de visitas (getVisits)');
     }
     if (!visitsData) return [];
     
-    // Transform data to include MATERIAL POP object and calculate total cost
     const transformedData = visitsData.map(visit => {
         const materialPop: Record<string, number> = {};
         let totalCost = 0;
@@ -390,6 +415,7 @@ export const deleteMaterial = async (id: number) => {
     
 
     
+
 
 
 

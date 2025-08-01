@@ -64,6 +64,11 @@ export default function CronogramaTradeContent() {
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [filters, setFilters] = useState({
+      month: format(new Date(), 'yyyy-MM'),
+      trade_executive: 'all',
+      agent: 'all',
+  });
 
   const { user } = useUser();
   const isAdmin = user?.email === "carlosftapiap@gmail.com";
@@ -72,7 +77,7 @@ export default function CronogramaTradeContent() {
     setLoading(true);
     setErrorMessage(null);
     try {
-      const visits = await getVisits();
+      const visits = await getVisits(filters);
       setData(visits);
     } catch (error: any) {
       console.error("Error refreshing data:", error);
@@ -86,7 +91,7 @@ export default function CronogramaTradeContent() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, filters]);
 
   useEffect(() => {
     refreshData();
@@ -302,6 +307,10 @@ export default function CronogramaTradeContent() {
     }
   };
 
+  const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
+    setFilters(prev => ({...prev, [filterName]: value}));
+  }
+
   const renderContent = () => {
     if (loading) {
       return <DashboardSkeleton />;
@@ -333,7 +342,12 @@ export default function CronogramaTradeContent() {
       );
     }
     if (data.length > 0) {
-      return <Dashboard data={data} onEditVisit={handleEditVisit} />;
+      return <Dashboard 
+          data={data} 
+          onEditVisit={handleEditVisit}
+          filters={filters}
+          onFilterChange={handleFilterChange}
+      />;
     }
     return (
       <Card className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center shadow-md">
@@ -495,3 +509,4 @@ export default function CronogramaTradeContent() {
     
 
     
+

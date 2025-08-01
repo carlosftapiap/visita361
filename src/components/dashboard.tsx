@@ -233,19 +233,7 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
 
     return (
         <div className="flex flex-col gap-6">
-            <div ref={calendarRef}>
-                <ActivityCalendar 
-                    data={data}
-                    filters={filters}
-                    onFilterChange={onFilterChange}
-                    allVisits={allVisits}
-                    onEditVisit={onEditVisit}
-                    onDeleteVisit={onDeleteVisit}
-                    isAdmin={isAdmin}
-                />
-            </div>
-            
-             <Card className="shadow-md">
+            <Card className="shadow-md">
                 <CardHeader>
                     <CardTitle className="font-headline text-xl flex items-center gap-2"><Filter className="text-primary"/> Filtros del Panel</CardTitle>
                     <CardDescription>Refine los datos para un análisis más detallado.</CardDescription>
@@ -297,6 +285,18 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
                     </div>
                 </CardContent>
             </Card>
+
+            <div ref={calendarRef}>
+                <ActivityCalendar 
+                    data={data}
+                    filters={filters}
+                    onFilterChange={onFilterChange}
+                    allVisits={allVisits}
+                    onEditVisit={onEditVisit}
+                    onDeleteVisit={onDeleteVisit}
+                    isAdmin={isAdmin}
+                />
+            </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-6">
                  <Card className="shadow-lg lg:col-span-3">
@@ -423,3 +423,4 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
     );
 
     
+

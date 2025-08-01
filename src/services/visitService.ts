@@ -230,9 +230,21 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
 
 export const getAllVisitsForDuplication = async (): Promise<Visit[]> => {
     const supabase = getSupabase();
+    // Get the total count first to override the 1000 row limit
+    const { count, error: countError } = await supabase.from('visits').select('*', { count: 'exact', head: true });
+
+    if (countError) {
+        throw buildSupabaseError(countError, 'conteo de visitas (getAllVisitsForDuplication)');
+    }
+    if (!count) {
+        return [];
+    }
+    
     const { data, error } = await supabase
         .from('visits')
-        .select('FECHA, "EJECUTIVA DE TRADE", "ASESOR COMERCIAL", "CANAL", "CADENA", "DIRECCIÓN DEL PDV", "ACTIVIDAD", "HORARIO", "CIUDAD", "ZONA", "PRESUPUESTO", "AFLUENCIA ESPERADA", "FECHA DE ENTREGA DE MATERIAL", "OBJETIVO DE LA ACTIVIDAD", "CANTIDAD DE MUESTRAS", "OBSERVACION"');
+        .select('FECHA, "EJECUTIVA DE TRADE", "ASESOR COMERCIAL", "CANAL", "CADENA", "DIRECCIÓN DEL PDV", "ACTIVIDAD", "HORARIO", "CIUDAD", "ZONA", "PRESUPUESTO", "AFLUENCIA ESPERADA", "FECHA DE ENTREGA DE MATERIAL", "OBJETIVO DE LA ACTIVIDAD", "CANTIDAD DE MUESTRAS", "OBSERVACION"')
+        .range(0, count);
+
     if (error) {
          throw buildSupabaseError(error, 'lectura de todas las visitas (getAllVisitsForDuplication)');
     }
@@ -429,4 +441,5 @@ export const deleteMaterial = async (id: number) => {
         throw buildSupabaseError(error, 'eliminación de material (deleteMaterial)');
     }
 }
+
 

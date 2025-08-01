@@ -169,7 +169,6 @@ export const getVisits = async (): Promise<Visit[]> => {
                 )
             )
         `)
-        .order('FECHA', { ascending: false })
         .limit(10000); // Set a high limit to fetch all records, adjust if needed
 
     if (error) {

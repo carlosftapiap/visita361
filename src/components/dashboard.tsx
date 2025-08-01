@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { useMemo, useState, useRef } from "react";
@@ -303,7 +304,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5">
                 <Card className="shadow-md transition-all hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br from-primary to-accent text-primary-foreground">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total de Actividades</CardTitle>
+                        <CardTitle className="text-sm font-medium text-primary-foreground">Total de Actividades</CardTitle>
                         <Activity className="h-5 w-5 text-primary-foreground/80" />
                     </CardHeader>
                     <CardContent>
@@ -471,3 +472,4 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
     
 
     
+

@@ -92,9 +92,10 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
     }, [filteredData]);
 
      const kpis = useMemo(() => {
+        const [year, month] = filters.month.split('-').map(Number);
+        const totalDaysInMonth = getDaysInMonth(new Date(year, month - 1));
+
         if (!data || data.length === 0) {
-            const [year, month] = filters.month.split('-').map(Number);
-            const totalDaysInMonth = getDaysInMonth(new Date(year, month - 1));
             return {
                 totalActivities: 0,
                 activeDays: 0,
@@ -105,13 +106,14 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
 
         const uniqueDays = new Set<string>();
         data.forEach(visit => {
-            uniqueDays.add(new Date(visit.FECHA).toISOString().split('T')[0]);
+            // Correctly handle timezone by parsing the date string as-is (which includes timezone info)
+            // and then getting the date part. This prevents UTC conversion issues.
+            const visitDate = new Date(visit.FECHA);
+            const dateString = visitDate.getFullYear() + '-' + (visitDate.getMonth() + 1) + '-' + visitDate.getDate();
+            uniqueDays.add(dateString);
         });
-
-        const uniqueChains = new Set(data.map(v => v['CADENA']));
         
-        const [year, month] = filters.month.split('-').map(Number);
-        const totalDaysInMonth = getDaysInMonth(new Date(year, month - 1));
+        const uniqueChains = new Set(data.map(v => v['CADENA']));
         const activeDays = uniqueDays.size;
 
         return {

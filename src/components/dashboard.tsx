@@ -95,6 +95,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
     }, [data, filters]);
 
     const kpis = useMemo(() => {
+        const totalActivities = filteredData.length;
         const uniqueExecutives = new Set(filteredData.map(v => v['EJECUTIVA DE TRADE']).filter(Boolean)).size;
         const uniqueChains = new Set(filteredData.map(v => v['CADENA']).filter(Boolean)).size;
 
@@ -117,6 +118,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
         const totalSamples = filteredData.reduce((sum, visit) => sum + (visit['CANTIDAD DE MUESTRAS'] || 0), 0);
 
         return { 
+            totalActivities,
             uniqueExecutives, 
             uniqueChains, 
             workedDays,
@@ -298,6 +300,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             </div>
 
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5">
+                <KpiCard title="Total de Actividades" value={kpis.totalActivities} icon={Activity} description="Registros en el periodo filtrado" />
                 <KpiCard title="Ejecutivas Activas" value={kpis.uniqueExecutives} icon={Users} description="Ejecutivas con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
                 <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="En el periodo filtrado" />
@@ -454,5 +457,7 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
 
         </div>
     );
+
+    
 
     

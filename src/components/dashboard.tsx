@@ -7,7 +7,7 @@ import { Users, Building, CalendarDays, Activity, Download, BarChart2, PieChart 
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, LabelList } from "recharts";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+import autoTable from 'jspdf-autotable';
 import { getDaysInMonth, format, startOfMonth } from 'date-fns';
 import { es } from "date-fns/locale";
 
@@ -215,29 +215,55 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
     };
 
     const handleDownloadPdf = () => {
-        const calendarElement = calendarRef.current;
-        if (!calendarElement || filteredData.length === 0) return;
+        if (filteredData.length === 0) return;
 
-        const width = calendarElement.offsetWidth;
-        const height = calendarElement.offsetHeight;
+        const doc = new jsPDF();
+        
+        const mainTitle = "Reporte de Actividades - Visita360";
+        const date = `Fecha: ${format(new Date(), 'dd/MM/yyyy')}`;
+        const monthLabel = capitalize(format(startOfMonth(new Date(filters.month + '-02')), 'MMMM yyyy', { locale: es }));
+        
+        const filterText = `Filtros Aplicados: 
+        - Mes: ${monthLabel}
+        - Ejecutiva: ${filters.trade_executive === 'all' ? 'Todas' : filters.trade_executive}
+        - Asesor: ${filters.agent === 'all' ? 'Todos' : filters.agent}
+        - Ciudad: ${localFilters.city === 'all' ? 'Todas' : localFilters.city}
+        - Cadena: ${localFilters.chain === 'all' ? 'Todas' : localFilters.chain}
+        - Zona: ${localFilters.zone === 'all' ? 'Todas' : localFilters.zone}
+        - Actividad: ${localFilters.activity === 'all' ? 'Todas' : localFilters.activity}`;
 
-        html2canvas(calendarElement, {
-            scale: 2,
-            useCORS: true,
-            width: width,
-            height: height,
-        }).then((canvas) => {
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-                orientation: width > height ? 'landscape' : 'portrait',
-                unit: 'px',
-                format: [width, height]
-            });
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
-            pdf.save("Visita360_Calendario.pdf");
+        doc.setFontSize(18);
+        doc.text(mainTitle, 14, 22);
+        doc.setFontSize(11);
+        doc.text(date, 14, 30);
+        
+        doc.setFontSize(10);
+        doc.text(filterText, 14, 38);
+
+        const tableColumn = ["Fecha", "Ejecutiva", "Asesor", "Cadena", "Actividad", "Costo Materiales", "Presupuesto"];
+        const tableRows: any[][] = [];
+
+        filteredData.forEach(visit => {
+            const visitData = [
+                visit['FECHA'] ? new Date(visit['FECHA']).toLocaleDateString('es-CO') : 'N/A',
+                visit['EJECUTIVA DE TRADE'],
+                visit['ASESOR COMERCIAL'],
+                visit['CADENA'],
+                visit['ACTIVIDAD'],
+                visit.total_cost ? visit.total_cost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : '$0',
+                visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : '$0'
+            ];
+            tableRows.push(visitData);
         });
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 70,
+            headStyles: { fillColor: [75, 0, 130] }, // Indigo
+        });
+        
+        doc.save(`Visita360_Reporte_${filters.month}.pdf`);
     };
 
     return (
@@ -300,15 +326,15 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
                         <div className="flex items-end">
                             <Button onClick={handleDownloadPdf} variant="outline" className="w-full">
                                 <Download className="mr-2 h-4 w-4" />
-                                Calendario PDF
+                                Reporte PDF
                             </Button>
                         </div>
                     </div>
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <KpiCard title="Total de Actividades" value={kpis.totalActivities} icon={Activity} description="Registros en el periodo filtrado" />
+             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                 <KpiCard title="Total de Actividades" value={kpis.totalActivities} icon={Activity} description="Registros en el periodo filtrado" />
                 <KpiCard title="Ejecutivas Activas" value={kpis.uniqueExecutives} icon={Users} description="Ejecutivas con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
                 <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="En el periodo filtrado" />
@@ -464,3 +490,5 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
 
         </div>
     );
+
+    

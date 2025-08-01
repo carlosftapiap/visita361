@@ -18,6 +18,7 @@ import { ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTool
 import KpiCard from "./kpi-card";
 import ActivityCalendar from "./activity-calendar";
 import { materialsList } from "@/lib/materials";
+import { cn } from "@/lib/utils";
 
 interface DashboardProps {
     data: Visit[];
@@ -300,7 +301,16 @@ export default function Dashboard({ data, onEditVisit }: DashboardProps) {
             </div>
 
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5">
-                <KpiCard title="Total de Actividades" value={kpis.totalActivities} icon={Activity} description="Registros en el periodo filtrado" />
+                <Card className="shadow-md transition-all hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br from-primary to-accent text-primary-foreground">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total de Actividades</CardTitle>
+                        <Activity className="h-5 w-5 text-primary-foreground/80" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="font-headline text-5xl font-bold">{kpis.totalActivities}</div>
+                        <p className="text-xs text-primary-foreground/80">Registros en el periodo filtrado</p>
+                    </CardContent>
+                </Card>
                 <KpiCard title="Ejecutivas Activas" value={kpis.uniqueExecutives} icon={Users} description="Ejecutivas con actividad registrada" />
                 <KpiCard title="Cadenas Únicas" value={kpis.uniqueChains} icon={Building} description="Cadenas distintas visitadas" />
                 <KpiCard title="Días con Actividad" value={kpis.workedDays} icon={CalendarDays} description="En el periodo filtrado" />

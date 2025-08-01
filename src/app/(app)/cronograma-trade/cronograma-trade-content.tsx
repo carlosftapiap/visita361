@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useContext } from 'react';
-import { Trash2, Plus, Copy, CalendarClock, AlertTriangle, RefreshCw, Loader2, Settings } from 'lucide-react';
+import { Trash2, Plus, Copy, CalendarClock, AlertTriangle, RefreshCw, Loader2, Settings, User } from 'lucide-react';
 import type { Visit } from '@/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -38,12 +38,17 @@ import {
   updateVisit,
   addBatchVisits,
   deleteAllVisits,
-  deleteVisitsInMonths,
+  deleteVisitsInMonthsForExecutives,
 } from '@/services/visitService';
 import { Separator } from '@/components/ui/separator';
 import { useUser } from '@/context/UserContext';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+interface PendingData {
+    data: Omit<Visit, 'id'>[];
+    executivesByMonth: Record<string, string[]>;
+}
 
 export default function CronogramaTradeContent() {
   const [data, setData] = useState<Visit[]>([]);
@@ -55,7 +60,7 @@ export default function CronogramaTradeContent() {
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const { toast } = useToast();
-  const [pendingData, setPendingData] = useState<{ data: Omit<Visit, 'id'>[]; months: string[] } | null>(null);
+  const [pendingData, setPendingData] = useState<PendingData | null>(null);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -88,19 +93,47 @@ export default function CronogramaTradeContent() {
   }, [refreshData]);
 
   const handleFileProcessed = (processedData: Omit<Visit, 'id'>[]) => {
-    if (processedData.length === 0) return;
-
-    const uploadedMonths = [...new Set(processedData.map(v => format(new Date(v['FECHA']), 'yyyy-MM')))];
-    const existingMonths = [...new Set(data.map(v => format(new Date(v['FECHA']), 'yyyy-MM')))];
-    
-    const overlappingMonths = uploadedMonths.filter(m => existingMonths.includes(m));
-
-    if (overlappingMonths.length > 0 && !errorMessage) {
-      setPendingData({ data: processedData, months: overlappingMonths });
-      setShowOverwriteConfirm(true);
-    } else {
-      uploadNewData(processedData);
-    }
+      if (processedData.length === 0) return;
+  
+      const executivesByMonth: Record<string, string[]> = {};
+      const monthExecutiveSet = new Set<string>();
+  
+      processedData.forEach(v => {
+          const month = format(new Date(v['FECHA']), 'yyyy-MM');
+          const executive = v['EJECUTIVA DE TRADE'];
+          const key = `${month}|${executive}`;
+  
+          if (!monthExecutiveSet.has(key)) {
+              if (!executivesByMonth[month]) {
+                  executivesByMonth[month] = [];
+              }
+              executivesByMonth[month].push(executive);
+              monthExecutiveSet.add(key);
+          }
+      });
+  
+      const existingRecords = new Set(data.map(v => `${format(new Date(v['FECHA']), 'yyyy-MM')}|${v['EJECUTIVA DE TRADE']}`));
+      const overlappingExecutivesByMonth: Record<string, string[]> = {};
+      
+      for(const month in executivesByMonth) {
+          for(const executive of executivesByMonth[month]) {
+              if (existingRecords.has(`${month}|${executive}`)) {
+                  if(!overlappingExecutivesByMonth[month]) {
+                      overlappingExecutivesByMonth[month] = [];
+                  }
+                  if(!overlappingExecutivesByMonth[month].includes(executive)) {
+                      overlappingExecutivesByMonth[month].push(executive);
+                  }
+              }
+          }
+      }
+      
+      if (Object.keys(overlappingExecutivesByMonth).length > 0 && !errorMessage) {
+          setPendingData({ data: processedData, executivesByMonth: overlappingExecutivesByMonth });
+          setShowOverwriteConfirm(true);
+      } else {
+          uploadNewData(processedData);
+      }
   };
 
   const uploadNewData = async (dataToUpload: Omit<Visit, 'id'>[]) => {
@@ -127,32 +160,32 @@ export default function CronogramaTradeContent() {
   };
   
   const handleReplaceData = async () => {
-    if (!pendingData) return;
-
-    setShowOverwriteConfirm(false);
-    setLoading(true);
-    setErrorMessage(null);
-
-    try {
-        await deleteVisitsInMonths(pendingData.months);
-        await addBatchVisits(pendingData.data);
-        await refreshData();
-        toast({
-            title: 'Datos Reemplazados',
-            description: `Se han actualizado los datos para los meses correspondientes con ${pendingData.data.length} nuevos registros.`,
-        });
-    } catch (error: any) {
-        console.error("Error replacing data:", error);
-        setErrorMessage(error.message);
-        toast({
-            variant: "destructive",
-            title: "Error al Reemplazar",
-            description: "No se pudieron reemplazar los datos. Revisa el mensaje en pantalla.",
-        });
-    } finally {
-        setLoading(false);
-        setPendingData(null);
-    }
+      if (!pendingData) return;
+  
+      setShowOverwriteConfirm(false);
+      setLoading(true);
+      setErrorMessage(null);
+  
+      try {
+          await deleteVisitsInMonthsForExecutives(pendingData.executivesByMonth);
+          await addBatchVisits(pendingData.data);
+          await refreshData();
+          toast({
+              title: 'Datos Reemplazados',
+              description: `Se han actualizado los datos para las ejecutivas y meses correspondientes con ${pendingData.data.length} nuevos registros.`,
+          });
+      } catch (error: any) {
+          console.error("Error replacing data:", error);
+          setErrorMessage(error.message);
+          toast({
+              variant: "destructive",
+              title: "Error al Reemplazar",
+              description: "No se pudieron reemplazar los datos. Revisa el mensaje en pantalla.",
+          });
+      } finally {
+          setLoading(false);
+          setPendingData(null);
+      }
   };
 
   const handleReset = async () => {
@@ -415,11 +448,21 @@ export default function CronogramaTradeContent() {
         >
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>¿Desea reemplazar los datos existentes?</AlertDialogTitle>
+                    <AlertDialogTitle>¿Reemplazar datos existentes?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Ya hay información cargada para {pendingData?.months.length === 1 ? 'el mes de' : 'los meses de'}: <span className="font-semibold text-card-foreground">{pendingData?.months.map(m => capitalize(format(new Date(m + '-02'), 'MMMM yyyy', { locale: es }))).join(', ')}</span>.
-                        <br/><br/>
-                        Al continuar, se eliminarán todos los datos de {pendingData?.months.length === 1 ? 'este mes' : 'estos meses'} y se reemplazarán por los del archivo. Esta acción no se puede deshacer.
+                        Ya hay datos para las siguientes ejecutivas y meses. Si continúa, sus registros existentes para estos periodos serán <span className="font-bold text-destructive">eliminados y reemplazados</span> por los del archivo.
+                        <div className="mt-4 space-y-2 max-h-48 overflow-auto">
+                           {pendingData && Object.entries(pendingData.executivesByMonth).map(([month, executives]) => (
+                               <div key={month}>
+                                   <p className="font-semibold text-card-foreground">{capitalize(format(new Date(month + '-02'), 'MMMM yyyy', { locale: es }))}</p>
+                                   <ul className="list-disc pl-5 text-muted-foreground">
+                                       {executives.map(exec => <li key={exec}>{exec}</li>)}
+                                   </ul>
+                               </div>
+                           ))}
+                        </div>
+                         <br/>
+                        Esta acción no se puede deshacer. Las demás ejecutivas no se verán afectadas.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -448,3 +491,5 @@ export default function CronogramaTradeContent() {
     </div>
   );
 }
+
+    

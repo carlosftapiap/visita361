@@ -169,7 +169,8 @@ export const getVisits = async (): Promise<Visit[]> => {
                 )
             )
         `)
-        .order('FECHA', { ascending: false });
+        .order('FECHA', { ascending: false })
+        .limit(10000); // Set a high limit to fetch all records, adjust if needed
 
     if (error) {
         throw buildSupabaseError(error, 'lectura de visitas (getVisits)');
@@ -338,38 +339,27 @@ export const deleteAllVisits = async () => {
     }
 };
 
-export const deleteVisitsInMonths = async (months: string[]) => {
+export const deleteVisitsInMonthsForExecutives = async (executivesByMonth: Record<string, string[]>) => {
     const supabase = getSupabase();
-    
-    const filters = months.map(monthStr => {
+
+    for (const monthStr in executivesByMonth) {
+        const executives = executivesByMonth[monthStr];
+        if (!executives || executives.length === 0) continue;
+
         const dateInMonth = new Date(monthStr + '-02T12:00:00Z');
         const startDate = startOfMonth(dateInMonth).toISOString();
         const endDate = endOfMonth(dateInMonth).toISOString();
-        return `and(FECHA.gte.${startDate},FECHA.lte.${endDate})`;
-    }).join(',');
 
-    const { data: visitsToDelete, error: selectError } = await supabase
-        .from('visits')
-        .select('id')
-        .or(filters);
+        const { error } = await supabase
+            .from('visits')
+            .delete()
+            .gte('FECHA', startDate)
+            .lte('FECHA', endDate)
+            .in('EJECUTIVA DE TRADE', executives);
 
-    if (selectError) {
-        throw buildSupabaseError(selectError, 'selección para borrado por meses (deleteVisitsInMonths)');
-    }
-    
-    if (!visitsToDelete || visitsToDelete.length === 0) {
-        return;
-    }
-
-    const visitIds = visitsToDelete.map(v => v.id);
-
-    const { error: deleteError } = await supabase
-        .from('visits')
-        .delete()
-        .in('id', visitIds);
-
-    if (deleteError) {
-       throw buildSupabaseError(deleteError, 'borrado de visitas por mes (deleteVisitsInMonths)');
+        if (error) {
+            throw buildSupabaseError(error, `borrado para mes ${monthStr} y ejecutivas (deleteVisitsInMonthsForExecutives)`);
+        }
     }
 };
 
@@ -396,3 +386,6 @@ export const deleteMaterial = async (id: number) => {
         throw buildSupabaseError(error, 'eliminación de material (deleteMaterial)');
     }
 }
+
+
+    

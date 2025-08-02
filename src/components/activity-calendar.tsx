@@ -153,7 +153,7 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
               <div
                 key={day.toString()}
                 className={cn(
-                  "relative h-96 border-b border-r p-1",
+                  "relative h-[768px] border-b border-r p-1",
                    isSameDay(day, new Date()) && "bg-accent/10"
                 )}
               >

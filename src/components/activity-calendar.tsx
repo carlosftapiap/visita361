@@ -2,15 +2,17 @@
 "use client";
 
 import { useMemo, useState, useEffect } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, addMonths, subMonths, startOfWeek } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Visit } from '@/types';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { ScrollArea } from './ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
 
 interface ActivityCalendarProps {
   data: Visit[];
@@ -51,12 +53,11 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
     const firstDay = startOfMonth(currentDate);
     const lastDay = endOfMonth(currentDate);
     
-    // Start week on Monday (locale-aware)
-    const weekStartsOn = 1;
+    const weekStartsOn = 1; 
     const monthStart = startOfWeek(firstDay, { weekStartsOn });
-    const monthEnd = startOfWeek(addMonths(lastDay, 1), { weekStartsOn });
     
-    const days = eachDayOfInterval({ start: monthStart, end: addMonths(monthEnd, -1) });
+    // Ensure the grid always shows 6 weeks (42 days) for a consistent layout
+    const days = eachDayOfInterval({ start: monthStart, end: addMonths(monthStart, 2) });
     const daysInGrid = days.slice(0, 42);
 
     const execSet = new Set<string>();
@@ -78,8 +79,9 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
     const grouped: GroupedVisits = {};
     data.forEach(visit => {
       const visitDate = new Date(visit.FECHA);
-      const dayKey = format(visitDate, 'yyyy-MM-dd');
-
+      // Use UTC methods to avoid timezone shift issues when grouping by date
+      const dayKey = format(new Date(visitDate.getUTCFullYear(), visitDate.getUTCMonth(), visitDate.getUTCDate()), 'yyyy-MM-dd');
+      
       if (!grouped[dayKey]) {
         grouped[dayKey] = {};
       }
@@ -163,28 +165,29 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
                   <ScrollArea className="absolute top-8 bottom-2 left-2 right-2">
                     <div className="flex flex-col gap-2 pr-2">
                       {Object.entries(visitsForDay).map(([executive, visits]) => (
-                        <div key={executive}>
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: stringToColor(executive) }} />
-                            <p className="text-xs font-semibold truncate">{executive}</p>
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            {visits.map(visit => (
-                              <button
-                                key={visit.id}
-                                onClick={() => onEditVisit(visit)}
-                                className={cn(
-                                    "relative w-full cursor-pointer rounded-md p-1.5 text-left text-xs transition-colors hover:bg-accent",
-                                    "border-l-4"
-                                )}
-                                style={{ borderColor: stringToColor(executive) }}
-                              >
-                                <p className="font-medium truncate">{visit['ACTIVIDAD']}</p>
-                                <p className="text-muted-foreground truncate">{visit['CADENA']}</p>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                        <Collapsible key={executive} className="w-full">
+                           <CollapsibleTrigger asChild>
+                             <button className="flex items-center gap-2 mb-1 w-full text-left">
+                               <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: stringToColor(executive) }} />
+                               <p className="text-xs font-semibold truncate hover:underline">{executive}</p>
+                             </button>
+                           </CollapsibleTrigger>
+                           <CollapsibleContent>
+                             <div className="flex flex-col gap-1 pl-1">
+                               {visits.map(visit => (
+                                 <button
+                                   key={visit.id}
+                                   onClick={() => onEditVisit(visit)}
+                                   className="relative w-full cursor-pointer rounded-md p-1.5 text-left text-xs transition-colors hover:bg-accent/80 border-l-4"
+                                   style={{ borderColor: stringToColor(executive) }}
+                                 >
+                                   <p className="font-medium truncate">{visit['ACTIVIDAD']}</p>
+                                   <p className="text-muted-foreground truncate">{visit['CADENA']}</p>
+                                 </button>
+                               ))}
+                             </div>
+                           </CollapsibleContent>
+                        </Collapsible>
                       ))}
                     </div>
                   </ScrollArea>
@@ -197,5 +200,3 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
     </Card>
   );
 }
-
-    

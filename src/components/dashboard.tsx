@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltipContent } from "@/components/ui/chart";
 import KpiCard from "./kpi-card";
-import ActivityCalendar from "./activity-calendar";
 import { materialsList } from "@/lib/materials";
 import { cn } from "@/lib/utils";
 
@@ -329,16 +328,6 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
 
             {hasData ? (
                 <>
-                    <ActivityCalendar 
-                        data={data}
-                        filters={filters}
-                        onFilterChange={onFilterChange}
-                        allVisits={allVisits}
-                        onEditVisit={onEditVisit}
-                        onDeleteVisit={onDeleteVisit}
-                        isAdmin={isAdmin}
-                    />
-
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-6">
                         <Card className="shadow-lg lg:col-span-3">
                             <CardHeader>

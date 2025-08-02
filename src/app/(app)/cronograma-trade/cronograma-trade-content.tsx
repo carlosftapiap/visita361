@@ -11,6 +11,7 @@ import FileUploader from '@/components/file-uploader';
 import Dashboard from '@/components/dashboard';
 import VisitForm from '@/components/visit-form';
 import DuplicateMonthDialog from '@/components/duplicate-month-dialog';
+import ActivityCalendar from '@/components/activity-calendar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -44,6 +45,13 @@ import {
 } from '@/services/visitService';
 import { Separator } from '@/components/ui/separator';
 import { useUser } from '@/context/UserContext';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -103,7 +111,7 @@ export default function CronogramaTradeContent() {
 
   useEffect(() => {
     refreshData();
-  }, [filters]);
+  }, [refreshData, filters]);
 
   const handleFileProcessed = (processedData: Omit<Visit, 'id'>[]) => {
       if (processedData.length === 0) return;
@@ -375,16 +383,26 @@ export default function CronogramaTradeContent() {
     }
     
     return (
-        <Dashboard 
-            data={data}
-            onEditVisit={handleEditVisit}
-            onDeleteVisit={(visit) => setDeletingVisit(visit)}
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            allVisits={allTimeData}
-            isAdmin={isAdmin}
-            hasData={data.length > 0}
-        />
+        <div className="flex flex-col gap-6">
+            <Dashboard 
+                data={data}
+                onEditVisit={handleEditVisit}
+                onDeleteVisit={(visit) => setDeletingVisit(visit)}
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                allVisits={allTimeData}
+                isAdmin={isAdmin}
+                hasData={data.length > 0}
+            />
+            <ActivityCalendar
+                data={data}
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onEditVisit={handleEditVisit}
+                allVisits={allTimeData}
+                isAdmin={isAdmin}
+            />
+        </div>
     );
   };
 
@@ -547,3 +565,5 @@ export default function CronogramaTradeContent() {
     </div>
   );
 }
+
+    

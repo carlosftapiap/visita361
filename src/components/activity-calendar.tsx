@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from 'react';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isSameDay } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isSameDay, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Visit } from '@/types';
@@ -78,8 +78,8 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
   const groupedVisitsByDay = useMemo(() => {
     const grouped: GroupedVisits = {};
     data.forEach(visit => {
-      const visitDate = new Date(visit.FECHA);
-      const dayKey = format(new Date(visitDate.getUTCFullYear(), visitDate.getUTCMonth(), visitDate.getUTCDate()), 'yyyy-MM-dd');
+      const visitDate = parseISO(visit.FECHA);
+      const dayKey = format(visitDate, 'yyyy-MM-dd');
       
       if (!grouped[dayKey]) {
         grouped[dayKey] = {};
@@ -97,7 +97,9 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
     const newDate = direction === 'next' ? addWeeks(currentDate, 1) : subWeeks(currentDate, 1);
     setCurrentDate(newDate);
     // Also update the global month filter if the week crosses into a new month
-    onFilterChange('month', format(newDate, 'yyyy-MM'));
+    if (format(newDate, 'yyyy-MM') !== filters.month) {
+        onFilterChange('month', format(newDate, 'yyyy-MM'));
+    }
   };
 
   const getDayKey = (day: Date) => format(day, 'yyyy-MM-dd');

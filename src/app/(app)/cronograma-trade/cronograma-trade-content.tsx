@@ -107,11 +107,11 @@ export default function CronogramaTradeContent() {
     } finally {
       setLoading(false);
     }
-  }, [toast, filters]);
+  }, [filters, toast]);
 
   useEffect(() => {
     refreshData();
-  }, [refreshData, filters]);
+  }, [refreshData]);
 
   const handleFileProcessed = (processedData: Omit<Visit, 'id'>[]) => {
       if (processedData.length === 0) return;
@@ -565,5 +565,3 @@ export default function CronogramaTradeContent() {
     </div>
   );
 }
-
-    

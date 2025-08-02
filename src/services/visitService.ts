@@ -206,6 +206,15 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
         const materialPop: Record<string, number> = {};
         let totalCost = 0;
 
+        // Adjust for timezone offset
+        const adjustDateToLocal = (dateString: string | undefined | null): string | undefined => {
+            if (!dateString) return undefined;
+            const date = new Date(dateString);
+            const timezoneOffset = date.getTimezoneOffset() * 60000;
+            const localDate = new Date(date.getTime() + timezoneOffset);
+            return localDate.toISOString();
+        };
+
         if (Array.isArray(visit.visit_materials)) {
             visit.visit_materials.forEach((vm: any) => {
                 if (vm.materials?.name) {
@@ -220,6 +229,8 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
         const { visit_materials, ...rest } = visit;
         return {
             ...rest,
+            FECHA: adjustDateToLocal(visit.FECHA)!,
+            'FECHA DE ENTREGA DE MATERIAL': adjustDateToLocal(visit['FECHA DE ENTREGA DE MATERIAL']),
             'MATERIAL POP': materialPop,
             'total_cost': totalCost
         } as Visit;
@@ -242,8 +253,8 @@ export const getAllVisitsForDuplication = async (): Promise<Visit[]> => {
     
     const { data, error } = await supabase
         .from('visits')
-        .select('FECHA, "EJECUTIVA DE TRADE", "ASESOR COMERCIAL", "CANAL", "CADENA", "DIRECCIÓN DEL PDV", "ACTIVIDAD", "HORARIO", "CIUDAD", "ZONA", "PRESUPUESTO", "AFLUENCIA ESPERADA", "FECHA DE ENTREGA DE MATERIAL", "OBJETIVO DE LA ACTIVIDAD", "CANTIDAD DE MUESTRAS", "OBSERVACION"')
-        .range(0, count);
+        .select('*')
+        .limit(count);
 
     if (error) {
          throw buildSupabaseError(error, 'lectura de todas las visitas (getAllVisitsForDuplication)');
@@ -441,5 +452,6 @@ export const deleteMaterial = async (id: number) => {
         throw buildSupabaseError(error, 'eliminación de material (deleteMaterial)');
     }
 }
+
 
 

@@ -69,7 +69,7 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
     
     return {
       weekDays: days,
-      weekLabel: `Semana del ${startLabel} - ${endLabel}`,
+      weekLabel: `Semana del ${startLabel} al ${endLabel}`,
       allExecutives: ['all', ...Array.from(execSet).sort()],
       allAgents: ['all', ...Array.from(agentSet).sort()],
     };
@@ -142,7 +142,7 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
         <div className="grid grid-cols-7 border-t border-l">
           {weekDays.map((day) => (
             <div key={day.toString()} className="p-2 text-center font-bold text-sm border-b border-r bg-muted/50">
-              {capitalize(format(day, 'E', { locale: es }))} {format(day, 'd')}
+              <span className="hidden sm:inline">{capitalize(format(day, 'E', { locale: es }))}</span> {format(day, 'd')}
             </div>
           ))}
           {weekDays.map((day) => {
@@ -153,43 +153,39 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
               <div
                 key={day.toString()}
                 className={cn(
-                  "relative h-64 border-b border-r p-2"
+                  "relative h-96 border-b border-r p-1",
+                   isSameDay(day, new Date()) && "bg-accent/10"
                 )}
               >
-                <span className={cn("font-semibold absolute top-2 right-2", isSameDay(day, new Date()) && "text-primary font-bold")}>
-                  {/* Date number is now in the header */}
-                </span>
-                {visitsForDay && (
-                  <ScrollArea className="absolute top-2 bottom-2 left-2 right-2">
-                    <div className="flex flex-col gap-2 pr-2">
-                      {Object.entries(visitsForDay).map(([executive, visits]) => (
-                        <Collapsible key={executive} className="w-full">
-                           <CollapsibleTrigger asChild>
-                             <button className="flex items-center gap-2 mb-1 w-full text-left">
-                               <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: stringToColor(executive) }} />
-                               <p className="text-xs font-semibold truncate hover:underline">{executive}</p>
-                             </button>
-                           </CollapsibleTrigger>
-                           <CollapsibleContent>
-                             <div className="flex flex-col gap-1 pl-1">
-                               {visits.map(visit => (
-                                 <button
-                                   key={visit.id}
-                                   onClick={() => onEditVisit(visit)}
-                                   className="relative w-full cursor-pointer rounded-md p-1.5 text-left text-xs transition-colors hover:bg-accent/80 border-l-4"
-                                   style={{ borderColor: stringToColor(executive) }}
-                                 >
-                                   <p className="font-medium truncate">{visit['ACTIVIDAD']}</p>
-                                   <p className="text-muted-foreground truncate">{visit['CADENA']}</p>
-                                 </button>
-                               ))}
-                             </div>
-                           </CollapsibleContent>
-                        </Collapsible>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                )}
+                <ScrollArea className="h-full w-full">
+                  <div className="flex flex-col gap-2 p-1">
+                    {visitsForDay && Object.entries(visitsForDay).map(([executive, visits]) => (
+                      <Collapsible key={executive} className="w-full">
+                         <CollapsibleTrigger asChild>
+                           <button className="flex items-center gap-2 mb-1 w-full text-left p-1 rounded-md hover:bg-accent/50 transition-colors">
+                             <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: stringToColor(executive) }} />
+                             <p className="text-xs font-semibold truncate">{executive}</p>
+                           </button>
+                         </CollapsibleTrigger>
+                         <CollapsibleContent>
+                           <div className="flex flex-col gap-1 pl-1">
+                             {visits.map(visit => (
+                               <button
+                                 key={visit.id}
+                                 onClick={() => onEditVisit(visit)}
+                                 className="relative w-full cursor-pointer rounded-md p-1.5 text-left text-xs transition-colors hover:bg-accent/80 border-l-4"
+                                 style={{ borderColor: stringToColor(executive) }}
+                               >
+                                 <p className="font-medium truncate">{visit['ACTIVIDAD']}</p>
+                                 <p className="text-muted-foreground truncate">{visit['CADENA']}</p>
+                               </button>
+                             ))}
+                           </div>
+                         </CollapsibleContent>
+                      </Collapsible>
+                    ))}
+                  </div>
+                </ScrollArea>
               </div>
             );
           })}

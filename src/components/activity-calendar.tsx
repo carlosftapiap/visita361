@@ -136,8 +136,8 @@ export default function ActivityCalendar({
           if (!visit.FECHA) return false;
           // CORRECTED: Force both dates to be treated as UTC to prevent timezone shifts
           const visitDate = new Date(visit.FECHA);
-          const visitDateInUTC = new Date(visitDate.getUTCFullYear(), visitDate.getUTCMonth(), visitDate.getUTCDate());
-          const dayInUTC = new Date(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate());
+          const visitDateInUTC = new Date(Date.UTC(visitDate.getFullYear(), visitDate.getMonth(), visitDate.getDate()));
+          const dayInUTC = new Date(Date.UTC(day.getFullYear(), day.getMonth(), day.getDate()));
           return isSameDay(visitDateInUTC, dayInUTC);
       });
       

@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Visit } from '@/types';
@@ -43,23 +43,23 @@ type GroupedVisits = {
 };
 
 export default function ActivityCalendar({ data, allVisits, filters, onFilterChange, onEditVisit, isAdmin }: ActivityCalendarProps) {
-  const [currentDate, setCurrentDate] = useState(new Date(filters.month + '-02'));
-  
+  const [currentDate, setCurrentDate] = useState(new Date());
+
   useEffect(() => {
-    setCurrentDate(new Date(filters.month + '-02'));
+    // When the global month filter changes, reset the calendar to the start of that month.
+    const newDate = new Date(filters.month + '-02T12:00:00Z');
+    setCurrentDate(newDate);
   }, [filters.month]);
 
-  const { monthDays, monthLabel, allExecutives, allAgents } = useMemo(() => {
-    const firstDay = startOfMonth(currentDate);
-    const lastDay = endOfMonth(currentDate);
-    
-    const weekStartsOn = 1; 
-    const monthStart = startOfWeek(firstDay, { weekStartsOn });
-    
-    // Ensure the grid always shows 6 weeks (42 days) for a consistent layout
-    const days = eachDayOfInterval({ start: monthStart, end: addMonths(monthStart, 2) });
-    const daysInGrid = days.slice(0, 42);
+  const { weekDays, weekLabel, allExecutives, allAgents } = useMemo(() => {
+    const weekStartsOn = 1; // Monday
+    const firstDay = startOfWeek(currentDate, { weekStartsOn });
+    const lastDay = endOfWeek(currentDate, { weekStartsOn });
+    const days = eachDayOfInterval({ start: firstDay, end: lastDay });
 
+    const startLabel = format(firstDay, 'd MMM', { locale: es });
+    const endLabel = format(lastDay, 'd MMM yyyy', { locale: es });
+    
     const execSet = new Set<string>();
     const agentSet = new Set<string>();
     allVisits.forEach(v => {
@@ -68,8 +68,8 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
     });
     
     return {
-      monthDays: daysInGrid,
-      monthLabel: capitalize(format(currentDate, 'MMMM yyyy', { locale: es })),
+      weekDays: days,
+      weekLabel: `Semana del ${startLabel} - ${endLabel}`,
       allExecutives: ['all', ...Array.from(execSet).sort()],
       allAgents: ['all', ...Array.from(agentSet).sort()],
     };
@@ -79,7 +79,6 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
     const grouped: GroupedVisits = {};
     data.forEach(visit => {
       const visitDate = new Date(visit.FECHA);
-      // Use UTC methods to avoid timezone shift issues when grouping by date
       const dayKey = format(new Date(visitDate.getUTCFullYear(), visitDate.getUTCMonth(), visitDate.getUTCDate()), 'yyyy-MM-dd');
       
       if (!grouped[dayKey]) {
@@ -94,8 +93,10 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
     return grouped;
   }, [data]);
 
-  const handleMonthChange = (direction: 'next' | 'prev') => {
-    const newDate = direction === 'next' ? addMonths(currentDate, 1) : subMonths(currentDate, 1);
+  const handleWeekChange = (direction: 'next' | 'prev') => {
+    const newDate = direction === 'next' ? addWeeks(currentDate, 1) : subWeeks(currentDate, 1);
+    setCurrentDate(newDate);
+    // Also update the global month filter if the week crosses into a new month
     onFilterChange('month', format(newDate, 'yyyy-MM'));
   };
 
@@ -106,16 +107,15 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
       <CardHeader>
         <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
             <div>
-                <CardTitle className="font-headline text-xl">Calendario de Actividades</CardTitle>
-                <CardDescription>Vista mensual de las actividades programadas.</CardDescription>
+                <CardTitle className="font-headline text-xl">Calendario Semanal de Actividades</CardTitle>
+                <CardDescription>{weekLabel}</CardDescription>
             </div>
             <div className="flex w-full flex-col-reverse items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" onClick={() => handleMonthChange('prev')}>
+                    <Button variant="outline" size="icon" onClick={() => handleWeekChange('prev')}>
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <span className="w-32 text-center font-semibold">{monthLabel}</span>
-                    <Button variant="outline" size="icon" onClick={() => handleMonthChange('next')}>
+                    <Button variant="outline" size="icon" onClick={() => handleWeekChange('next')}>
                         <ChevronRight className="h-4 w-4" />
                     </Button>
                 </div>
@@ -140,29 +140,27 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-7 border-t border-l">
-          {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(day => (
-            <div key={day} className="p-2 text-center font-bold text-sm border-b border-r bg-muted/50">
-              {day}
+          {weekDays.map((day) => (
+            <div key={day.toString()} className="p-2 text-center font-bold text-sm border-b border-r bg-muted/50">
+              {capitalize(format(day, 'E', { locale: es }))} {format(day, 'd')}
             </div>
           ))}
-          {monthDays.map((day) => {
+          {weekDays.map((day) => {
             const dayKey = getDayKey(day);
             const visitsForDay = groupedVisitsByDay[dayKey];
-            const isCurrentMonth = format(day, 'MM') === format(currentDate, 'MM');
 
             return (
               <div
                 key={day.toString()}
                 className={cn(
-                  "relative h-64 border-b border-r p-2",
-                  !isCurrentMonth && 'bg-muted/30 text-muted-foreground'
+                  "relative h-64 border-b border-r p-2"
                 )}
               >
-                <span className={cn("font-semibold", isSameDay(day, new Date()) && "text-primary font-bold")}>
-                  {format(day, 'd')}
+                <span className={cn("font-semibold absolute top-2 right-2", isSameDay(day, new Date()) && "text-primary font-bold")}>
+                  {/* Date number is now in the header */}
                 </span>
                 {visitsForDay && (
-                  <ScrollArea className="absolute top-8 bottom-2 left-2 right-2">
+                  <ScrollArea className="absolute top-2 bottom-2 left-2 right-2">
                     <div className="flex flex-col gap-2 pr-2">
                       {Object.entries(visitsForDay).map(([executive, visits]) => (
                         <Collapsible key={executive} className="w-full">

@@ -175,7 +175,7 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
                     unit_price
                 )
             )
-        `)
+        `, { count: 'exact' })
         .order('FECHA', { ascending: true });
 
 
@@ -194,7 +194,8 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
         query = query.eq('ASESOR COMERCIAL', filters.agent);
     }
     
-    const { data: visitsData, error } = await query.limit(2000); // Fetch up to 2000 rows, adjust if needed
+    // Fetch all records matching the filter by handling pagination
+    const { data: visitsData, count, error } = await query;
 
     if (error) {
         throw buildSupabaseError(error, 'lectura de visitas (getVisits)');
@@ -440,6 +441,7 @@ export const deleteMaterial = async (id: number) => {
         throw buildSupabaseError(error, 'eliminación de material (deleteMaterial)');
     }
 }
+
 
 
 

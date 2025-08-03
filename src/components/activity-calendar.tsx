@@ -4,7 +4,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isSameDay, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { utcToZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Visit } from '@/types';
 import { Button } from './ui/button';
@@ -81,8 +81,8 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
     data.forEach(visit => {
       // IMPORTANT: Normalize dates to UTC to avoid timezone issues.
       const visitDate = parseISO(visit.FECHA);
-      const zonedDate = utcToZonedTime(visitDate, 'UTC'); // Treat date as UTC
-      const dayKey = format(zonedDate, 'yyyy-MM-dd', { timeZone: 'UTC' });
+      const zonedDate = toZonedTime(visitDate, 'UTC'); // Treat date as UTC
+      const dayKey = format(zonedDate, 'yyyy-MM-dd');
       
       if (!grouped[dayKey]) {
         grouped[dayKey] = {};
@@ -106,9 +106,7 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
   };
 
   const getDayKey = (day: Date) => {
-    // IMPORTANT: Normalize calendar day to UTC as well for consistent key matching.
-    const zonedDay = utcToZonedTime(day, 'UTC');
-    return format(zonedDay, 'yyyy-MM-dd', { timeZone: 'UTC' });
+    return format(day, 'yyyy-MM-dd');
   }
 
   return (

@@ -106,7 +106,8 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
   };
 
   const getDayKey = (day: Date) => {
-    return format(day, 'yyyy-MM-dd');
+    const zonedDay = toZonedTime(day, 'UTC');
+    return format(zonedDay, 'yyyy-MM-dd');
   }
 
   return (
@@ -201,3 +202,5 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
     </Card>
   );
 }
+
+    

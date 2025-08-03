@@ -66,6 +66,7 @@ export default function CronogramaTradeContent() {
   const [data, setData] = useState<Visit[]>([]);
   const [allTimeData, setAllTimeData] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [formState, setFormState] = useState<{ open: boolean; visit?: Visit | null }>({
     open: false,
     visit: null,
@@ -77,7 +78,6 @@ export default function CronogramaTradeContent() {
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
   const [deletingVisit, setDeletingVisit] = useState<Visit | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [filters, setFilters] = useState({
       month: format(new Date(), 'yyyy-MM'),
       trade_executive: 'all',
@@ -701,3 +701,5 @@ export default function CronogramaTradeContent() {
     </div>
   );
 }
+
+    

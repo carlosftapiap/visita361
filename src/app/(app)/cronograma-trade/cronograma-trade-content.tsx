@@ -384,6 +384,14 @@ export default function CronogramaTradeContent() {
     
     return (
         <div className="flex flex-col gap-6">
+            <ActivityCalendar
+                data={data}
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onEditVisit={handleEditVisit}
+                allVisits={allTimeData}
+                isAdmin={isAdmin}
+            />
             <Dashboard 
                 data={data}
                 onEditVisit={handleEditVisit}
@@ -393,14 +401,6 @@ export default function CronogramaTradeContent() {
                 allVisits={allTimeData}
                 isAdmin={isAdmin}
                 hasData={data.length > 0}
-            />
-            <ActivityCalendar
-                data={data}
-                filters={filters}
-                onFilterChange={handleFilterChange}
-                onEditVisit={handleEditVisit}
-                allVisits={allTimeData}
-                isAdmin={isAdmin}
             />
         </div>
     );

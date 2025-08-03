@@ -1,11 +1,13 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useContext } from 'react';
-import { Trash2, Plus, Copy, CalendarClock, AlertTriangle, RefreshCw, Loader2, Settings, User, Activity } from 'lucide-react';
+import { useState, useEffect, useCallback, useContext, useMemo } from 'react';
+import { Trash2, Plus, Copy, CalendarClock, AlertTriangle, RefreshCw, Loader2, Settings, User, Activity, Download, Filter } from 'lucide-react';
 import type { Visit } from '@/types';
-import { format } from 'date-fns';
+import { format, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 import FileUploader from '@/components/file-uploader';
 import Dashboard from '@/components/dashboard';
@@ -81,6 +83,12 @@ export default function CronogramaTradeContent() {
       trade_executive: 'all',
       agent: 'all',
   });
+  const [localFilters, setLocalFilters] = useState({
+      city: 'all',
+      activity: 'all',
+      zone: 'all',
+      chain: 'all',
+  });
 
   const { user } = useUser();
   const isAdmin = user?.email === "carlosftapiap@gmail.com";
@@ -112,6 +120,85 @@ export default function CronogramaTradeContent() {
   useEffect(() => {
     refreshData();
   }, [refreshData]);
+
+  const filteredData = useMemo(() => {
+    if (!data) return [];
+    return data.filter(visit => {
+        const cityMatch = localFilters.city === 'all' || visit['CIUDAD'] === localFilters.city;
+        const activityMatch = localFilters.activity === 'all' || visit['ACTIVIDAD'] === localFilters.activity;
+        const zoneMatch = localFilters.zone === 'all' || visit['ZONA'] === localFilters.zone;
+        const chainMatch = localFilters.chain === 'all' || visit['CADENA'] === localFilters.chain;
+        return cityMatch && activityMatch && zoneMatch && chainMatch;
+    });
+  }, [data, localFilters]);
+
+  const filterOptions = useMemo(() => {
+    const getUniqueNonEmpty = (items: (string | null | undefined)[]) => 
+        ['all', ...[...new Set(items.filter((item): item is string => !!item && item.trim() !== ''))].sort()];
+    
+    const cities = getUniqueNonEmpty(data.map(v => v['CIUDAD']));
+    const activities = getUniqueNonEmpty(data.map(v => v['ACTIVIDAD']));
+    const zones = getUniqueNonEmpty(data.map(v => v['ZONA']));
+    const chains = getUniqueNonEmpty(data.map(v => v['CADENA']));
+    
+    return { cities, activities, zones, chains };
+  }, [data]);
+  
+  const handleLocalFilterChange = (filterName: keyof typeof localFilters) => (value: string) => {
+    setLocalFilters(prev => ({ ...prev, [filterName]: value }));
+  };
+
+  const handleDownloadPdf = () => {
+    if (filteredData.length === 0) return;
+
+    const doc = new jsPDF();
+    
+    const mainTitle = "Reporte de Actividades - Visita360";
+    const date = `Fecha: ${format(new Date(), 'dd/MM/yyyy')}`;
+    const monthLabel = capitalize(format(startOfMonth(new Date(filters.month + '-02')), 'MMMM yyyy', { locale: es }));
+    
+    const filterText = `Filtros Aplicados: 
+    - Mes: ${monthLabel}
+    - Ejecutiva: ${filters.trade_executive === 'all' ? 'Todas' : filters.trade_executive}
+    - Asesor: ${filters.agent === 'all' ? 'Todos' : filters.agent}
+    - Ciudad: ${localFilters.city === 'all' ? 'Todas' : localFilters.city}
+    - Cadena: ${localFilters.chain === 'all' ? 'Todas' : localFilters.chain}
+    - Zona: ${localFilters.zone === 'all' ? 'Todas' : localFilters.zone}
+    - Actividad: ${localFilters.activity === 'all' ? 'Todas' : localFilters.activity}`;
+
+    doc.setFontSize(18);
+    doc.text(mainTitle, 14, 22);
+    doc.setFontSize(11);
+    doc.text(date, 14, 30);
+    
+    doc.setFontSize(10);
+    doc.text(filterText, 14, 38);
+
+    const tableColumn = ["Fecha", "Ejecutiva", "Asesor", "Cadena", "Actividad", "Costo Materiales", "Presupuesto"];
+    const tableRows: any[][] = [];
+
+    filteredData.forEach(visit => {
+        const visitData = [
+            visit['FECHA'] ? new Date(visit['FECHA']).toLocaleDateString('es-CO') : 'N/A',
+            visit['EJECUTIVA DE TRADE'],
+            visit['ASESOR COMERCIAL'],
+            visit['CADENA'],
+            visit['ACTIVIDAD'],
+            visit.total_cost ? visit.total_cost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : '$0',
+            visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : 'N/A'
+        ];
+        tableRows.push(visitData);
+    });
+
+    autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 70,
+        headStyles: { fillColor: [75, 0, 130] }, // Indigo
+    });
+    
+    doc.save(`Visita360_Reporte_${filters.month}.pdf`);
+  };
 
   const handleFileProcessed = (processedData: Omit<Visit, 'id'>[]) => {
       if (processedData.length === 0) return;
@@ -384,6 +471,58 @@ export default function CronogramaTradeContent() {
     
     return (
         <div className="flex flex-col gap-6">
+            <Card className="shadow-md">
+                <CardHeader>
+                    <CardTitle className="font-headline text-xl flex items-center gap-2"><Filter className="text-primary"/> Filtros del Panel</CardTitle>
+                    <CardDescription>Refine los datos para un análisis más detallado.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+                         <div>
+                            <label className="text-sm font-medium">Ciudad</label>
+                            <Select onValueChange={handleLocalFilterChange('city')} defaultValue="all" disabled={filterOptions.cities.length <= 1}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {filterOptions.cities.map(c => <SelectItem key={c} value={c}>{c === 'all' ? 'Todas las ciudades' : c}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium">Cadena</label>
+                            <Select onValueChange={handleLocalFilterChange('chain')} defaultValue="all" disabled={filterOptions.chains.length <= 1}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {filterOptions.chains.map(c => <SelectItem key={c} value={c}>{c === 'all' ? 'Todas las cadenas' : c}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                         <div>
+                            <label className="text-sm font-medium">Zona</label>
+                            <Select onValueChange={handleLocalFilterChange('zone')} defaultValue="all" disabled={filterOptions.zones.length <= 1}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {filterOptions.zones.map(z => <SelectItem key={z} value={z}>{z === 'all' ? 'Todas las zonas' : z}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium">Actividad</label>
+                            <Select onValueChange={handleLocalFilterChange('activity')} defaultValue="all" disabled={filterOptions.activities.length <= 1}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {filterOptions.activities.map(a => <SelectItem key={a} value={a}>{a === 'all' ? 'Todas las actividades' : a}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex items-end">
+                            <Button onClick={handleDownloadPdf} variant="outline" className="w-full">
+                                <Download className="mr-2 h-4 w-4" />
+                                Reporte PDF
+                            </Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
             <ActivityCalendar
                 data={data}
                 filters={filters}
@@ -393,12 +532,9 @@ export default function CronogramaTradeContent() {
                 isAdmin={isAdmin}
             />
             <Dashboard 
-                data={data}
+                data={filteredData}
                 onEditVisit={handleEditVisit}
                 onDeleteVisit={(visit) => setDeletingVisit(visit)}
-                filters={filters}
-                onFilterChange={handleFilterChange}
-                allVisits={allTimeData}
                 isAdmin={isAdmin}
                 hasData={data.length > 0}
             />

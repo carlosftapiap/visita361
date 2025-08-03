@@ -23,17 +23,10 @@ import { cn } from "@/lib/utils";
 
 interface DashboardProps {
     data: Visit[];
-    allVisits: Visit[];
     onEditVisit: (visit: Visit) => void;
     onDeleteVisit: (visit: Visit) => void;
     isAdmin: boolean;
     hasData: boolean;
-    filters: {
-        month: string;
-        trade_executive: string;
-        agent: string;
-    };
-    onFilterChange: (filterName: keyof DashboardProps['filters'], value: string) => void;
 }
 
 const chartColors = [
@@ -46,67 +39,33 @@ const chartColors = [
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit, isAdmin, hasData, filters, onFilterChange }: DashboardProps) {
-    const [localFilters, setLocalFilters] = useState({
-        city: 'all',
-        activity: 'all',
-        zone: 'all',
-        chain: 'all',
-    });
-
-    const filterOptions = useMemo(() => {
-        const getUniqueNonEmpty = (items: (string | null | undefined)[]) => 
-            ['all', ...[...new Set(items.filter((item): item is string => !!item && item.trim() !== ''))].sort()];
-        
-        const cities = getUniqueNonEmpty(data.map(v => v['CIUDAD']));
-        const activities = getUniqueNonEmpty(data.map(v => v['ACTIVIDAD']));
-        const zones = getUniqueNonEmpty(data.map(v => v['ZONA']));
-        const chains = getUniqueNonEmpty(data.map(v => v['CADENA']));
-        
-        return { cities, activities, zones, chains };
-    }, [data]);
-
-    const handleLocalFilterChange = (filterName: keyof typeof localFilters) => (value: string) => {
-        setLocalFilters(prev => ({ ...prev, [filterName]: value }));
-    };
-
-    const filteredData = useMemo(() => {
-        if (!data) return [];
-        return data.filter(visit => {
-            const cityMatch = localFilters.city === 'all' || visit['CIUDAD'] === localFilters.city;
-            const activityMatch = localFilters.activity === 'all' || visit['ACTIVIDAD'] === localFilters.activity;
-            const zoneMatch = localFilters.zone === 'all' || visit['ZONA'] === localFilters.zone;
-            const chainMatch = localFilters.chain === 'all' || visit['CADENA'] === localFilters.chain;
-            return cityMatch && activityMatch && zoneMatch && chainMatch;
-        });
-    }, [data, localFilters]);
+export default function Dashboard({ data, onEditVisit, onDeleteVisit, isAdmin, hasData }: DashboardProps) {
 
     const { totalBudget, totalMaterialCost, totalSamples } = useMemo(() => {
-        return filteredData.reduce((acc, visit) => {
+        return data.reduce((acc, visit) => {
             acc.totalBudget += visit['PRESUPUESTO'] || 0;
             acc.totalMaterialCost += visit.total_cost || 0;
             acc.totalSamples += visit['CANTIDAD DE MUESTRAS'] || 0;
             return acc;
         }, { totalBudget: 0, totalMaterialCost: 0, totalSamples: 0 });
-    }, [filteredData]);
+    }, [data]);
 
      const kpis = useMemo(() => {
-        const [year, month] = filters.month.split('-').map(Number);
-        const totalDaysInMonth = getDaysInMonth(new Date(year, month - 1));
-
         if (!data || data.length === 0) {
             return {
                 totalActivities: 0,
                 activeDays: 0,
-                freeDays: totalDaysInMonth,
+                freeDays: 30, // Default to 30, will be inaccurate if no data
                 uniqueChains: 0
             };
         }
+        
+        const firstVisitDate = new Date(data[0].FECHA);
+        const [year, month] = [firstVisitDate.getFullYear(), firstVisitDate.getMonth() + 1];
+        const totalDaysInMonth = getDaysInMonth(new Date(year, month - 1));
 
         const uniqueDays = new Set<string>();
         data.forEach(visit => {
-            // Correctly handle timezone by parsing the date string as-is (which includes timezone info)
-            // and then getting the date part. This prevents UTC conversion issues.
             const visitDate = new Date(visit.FECHA);
             const dateString = visitDate.getFullYear() + '-' + (visitDate.getMonth() + 1) + '-' + visitDate.getDate();
             uniqueDays.add(dateString);
@@ -121,16 +80,16 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
             freeDays: totalDaysInMonth - activeDays,
             uniqueChains: uniqueChains.size
         };
-    }, [data, filters.month]);
+    }, [data]);
 
     const activityCounts = useMemo(() => {
-        const counts = filteredData.reduce((acc, visit) => {
+        const counts = data.reduce((acc, visit) => {
             const activityName = visit['ACTIVIDAD'] || 'No especificada';
             acc[activityName] = (acc[activityName] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
         return Object.entries(counts).map(([name, value], index) => ({ name, value, fill: chartColors[index % chartColors.length] })).sort((a, b) => b.value - a.value);
-    }, [filteredData]);
+    }, [data]);
     
     const activityChartConfig: ChartConfig = {
       value: { label: 'Actividades' },
@@ -138,148 +97,44 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
     };
 
     const visitsPerAgent = useMemo(() => {
-        const counts = filteredData.reduce((acc, visit) => {
+        const counts = data.reduce((acc, visit) => {
             const agentName = visit['ASESOR COMERCIAL'] || 'No especificado';
             acc[agentName] = (acc[agentName] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
         return Object.entries(counts).map(([name, visits]) => ({ name, visits })).sort((a, b) => b.visits - a.visits);
-    }, [filteredData]);
+    }, [data]);
     
     const visitsPerTradeExecutive = useMemo(() => {
-        const counts = filteredData.reduce((acc, visit) => {
+        const counts = data.reduce((acc, visit) => {
             const executiveName = visit['EJECUTIVA DE TRADE'] || 'No especificada';
             acc[executiveName] = (acc[executiveName] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
         return Object.entries(counts).map(([name, value]) => ({ name, visits: value })).sort((a, b) => b.visits - a.visits);
-    }, [filteredData]);
+    }, [data]);
 
     const visitsChartConfig: ChartConfig = {
         visits: { label: "Visitas", color: "hsl(var(--primary))" },
     };
 
     const visitsPerChannel = useMemo(() => {
-        const counts = filteredData.reduce((acc, visit) => {
+        const counts = data.reduce((acc, visit) => {
             const channel = visit['CANAL'] || 'No especificado';
             acc[channel] = (acc[channel] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
         return Object.entries(counts).map(([name, value], index) => ({ name, value, fill: chartColors[index % chartColors.length] })).sort((a, b) => b.value - a.value);
-    }, [filteredData]);
+    }, [data]);
 
     const channelChartConfig: ChartConfig = {
         value: { label: 'Canales' },
         ...visitsPerChannel.reduce((acc, cur) => ({...acc, [cur.name]: {label: cur.name, color: cur.fill}}), {})
     };
 
-    const handleDownloadPdf = () => {
-        if (filteredData.length === 0) return;
-
-        const doc = new jsPDF();
-        
-        const mainTitle = "Reporte de Actividades - Visita360";
-        const date = `Fecha: ${format(new Date(), 'dd/MM/yyyy')}`;
-        const monthLabel = capitalize(format(startOfMonth(new Date(filters.month + '-02')), 'MMMM yyyy', { locale: es }));
-        
-        const filterText = `Filtros Aplicados: 
-        - Mes: ${monthLabel}
-        - Ejecutiva: ${filters.trade_executive === 'all' ? 'Todas' : filters.trade_executive}
-        - Asesor: ${filters.agent === 'all' ? 'Todos' : filters.agent}
-        - Ciudad: ${localFilters.city === 'all' ? 'Todas' : localFilters.city}
-        - Cadena: ${localFilters.chain === 'all' ? 'Todas' : localFilters.chain}
-        - Zona: ${localFilters.zone === 'all' ? 'Todas' : localFilters.zone}
-        - Actividad: ${localFilters.activity === 'all' ? 'Todas' : localFilters.activity}`;
-
-        doc.setFontSize(18);
-        doc.text(mainTitle, 14, 22);
-        doc.setFontSize(11);
-        doc.text(date, 14, 30);
-        
-        doc.setFontSize(10);
-        doc.text(filterText, 14, 38);
-
-        const tableColumn = ["Fecha", "Ejecutiva", "Asesor", "Cadena", "Actividad", "Costo Materiales", "Presupuesto"];
-        const tableRows: any[][] = [];
-
-        filteredData.forEach(visit => {
-            const visitData = [
-                visit['FECHA'] ? new Date(visit['FECHA']).toLocaleDateString('es-CO') : 'N/A',
-                visit['EJECUTIVA DE TRADE'],
-                visit['ASESOR COMERCIAL'],
-                visit['CADENA'],
-                visit['ACTIVIDAD'],
-                visit.total_cost ? visit.total_cost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : '$0',
-                visit['PRESUPUESTO'] ? visit['PRESUPUESTO'].toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) : 'N/A'
-            ];
-            tableRows.push(visitData);
-        });
-
-        autoTable(doc, {
-            head: [tableColumn],
-            body: tableRows,
-            startY: 70,
-            headStyles: { fillColor: [75, 0, 130] }, // Indigo
-        });
-        
-        doc.save(`Visita360_Reporte_${filters.month}.pdf`);
-    };
 
     return (
         <div className="flex flex-col gap-6">
-            <Card className="shadow-md">
-                <CardHeader>
-                    <CardTitle className="font-headline text-xl flex items-center gap-2"><Filter className="text-primary"/> Filtros del Panel</CardTitle>
-                    <CardDescription>Refine los datos para un análisis más detallado.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-                         <div>
-                            <label className="text-sm font-medium">Ciudad</label>
-                            <Select onValueChange={handleLocalFilterChange('city')} defaultValue="all" disabled={filterOptions.cities.length <= 1}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {filterOptions.cities.map(c => <SelectItem key={c} value={c}>{c === 'all' ? 'Todas las ciudades' : c}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium">Cadena</label>
-                            <Select onValueChange={handleLocalFilterChange('chain')} defaultValue="all" disabled={filterOptions.chains.length <= 1}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {filterOptions.chains.map(c => <SelectItem key={c} value={c}>{c === 'all' ? 'Todas las cadenas' : c}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                         <div>
-                            <label className="text-sm font-medium">Zona</label>
-                            <Select onValueChange={handleLocalFilterChange('zone')} defaultValue="all" disabled={filterOptions.zones.length <= 1}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {filterOptions.zones.map(z => <SelectItem key={z} value={z}>{z === 'all' ? 'Todas las zonas' : z}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium">Actividad</label>
-                            <Select onValueChange={handleLocalFilterChange('activity')} defaultValue="all" disabled={filterOptions.activities.length <= 1}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {filterOptions.activities.map(a => <SelectItem key={a} value={a}>{a === 'all' ? 'Todas las actividades' : a}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="flex items-end">
-                            <Button onClick={handleDownloadPdf} variant="outline" className="w-full">
-                                <Download className="mr-2 h-4 w-4" />
-                                Reporte PDF
-                            </Button>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <Card className="shadow-lg relative overflow-hidden bg-gradient-to-br from-primary to-accent text-primary-foreground">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -418,7 +273,7 @@ export default function Dashboard({ data, allVisits, onEditVisit, onDeleteVisit,
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {filteredData.length > 0 ? filteredData.map(visit => (
+                                        {data.length > 0 ? data.map(visit => (
                                             <TableRow key={visit.id}>
                                                 <TableCell>{visit['FECHA'] ? new Date(visit['FECHA']).toLocaleDateString('es-CO') : 'N/A'}</TableCell>
                                                 <TableCell>{visit['EJECUTIVA DE TRADE']}</TableCell>

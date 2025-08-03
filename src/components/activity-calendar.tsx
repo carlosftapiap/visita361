@@ -4,6 +4,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isSameDay, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { utcToZonedTime } from 'date-fns-tz';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Visit } from '@/types';
 import { Button } from './ui/button';
@@ -78,8 +79,10 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
   const groupedVisitsByDay = useMemo(() => {
     const grouped: GroupedVisits = {};
     data.forEach(visit => {
+      // IMPORTANT: Normalize dates to UTC to avoid timezone issues.
       const visitDate = parseISO(visit.FECHA);
-      const dayKey = format(visitDate, 'yyyy-MM-dd');
+      const zonedDate = utcToZonedTime(visitDate, 'UTC'); // Treat date as UTC
+      const dayKey = format(zonedDate, 'yyyy-MM-dd', { timeZone: 'UTC' });
       
       if (!grouped[dayKey]) {
         grouped[dayKey] = {};
@@ -102,7 +105,11 @@ export default function ActivityCalendar({ data, allVisits, filters, onFilterCha
     }
   };
 
-  const getDayKey = (day: Date) => format(day, 'yyyy-MM-dd');
+  const getDayKey = (day: Date) => {
+    // IMPORTANT: Normalize calendar day to UTC as well for consistent key matching.
+    const zonedDay = utcToZonedTime(day, 'UTC');
+    return format(zonedDay, 'yyyy-MM-dd', { timeZone: 'UTC' });
+  }
 
   return (
     <Card className="shadow-lg">

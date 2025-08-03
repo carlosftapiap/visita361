@@ -177,7 +177,7 @@ export default function Dashboard({ data, onEditVisit, onDeleteVisit, isAdmin, h
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
                 <KpiCard icon={Activity} title="Total de Actividades" value={kpis.totalActivities} description="Registros en el periodo filtrado"/>
                 <KpiCard icon={CalendarDays} title="Días con Actividad" value={kpis.activeDays} description="Días únicos con al menos un registro"/>
-                <KpiCard icon={CalendarOff} title="Días Libres" value={kpis.freeDays} description="Días del mes sin actividad"/>
+                <KpiCard icon={CalendarOff} title="Días Libres" value={kpis.freeDays} description="Días del mes sin actividad registrada"/>
                 <KpiCard icon={Building} title="Cadenas Únicas" value={kpis.uniqueChains} description="Cadenas distintas visitadas"/>
             </div>
 

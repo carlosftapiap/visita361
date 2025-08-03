@@ -176,8 +176,7 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
                 )
             )
         `)
-        .order('FECHA', { ascending: true })
-        .limit(2000);
+        .order('FECHA', { ascending: true });
 
 
     if (filters.month) {
@@ -195,7 +194,7 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
         query = query.eq('ASESOR COMERCIAL', filters.agent);
     }
     
-    const { data: visitsData, error } = await query;
+    const { data: visitsData, error } = await query.limit(2000); // Fetch up to 2000 rows, adjust if needed
 
     if (error) {
         throw buildSupabaseError(error, 'lectura de visitas (getVisits)');
@@ -205,15 +204,6 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
     const transformedData = visitsData.map(visit => {
         const materialPop: Record<string, number> = {};
         let totalCost = 0;
-
-        // Adjust for timezone offset
-        const adjustDateToLocal = (dateString: string | undefined | null): string | undefined => {
-            if (!dateString) return undefined;
-            const date = new Date(dateString);
-            const timezoneOffset = date.getTimezoneOffset() * 60000;
-            const localDate = new Date(date.getTime() + timezoneOffset);
-            return localDate.toISOString();
-        };
 
         if (Array.isArray(visit.visit_materials)) {
             visit.visit_materials.forEach((vm: any) => {
@@ -229,8 +219,6 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
         const { visit_materials, ...rest } = visit;
         return {
             ...rest,
-            FECHA: adjustDateToLocal(visit.FECHA)!,
-            'FECHA DE ENTREGA DE MATERIAL': adjustDateToLocal(visit['FECHA DE ENTREGA DE MATERIAL']),
             'MATERIAL POP': materialPop,
             'total_cost': totalCost
         } as Visit;
@@ -254,7 +242,7 @@ export const getAllVisitsForDuplication = async (): Promise<Visit[]> => {
     const { data, error } = await supabase
         .from('visits')
         .select('*')
-        .limit(count);
+        .range(0, count - 1); // Use range to fetch all rows
 
     if (error) {
          throw buildSupabaseError(error, 'lectura de todas las visitas (getAllVisitsForDuplication)');
@@ -452,6 +440,7 @@ export const deleteMaterial = async (id: number) => {
         throw buildSupabaseError(error, 'eliminación de material (deleteMaterial)');
     }
 }
+
 
 
 

@@ -164,7 +164,32 @@ interface VisitFilters {
 export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
     const supabase = getSupabase();
     
-    let query = supabase
+    let countQuery = supabase
+        .from('visits')
+        .select('*', { count: 'exact', head: true });
+
+    if (filters.month) {
+        const monthDate = parse(filters.month, 'yyyy-MM', new Date());
+        const startDate = startOfMonth(monthDate).toISOString();
+        const endDate = endOfMonth(monthDate).toISOString();
+        countQuery = countQuery.gte('FECHA', startDate).lte('FECHA', endDate);
+    }
+    
+    if (filters.trade_executive && filters.trade_executive !== 'all') {
+        countQuery = countQuery.eq('EJECUTIVA DE TRADE', filters.trade_executive);
+    }
+    
+    if (filters.agent && filters.agent !== 'all') {
+        countQuery = countQuery.eq('ASESOR COMERCIAL', filters.agent);
+    }
+    
+    const { count, error: countError } = await countQuery;
+    if (countError) {
+        throw buildSupabaseError(countError, 'conteo de visitas (getVisits)');
+    }
+    if (!count) return [];
+
+    let dataQuery = supabase
         .from('visits')
         .select(`
             *,
@@ -175,33 +200,24 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
                     unit_price
                 )
             )
-        `, { count: 'exact' });
+        `);
 
     if (filters.month) {
         const monthDate = parse(filters.month, 'yyyy-MM', new Date());
         const startDate = startOfMonth(monthDate).toISOString();
         const endDate = endOfMonth(monthDate).toISOString();
-        query = query.gte('FECHA', startDate).lte('FECHA', endDate);
+        dataQuery = dataQuery.gte('FECHA', startDate).lte('FECHA', endDate);
     }
-    
     if (filters.trade_executive && filters.trade_executive !== 'all') {
-        query = query.eq('EJECUTIVA DE TRADE', filters.trade_executive);
+        dataQuery = dataQuery.eq('EJECUTIVA DE TRADE', filters.trade_executive);
     }
-    
     if (filters.agent && filters.agent !== 'all') {
-        query = query.eq('ASESOR COMERCIAL', filters.agent);
+        dataQuery = dataQuery.eq('ASESOR COMERCIAL', filters.agent);
     }
     
-    const { count, error: countError } = await query;
-    if (countError) {
-        throw buildSupabaseError(countError, 'conteo de visitas (getVisits)');
-    }
-    if (!count) return [];
-
-    const { data: visitsData, error } = await query
+    const { data: visitsData, error } = await dataQuery
         .order('FECHA', { ascending: true })
         .range(0, count -1);
-
 
     if (error) {
         throw buildSupabaseError(error, 'lectura de visitas (getVisits)');
@@ -447,6 +463,7 @@ export const deleteMaterial = async (id: number) => {
         throw buildSupabaseError(error, 'eliminación de material (deleteMaterial)');
     }
 }
+
 
 
 

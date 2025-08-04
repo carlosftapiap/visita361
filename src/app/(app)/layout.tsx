@@ -97,7 +97,7 @@ export default function AppLayout({
                               <path d="M16.002 4.00098H20.0024V8.00149H16.002V4.00098Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
                           <span className="font-headline text-2xl font-bold text-primary group-data-[collapsible=icon]:hidden">
-                              VisitaTrade
+                              PlanVisitas
                           </span>
                       </div>
                   </SidebarHeader>

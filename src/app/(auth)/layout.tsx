@@ -1,3 +1,4 @@
+
 export default function AuthLayout({
   children,
 }: {
@@ -13,7 +14,7 @@ export default function AuthLayout({
             <path d="M16.002 4.00098H20.0024V8.00149H16.002V4.00098Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
         <h1 className="font-headline text-4xl font-bold text-primary">
-            VisitaTrade
+            PlanVisitas
         </h1>
       </div>
       {children}

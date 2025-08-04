@@ -1,9 +1,10 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'VisitaTrade',
+  title: 'PlanVisitas',
   description: 'Análisis de datos de visitas de agentes de trade.',
 };
 

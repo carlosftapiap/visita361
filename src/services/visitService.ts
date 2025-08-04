@@ -463,10 +463,3 @@ export const deleteMaterial = async (id: number) => {
         throw buildSupabaseError(error, 'eliminación de material (deleteMaterial)');
     }
 }
-
-
-
-
-
-
-

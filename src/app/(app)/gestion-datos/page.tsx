@@ -6,7 +6,7 @@ import { Database, AlertTriangle, Loader2, RefreshCw, Calendar, User, Package } 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Visit } from '@/types';
-import { getVisits } from '@/services/visitService';
+import { getAllVisitsForDuplication as getAllVisits } from '@/services/visitService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -27,7 +27,8 @@ export default function GestionDatosPage() {
         setLoading(true);
         setError(null);
         try {
-            const data = await getVisits({}); // Fetch all visits without filters
+            // Use the corrected function that fetches all data
+            const data = await getAllVisits(); 
             setVisits(data);
         } catch (err: any) {
             setError(err.message || "Ocurrió un error desconocido.");

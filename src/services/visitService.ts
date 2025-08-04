@@ -175,9 +175,7 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
                     unit_price
                 )
             )
-        `, { count: 'exact' })
-        .order('FECHA', { ascending: true });
-
+        `, { count: 'exact' });
 
     if (filters.month) {
         const monthDate = parse(filters.month, 'yyyy-MM', new Date());
@@ -194,8 +192,16 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
         query = query.eq('ASESOR COMERCIAL', filters.agent);
     }
     
-    // Fetch all records matching the filter by handling pagination
-    const { data: visitsData, count, error } = await query;
+    const { count, error: countError } = await query;
+    if (countError) {
+        throw buildSupabaseError(countError, 'conteo de visitas (getVisits)');
+    }
+    if (!count) return [];
+
+    const { data: visitsData, error } = await query
+        .order('FECHA', { ascending: true })
+        .range(0, count -1);
+
 
     if (error) {
         throw buildSupabaseError(error, 'lectura de visitas (getVisits)');
@@ -441,6 +447,7 @@ export const deleteMaterial = async (id: number) => {
         throw buildSupabaseError(error, 'eliminación de material (deleteMaterial)');
     }
 }
+
 
 
 

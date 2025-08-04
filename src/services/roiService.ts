@@ -11,10 +11,21 @@ const buildSupabaseError = (error: any, context: string): Error => {
 
 export const getRoiCampaigns = async (): Promise<RoiCampaign[]> => {
     const supabase = getSupabase();
+    // Get total count to bypass the 1000-row limit
+    const { count, error: countError } = await supabase
+        .from('roi_campaigns')
+        .select('*', { count: 'exact', head: true });
+
+    if (countError) {
+        throw buildSupabaseError(countError, 'conteo de campañas ROI');
+    }
+    if (!count) return [];
+
     const { data, error } = await supabase
         .from('roi_campaigns')
         .select('*')
-        .order('start_date', { ascending: false });
+        .order('start_date', { ascending: false })
+        .range(0, count - 1);
 
     if (error) {
         throw buildSupabaseError(error, 'lectura de campañas ROI');

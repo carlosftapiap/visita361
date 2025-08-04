@@ -11,26 +11,33 @@ const buildSupabaseError = (error: any, context: string): Error => {
 
 export const getRoiCampaigns = async (): Promise<RoiCampaign[]> => {
     const supabase = getSupabase();
-    // Get total count to bypass the 1000-row limit
-    const { count, error: countError } = await supabase
-        .from('roi_campaigns')
-        .select('*', { count: 'exact', head: true });
+    const PAGE_SIZE = 1000;
+    let allCampaigns: any[] = [];
+    let from = 0;
+    let hasMore = true;
 
-    if (countError) {
-        throw buildSupabaseError(countError, 'conteo de campañas ROI');
+    while(hasMore) {
+        const { data: pageData, error } = await supabase
+            .from('roi_campaigns')
+            .select('*')
+            .order('start_date', { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+
+        if (error) {
+            throw buildSupabaseError(error, 'lectura paginada de campañas ROI');
+        }
+
+        if (pageData && pageData.length > 0) {
+            allCampaigns = allCampaigns.concat(pageData);
+            from += pageData.length;
+        }
+
+        if (!pageData || pageData.length < PAGE_SIZE) {
+            hasMore = false;
+        }
     }
-    if (!count) return [];
-
-    const { data, error } = await supabase
-        .from('roi_campaigns')
-        .select('*')
-        .order('start_date', { ascending: false })
-        .range(0, count - 1);
-
-    if (error) {
-        throw buildSupabaseError(error, 'lectura de campañas ROI');
-    }
-    return data || [];
+    
+    return allCampaigns || [];
 };
 
 type NewCampaignData = Omit<RoiCampaign, 'id' | 'roi'>;

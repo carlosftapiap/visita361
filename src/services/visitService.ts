@@ -163,68 +163,59 @@ interface VisitFilters {
 
 export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
     const supabase = getSupabase();
-    
-    let countQuery = supabase
-        .from('visits')
-        .select('*', { count: 'exact', head: true });
+    const PAGE_SIZE = 1000;
+    let allVisits: any[] = [];
+    let from = 0;
+    let hasMore = true;
 
-    if (filters.month) {
-        const monthDate = parse(filters.month, 'yyyy-MM', new Date());
-        const startDate = startOfMonth(monthDate).toISOString();
-        const endDate = endOfMonth(monthDate).toISOString();
-        countQuery = countQuery.gte('FECHA', startDate).lte('FECHA', endDate);
-    }
-    
-    if (filters.trade_executive && filters.trade_executive !== 'all') {
-        countQuery = countQuery.eq('EJECUTIVA DE TRADE', filters.trade_executive);
-    }
-    
-    if (filters.agent && filters.agent !== 'all') {
-        countQuery = countQuery.eq('ASESOR COMERCIAL', filters.agent);
-    }
-    
-    const { count, error: countError } = await countQuery;
-    if (countError) {
-        throw buildSupabaseError(countError, 'conteo de visitas (getVisits)');
-    }
-    if (!count) return [];
-
-    let dataQuery = supabase
-        .from('visits')
-        .select(`
-            *,
-            visit_materials (
-                quantity,
-                materials (
-                    name,
-                    unit_price
+    while(hasMore) {
+        let query = supabase
+            .from('visits')
+            .select(`
+                *,
+                visit_materials (
+                    quantity,
+                    materials (
+                        name,
+                        unit_price
+                    )
                 )
-            )
-        `);
+            `);
 
-    if (filters.month) {
-        const monthDate = parse(filters.month, 'yyyy-MM', new Date());
-        const startDate = startOfMonth(monthDate).toISOString();
-        const endDate = endOfMonth(monthDate).toISOString();
-        dataQuery = dataQuery.gte('FECHA', startDate).lte('FECHA', endDate);
-    }
-    if (filters.trade_executive && filters.trade_executive !== 'all') {
-        dataQuery = dataQuery.eq('EJECUTIVA DE TRADE', filters.trade_executive);
-    }
-    if (filters.agent && filters.agent !== 'all') {
-        dataQuery = dataQuery.eq('ASESOR COMERCIAL', filters.agent);
+        if (filters.month) {
+            const monthDate = parse(filters.month, 'yyyy-MM', new Date());
+            const startDate = startOfMonth(monthDate).toISOString();
+            const endDate = endOfMonth(monthDate).toISOString();
+            query = query.gte('FECHA', startDate).lte('FECHA', endDate);
+        }
+        if (filters.trade_executive && filters.trade_executive !== 'all') {
+            query = query.eq('EJECUTIVA DE TRADE', filters.trade_executive);
+        }
+        if (filters.agent && filters.agent !== 'all') {
+            query = query.eq('ASESOR COMERCIAL', filters.agent);
+        }
+
+        const { data: pageData, error } = await query
+            .order('FECHA', { ascending: true })
+            .range(from, from + PAGE_SIZE - 1);
+
+        if (error) {
+            throw buildSupabaseError(error, 'lectura paginada de visitas (getVisits)');
+        }
+
+        if (pageData && pageData.length > 0) {
+            allVisits = allVisits.concat(pageData);
+            from += pageData.length;
+        }
+
+        if (!pageData || pageData.length < PAGE_SIZE) {
+            hasMore = false;
+        }
     }
     
-    const { data: visitsData, error } = await dataQuery
-        .order('FECHA', { ascending: true })
-        .range(0, count -1);
-
-    if (error) {
-        throw buildSupabaseError(error, 'lectura de visitas (getVisits)');
-    }
-    if (!visitsData) return [];
+    if (!allVisits.length) return [];
     
-    const transformedData = visitsData.map(visit => {
+    const transformedData = allVisits.map(visit => {
         const materialPop: Record<string, number> = {};
         let totalCost = 0;
 
@@ -252,25 +243,32 @@ export const getVisits = async (filters: VisitFilters): Promise<Visit[]> => {
 
 export const getAllVisitsForDuplication = async (): Promise<Visit[]> => {
     const supabase = getSupabase();
-    // Get the total count first to override the 1000 row limit
-    const { count, error: countError } = await supabase.from('visits').select('*', { count: 'exact', head: true });
-
-    if (countError) {
-        throw buildSupabaseError(countError, 'conteo de visitas (getAllVisitsForDuplication)');
-    }
-    if (!count) {
-        return [];
-    }
+    const PAGE_SIZE = 1000;
+    let allData: any[] = [];
+    let from = 0;
+    let hasMore = true;
     
-    const { data, error } = await supabase
-        .from('visits')
-        .select('*')
-        .range(0, count - 1); // Use range to fetch all rows
+    while(hasMore) {
+        const { data, error } = await supabase
+            .from('visits')
+            .select('*')
+            .range(from, from + PAGE_SIZE - 1);
 
-    if (error) {
-         throw buildSupabaseError(error, 'lectura de todas las visitas (getAllVisitsForDuplication)');
+        if (error) {
+            throw buildSupabaseError(error, 'lectura paginada de todas las visitas (getAllVisitsForDuplication)');
+        }
+
+        if (data && data.length > 0) {
+            allData = allData.concat(data);
+            from += data.length;
+        }
+
+        if (!data || data.length < PAGE_SIZE) {
+            hasMore = false;
+        }
     }
-    return (data || []) as Visit[];
+
+    return (allData || []) as Visit[];
 }
 
 export const getVisitMaterials = async (): Promise<VisitMaterial[]> => {
